@@ -642,11 +642,16 @@ app.get('/api/redis-test', async (req, res) => {
     }
     
     const testResult = await redis.get('session:arioneo-main-session');
+    
+    // Test what getSession returns
+    const sessionResult = await getSession('arioneo-main-session');
+    
     res.json({ 
       keyExists: !!testResult,
       dataType: typeof testResult,
-      dataLength: testResult ? (typeof testResult === 'string' ? testResult.length : 'not a string') : 0,
-      firstChars: testResult ? (typeof testResult === 'string' ? testResult.substring(0, 100) : JSON.stringify(testResult).substring(0, 100)) : null
+      rawData: testResult,
+      getSessionResult: sessionResult ? 'success' : 'failed',
+      getSessionData: sessionResult ? { id: sessionResult.id, fileName: sessionResult.fileName } : null
     });
   } catch (error) {
     res.json({ error: error.message });
