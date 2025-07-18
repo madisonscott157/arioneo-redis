@@ -530,7 +530,12 @@ app.get('/api/debug', (req, res) => {
     headers: req.headers,
     protocol: req.protocol,
     secure: req.secure,
-    host: req.get('host')
+    host: req.get('host'),
+    allEnvVars: Object.keys(process.env).filter(key => key.includes('KV') || key.includes('REDIS') || key.includes('UPSTASH')),
+    specificEnvs: {
+      KV_REST_API_URL: process.env.KV_REST_API_URL ? 'exists' : 'missing',
+      KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'exists' : 'missing'
+    }
   });
 });
 
