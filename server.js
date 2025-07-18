@@ -521,10 +521,7 @@ app.get('/api/latest', async (req, res) => {
   }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+// Basic health check removed - using enhanced version below
 
 // Debug route
 app.get('/api/debug', (req, res) => {
