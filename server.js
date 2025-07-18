@@ -632,5 +632,23 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Debug endpoint to test Redis directly
+app.get('/api/redis-test', async (req, res) => {
+  try {
+    if (!redis) {
+      return res.json({ error: 'Redis not connected' });
+    }
+    
+    const testResult = await redis.get('session:arioneo-main-session');
+    res.json({ 
+      keyExists: !!testResult,
+      dataLength: testResult ? testResult.length : 0,
+      firstChars: testResult ? testResult.substring(0, 100) : null
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
+});
+
 // Export for Vercel
 module.exports = app;
