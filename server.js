@@ -113,7 +113,9 @@ async function getSession(sessionId) {
   try {
     // Try Redis first (persistent storage)
     if (redis) {
+      console.log('Trying to get session from Redis:', sessionId);
       const redisResult = await redis.get(`session:${sessionId}`);
+      console.log('Redis result:', redisResult ? 'found' : 'not found');
       if (redisResult) {
         const result = JSON.parse(redisResult);
         console.log('Session retrieved from Redis:', sessionId);
