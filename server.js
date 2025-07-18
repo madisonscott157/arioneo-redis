@@ -117,7 +117,8 @@ async function getSession(sessionId) {
       const redisResult = await redis.get(`session:${sessionId}`);
       console.log('Redis result:', redisResult ? 'found' : 'not found');
       if (redisResult) {
-        const result = JSON.parse(redisResult);
+        // Upstash Redis auto-parses JSON, so check if it's already an object
+        const result = typeof redisResult === 'string' ? JSON.parse(redisResult) : redisResult;
         console.log('Session retrieved from Redis:', sessionId);
         // Update memory cache
         global.sessionStorage.set(sessionId, result);
@@ -146,7 +147,8 @@ async function getLatestSession() {
     if (redis) {
       const redisResult = await redis.get('latest_session');
       if (redisResult) {
-        const result = JSON.parse(redisResult);
+        // Upstash Redis auto-parses JSON, so check if it's already an object
+        const result = typeof redisResult === 'string' ? JSON.parse(redisResult) : redisResult;
         console.log('Latest session retrieved from Redis');
         // Update memory cache
         global.latestSession = result;
