@@ -1771,7 +1771,7 @@
             }
         }
         
-        // Move lost numbers completely below all content
+        // Position lost numbers based on screen size
         setTimeout(() => {
             const lostNumbers = document.querySelector('.lost-numbers');
             if (lostNumbers) {
@@ -1782,25 +1782,46 @@
                 const newLostNumbers = document.createElement('div');
                 newLostNumbers.className = 'lost-numbers';
                 newLostNumbers.textContent = '4 8 15 16 23 42';
-                newLostNumbers.style.cssText = `
-                    position: relative !important;
-                    text-align: right !important;
-                    padding: 8px 15px 6px 0 !important;
-                    margin: 3px 0 0 0 !important;
-                    font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
-                    font-size: 11px !important;
-                    color: #6a9a7b !important;
-                    opacity: 0.75 !important;
-                    font-weight: normal !important;
-                    letter-spacing: 2px !important;
-                    user-select: none !important;
-                    pointer-events: none !important;
-                    background: transparent !important;
-                `;
                 
-                // Add to very end of body
-                document.body.appendChild(newLostNumbers);
-                console.log('Lost numbers moved below all content');
+                if (window.innerWidth <= 1024) {
+                    // Mobile: below table
+                    newLostNumbers.style.cssText = `
+                        position: relative !important;
+                        text-align: right !important;
+                        padding: 8px 15px 6px 0 !important;
+                        margin: 3px 0 0 0 !important;
+                        font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                        font-size: 11px !important;
+                        color: #6a9a7b !important;
+                        opacity: 0.75 !important;
+                        font-weight: normal !important;
+                        letter-spacing: 2px !important;
+                        user-select: none !important;
+                        pointer-events: none !important;
+                        background: transparent !important;
+                    `;
+                    document.body.appendChild(newLostNumbers);
+                } else {
+                    // Desktop: fixed at bottom right
+                    newLostNumbers.style.cssText = `
+                        position: fixed !important;
+                        bottom: 10px !important;
+                        right: 15px !important;
+                        font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                        font-size: 11px !important;
+                        color: #6a9a7b !important;
+                        opacity: 0.75 !important;
+                        font-weight: normal !important;
+                        letter-spacing: 2px !important;
+                        user-select: none !important;
+                        pointer-events: none !important;
+                        background: transparent !important;
+                        z-index: 1000 !important;
+                    `;
+                    document.body.appendChild(newLostNumbers);
+                }
+                
+                console.log('Lost numbers positioned for', window.innerWidth <= 1024 ? 'mobile' : 'desktop');
             }
         }, 200);
 
