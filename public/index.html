@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Training Data</title>
+    <title>Daily Training Data - TEST UPDATE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -668,7 +668,7 @@
     <div class="container" id="mainView">
         <div class="header">
             <h1>Daily Training Data</h1>
-            <p style="font-size: 1.6em; margin: -5px 0 5px 0;">🚀</p>
+            <p style="font-size: 1.6em; margin: -5px 0 5px 0;">🐍</p>
             <p>Analyze horse performance data with interactive sorting and filtering</p>
         </div>
 
@@ -2021,6 +2021,291 @@
                 document.body.removeChild(dialog);
             }
         }
+
+        // Mobile-specific styling and enhancements
+        function applyMobileStyles() {
+            // Debug logging
+            console.log('Window width:', window.innerWidth);
+            console.log('Applying mobile styles...');
+            
+            // Check if we're on mobile (increase threshold to catch more devices)
+            if (window.innerWidth <= 1024) {
+                console.log('Mobile detected, applying styles...');
+                // Add visible indicator that mobile styles are active
+                document.body.style.border = '3px solid red';
+                
+                // Header styling
+                const header = document.querySelector('.header');
+                if (header) {
+                    header.style.padding = '15px 10px';
+                    header.style.border = '2px solid blue'; // Visual indicator
+                    console.log('Header styled');
+                }
+                
+                const headerH1 = document.querySelector('.header h1');
+                if (headerH1) {
+                    headerH1.style.fontSize = '1.4em';
+                }
+                
+                const headerP = document.querySelector('.header p');
+                if (headerP) {
+                    headerP.style.fontSize = '0.9em';
+                }
+                
+                // Controls styling - make much more compact (but don't change layout)
+                const controls = document.querySelector('.controls');
+                if (controls) {
+                    controls.style.padding = '8px';
+                    controls.style.gap = '4px';
+                    controls.style.marginBottom = '2px';
+                    // Don't change display or grid - keep original flex layout
+                }
+                
+                // Control groups - make more compact
+                const controlGroups = document.querySelectorAll('.control-group');
+                controlGroups.forEach((group, index) => {
+                    group.style.marginBottom = '1px';
+                    group.style.gap = '1px';
+                });
+                
+                // Labels styling - more compact
+                const labels = document.querySelectorAll('.control-group label');
+                labels.forEach(label => {
+                    label.style.fontSize = '0.75em';
+                    label.style.marginBottom = '2px';
+                    label.style.lineHeight = '1.2';
+                });
+                
+                // Select and input styling - much more compact
+                const selects = document.querySelectorAll('select, input[type="text"]');
+                selects.forEach(element => {
+                    element.style.padding = '6px 8px';
+                    element.style.fontSize = '14px';
+                    element.style.height = '32px';
+                    element.style.lineHeight = '1.2';
+                    element.style.marginBottom = '4px';
+                    
+                    // Make text inputs smaller, but horse filter gets full width
+                    if (element.type === 'text' || element.tagName === 'INPUT') {
+                        if (element.id === 'horseFilter') {
+                            element.style.width = '100%'; // Full width for horse filter
+                            element.style.maxWidth = '100%';
+                        } else {
+                            element.style.width = '100px';
+                            element.style.maxWidth = '100px';
+                        }
+                    }
+                });
+                
+                // Button styling - much more compact (but skip file upload button)
+                const buttons = document.querySelectorAll('.export-btn, .back-button');
+                buttons.forEach(button => {
+                    button.style.padding = '6px 10px';
+                    button.style.fontSize = '13px';
+                    button.style.minHeight = '30px';
+                    button.style.height = '30px';
+                    button.style.lineHeight = '1.2';
+                    button.style.marginBottom = '4px';
+                });
+                
+                // Don't modify file upload button at all - leave it exactly as original
+                
+                // Main page controls layout - put upload and export side by side
+                const mainControls = document.querySelector('#mainView .controls');
+                if (mainControls) {
+                    // Find upload and export button containers
+                    const uploadGroup = Array.from(mainControls.children).find(child => child.querySelector('.file-label'));
+                    const exportGroup = Array.from(mainControls.children).find(child => child.querySelector('#exportCsv'));
+                    
+                    if (uploadGroup && exportGroup) {
+                        // Create a flex container for upload and export only
+                        const buttonRow = document.createElement('div');
+                        buttonRow.style.display = 'flex';
+                        buttonRow.style.gap = '8px';
+                        buttonRow.style.marginBottom = '0px';
+                        buttonRow.style.width = '100%';
+                        
+                        // Make both buttons flex equally
+                        uploadGroup.style.flex = '1';
+                        exportGroup.style.flex = '1';
+                        
+                        // Move buttons into the row
+                        buttonRow.appendChild(uploadGroup);
+                        buttonRow.appendChild(exportGroup);
+                        
+                        // Insert the button row at the beginning of controls
+                        mainControls.insertBefore(buttonRow, mainControls.firstChild);
+                    }
+                }
+                
+                // Horse detail page controls layout - use flex with fixed sizes
+                const horseDetailControls = document.querySelector('.horse-detail-view .controls');
+                if (horseDetailControls) {
+                    horseDetailControls.style.display = 'flex';
+                    horseDetailControls.style.flexDirection = 'column';
+                    horseDetailControls.style.gap = '8px';
+                    
+                    // Main button and Age filter on same row
+                    const backButtonGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('.back-button'));
+                    const ageFilterGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#horseAgeFilter'));
+                    
+                    if (backButtonGroup && ageFilterGroup) {
+                        // Create a flex row for main button and age filter
+                        const firstRow = document.createElement('div');
+                        firstRow.style.display = 'flex';
+                        firstRow.style.gap = '8px';
+                        firstRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        backButtonGroup.style.width = '90px';
+                        backButtonGroup.style.flex = 'none';
+                        ageFilterGroup.style.flex = '1';
+                        
+                        // Make main button same length as export button and align with filter
+                        const mainButton = backButtonGroup.querySelector('.back-button');
+                        if (mainButton) {
+                            mainButton.style.width = '85px';
+                            mainButton.style.padding = '8px 10px';
+                            mainButton.style.fontSize = '13px';
+                            mainButton.style.minHeight = '32px';
+                            mainButton.style.height = '32px';
+                            mainButton.style.boxSizing = 'border-box';
+                            mainButton.style.marginTop = '2px';
+                        }
+                        
+                        firstRow.appendChild(backButtonGroup);
+                        firstRow.appendChild(ageFilterGroup);
+                        horseDetailControls.insertBefore(firstRow, horseDetailControls.firstChild);
+                    }
+                    
+                    // Export and show/hide buttons on same row
+                    const exportGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#exportHorseCsv'));
+                    const toggleGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#toggleColumnVisibility'));
+                    
+                    if (exportGroup && toggleGroup) {
+                        const secondRow = document.createElement('div');
+                        secondRow.style.display = 'flex';
+                        secondRow.style.gap = '8px';
+                        secondRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        exportGroup.style.width = '90px';
+                        exportGroup.style.flex = 'none';
+                        toggleGroup.style.width = '120px';
+                        toggleGroup.style.flex = 'none';
+                        
+                        secondRow.appendChild(exportGroup);
+                        secondRow.appendChild(toggleGroup);
+                        horseDetailControls.appendChild(secondRow);
+                    }
+                }
+                
+                // Horse detail header
+                const horseHeader = document.querySelector('.horse-detail-header');
+                if (horseHeader) {
+                    horseHeader.style.padding = '15px 10px';
+                }
+                
+                const horseHeaderH1 = document.querySelector('.horse-detail-header h1');
+                if (horseHeaderH1) {
+                    horseHeaderH1.style.fontSize = '1.4em';
+                    horseHeaderH1.style.marginBottom = '5px';
+                }
+                
+                // Main table text size - increase by 2 points  
+                const mainTableCells = document.querySelectorAll('#horseTable th, #horseTable td');
+                mainTableCells.forEach(cell => {
+                    if (!cell.querySelector('span')) { // Don't change cells with sort indicators
+                        cell.style.fontSize = '14px'; // Increased by 2 points from 12px
+                    }
+                });
+                
+                // Horse detail table text size
+                const horseDetailCells = document.querySelectorAll('.horse-detail-view th, .horse-detail-view td');
+                horseDetailCells.forEach(cell => {
+                    cell.style.fontSize = '13px';
+                });
+                
+            }
+        }
+        
+        // Fix lost numbers with exact desktop CSS
+        const lostNumbersFixStyle = document.createElement('style');
+        lostNumbersFixStyle.textContent = `
+            .lost-numbers {
+                position: absolute !important;
+                bottom: 10px !important;
+                right: 15px !important;
+                font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                font-size: 11px !important;
+                color: #6a9a7b !important;
+                opacity: 0.75 !important;
+                font-weight: normal !important;
+                letter-spacing: 2px !important;
+                user-select: none !important;
+                pointer-events: none !important;
+                background: none !important;
+                background-color: transparent !important;
+                z-index: 1 !important;
+            }
+        `;
+        document.head.appendChild(lostNumbersFixStyle);
+
+        // Move lost numbers completely below all content
+        setTimeout(() => {
+            const lostNumbers = document.querySelector('.lost-numbers');
+            if (lostNumbers) {
+                // Remove from current location
+                lostNumbers.remove();
+                
+                // Create new div with proper positioning
+                const newLostNumbers = document.createElement('div');
+                newLostNumbers.className = 'lost-numbers';
+                newLostNumbers.textContent = '4 8 15 16 23 42';
+                newLostNumbers.style.cssText = `
+                    position: relative !important;
+                    text-align: right !important;
+                    padding: 8px 15px 6px 0 !important;
+                    margin: 3px 0 0 0 !important;
+                    font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                    font-size: 11px !important;
+                    color: #6a9a7b !important;
+                    opacity: 0.75 !important;
+                    font-weight: normal !important;
+                    letter-spacing: 2px !important;
+                    user-select: none !important;
+                    pointer-events: none !important;
+                    background: transparent !important;
+                `;
+                
+                // Add to very end of body
+                document.body.appendChild(newLostNumbers);
+                console.log('Lost numbers moved below all content');
+            }
+        }, 200);
+
+        // Remove shadows from first columns and adjust horse column width
+        const removeShadowsStyle = document.createElement('style');
+        removeShadowsStyle.textContent = `
+            table th:first-child,
+            table td:first-child {
+                box-shadow: none !important;
+            }
+            .horse-name-cell {
+                width: 120px !important;
+                max-width: 120px !important;
+            }
+            .horse-name-col {
+                width: 120px !important;
+                max-width: 120px !important;
+            }
+        `;
+        document.head.appendChild(removeShadowsStyle);
+
+        // Apply mobile styles on load and resize
+        applyMobileStyles();
+        window.addEventListener('resize', applyMobileStyles);
+        window.addEventListener('orientationchange', applyMobileStyles);
         
     </script>
     
