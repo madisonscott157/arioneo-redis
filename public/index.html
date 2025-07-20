@@ -1574,14 +1574,11 @@
             // Check if we're on mobile (increase threshold to catch more devices)
             if (window.innerWidth <= 1024) {
                 console.log('Mobile detected, applying styles...');
-                // Add visible indicator that mobile styles are active
-                document.body.style.border = '3px solid red';
                 
                 // Header styling
                 const header = document.querySelector('.header');
                 if (header) {
                     header.style.padding = '15px 10px';
-                    header.style.border = '2px solid blue'; // Visual indicator
                     console.log('Header styled');
                 }
                 
@@ -1809,23 +1806,31 @@
 
         // NO FREEZING - removed all sticky functionality
         
-        // Remove shadows from first columns and adjust horse column width
+        // Remove shadows from first columns (always applied)
         const removeShadowsStyle = document.createElement('style');
         removeShadowsStyle.textContent = `
             table th:first-child,
             table td:first-child {
                 box-shadow: none !important;
             }
-            .horse-name-cell {
-                width: 120px !important;
-                max-width: 120px !important;
-            }
-            .horse-name-col {
-                width: 120px !important;
-                max-width: 120px !important;
-            }
         `;
         document.head.appendChild(removeShadowsStyle);
+        
+        // Mobile-only horse column width adjustment
+        if (window.innerWidth <= 1024) {
+            const mobileHorseWidthStyle = document.createElement('style');
+            mobileHorseWidthStyle.textContent = `
+                .horse-name-cell {
+                    width: 120px !important;
+                    max-width: 120px !important;
+                }
+                .horse-name-col {
+                    width: 120px !important;
+                    max-width: 120px !important;
+                }
+            `;
+            document.head.appendChild(mobileHorseWidthStyle);
+        }
 
 
         // Apply mobile styles on load and resize
