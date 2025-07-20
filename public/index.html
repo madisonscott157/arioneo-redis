@@ -1850,29 +1850,26 @@
             desktopButtonStyle.textContent = `
                 .controls {
                     display: flex !important;
-                    flex-direction: column !important;
-                    align-items: center !important;
-                    gap: 15px !important;
+                    flex-wrap: wrap !important;
+                    justify-content: center !important;
+                    align-items: end !important;
+                    gap: 20px !important;
                 }
                 .control-group {
                     display: flex !important;
                     flex-direction: column !important;
                     align-items: center !important;
                     text-align: center !important;
-                    width: 100% !important;
-                    max-width: 300px !important;
                 }
                 .control-group label {
-                    margin-bottom: 8px !important;
+                    margin-bottom: 5px !important;
                 }
                 .control-group select,
                 .control-group input {
-                    width: 100% !important;
                     text-align: center !important;
                 }
                 .export-btn, .back-button {
-                    margin: 0 auto !important;
-                    display: block !important;
+                    margin-top: auto !important;
                 }
             `;
             document.head.appendChild(desktopButtonStyle);
