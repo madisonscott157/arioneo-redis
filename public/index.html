@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Training Data - TEST UPDATE</title>
+    <title>Daily Training Data - MOBILE TEST</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -652,14 +652,277 @@
             cursor: not-allowed;
         }
 
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
+        /* Enhanced table scrolling for desktop */
+        .table-scroll-container {
+            position: relative;
+        }
+        
+        .horse-detail-view .table-container {
+            overflow-x: auto;
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+            scroll-behavior: smooth;
+        }
+        
+        /* Desktop-only enhanced scrollbar positioned right under headers */
+        .desktop-scroll-track {
+            display: none;
+            height: 8px;
+            background: #f1f1f1;
+            border-radius: 4px;
+            margin: 0;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .desktop-scroll-thumb {
+            height: 8px;
+            background: #c1c1c1;
+            border-radius: 4px;
+            position: absolute;
+            top: 0;
+            cursor: grab;
+            transition: background 0.3s ease;
+            min-width: 20px;
+        }
+        
+        .desktop-scroll-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .desktop-scroll-thumb:active {
+            cursor: grabbing;
+            background: #888;
+        }
+        
+
+        /* Mobile Responsive Design */
+        @media (max-width: 1024px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .container .header {
+                padding: 15px 10px !important; /* Reduced padding */
+            }
+
+            .container .header h1 {
+                font-size: 1.4em !important; /* Reduced from 1.8em */
             }
             
-            .control-group {
+            .container .header p {
+                font-size: 0.9em !important; /* Make subtitle smaller */
+            }
+
+            .container .controls {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px !important; /* Reduced from 15px */
+                gap: 8px !important; /* Reduced from 10px */
+            }
+            
+            .container .control-group {
                 width: 100%;
+            }
+            
+            .container .control-group label {
+                font-size: 0.8em !important; /* Smaller labels */
+                margin-bottom: 3px !important;
+            }
+
+            .container select, .container input {
+                padding: 8px !important; /* Reduced from 12px */
+                font-size: 14px !important; /* Reduced from 16px */
+            }
+
+            .file-input {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .table-container {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+
+            /* Mobile-optimized table */
+            table {
+                font-size: 12px;
+                border-radius: 8px;
+            }
+
+            th, td {
+                padding: 8px 6px;
+                min-width: 60px;
+            }
+
+            .horse-name-cell {
+                min-width: 80px;
+                max-width: 100px;
+            }
+
+            /* Better mobile column visibility panel */
+            .column-visibility-panel {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .column-visibility-content {
+                padding: 15px;
+            }
+
+            .column-groups {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            /* Mobile horse detail view */
+            .horse-detail-view .container {
+                padding: 0 5px;
+            }
+
+            .horse-detail-view .table-container {
+                padding: 5px;
+            }
+
+            .horse-detail-view th, 
+            .horse-detail-view td {
+                padding: 4px 2px;
+                font-size: 13px; /* Increased by 2 points from 11px */
+            }
+            
+            /* Mobile: Freeze first column on all tables */
+            table th:first-child,
+            table td:first-child {
+                position: sticky !important;
+                left: 0 !important;
+                background: white !important;
+                z-index: 10 !important;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.1) !important;
+                min-width: 80px !important;
+            }
+            
+            table th:first-child {
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+                color: white !important;
+                z-index: 11 !important;
+            }
+            
+            /* Ensure table container allows horizontal scrolling */
+            .table-container {
+                overflow-x: auto !important;
+                position: relative !important;
+            }
+
+            /* Smaller buttons for mobile */
+            .container .export-btn {
+                padding: 8px 12px !important; /* Reduced from 12px 20px */
+                font-size: 14px !important; /* Reduced from 16px */
+                min-height: 36px !important; /* Reduced from 44px */
+            }
+            
+            .container .file-label {
+                padding: 8px 12px !important; /* Reduced from 12px 20px */
+                font-size: 14px !important; /* Reduced from 16px */
+                min-height: 36px !important; /* Reduced from 44px */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sort-indicator {
+                font-size: 14px;
+            }
+            
+            /* Make horse detail header smaller on mobile */
+            .container .horse-detail-header {
+                padding: 15px 10px !important; /* Reduced from 20px */
+            }
+            
+            .container .horse-detail-header h1 {
+                font-size: 1.4em !important; /* Reduced from 2em */
+                margin-bottom: 5px !important; /* Reduced from 8px */
+            }
+            
+            .container .back-button {
+                padding: 8px 12px !important; /* Reduced from 12px 16px */
+                font-size: 14px !important; /* Reduced from 16px */
+            }
+        }
+
+        /* Mobile frozen column styling */
+        @media (max-width: 1024px) {
+            .frozen-first-col {
+                position: sticky !important;
+                left: 0 !important;
+                z-index: 20 !important;
+                background-color: white !important;
+                box-shadow: 2px 0 4px rgba(0,0,0,0.3) !important;
+                border-right: 1px solid #ddd !important;
+            }
+            
+            .frozen-first-col th {
+                background-color: #34495e !important;
+                color: white !important;
+                z-index: 21 !important;
+            }
+        }
+
+        /* Desktop enhancements for better mouse scrolling */
+        @media (min-width: 1024px) {
+            .desktop-scroll-track {
+                display: block;
+            }
+            
+            
+            .horse-detail-view .table-container {
+                /* Make the default scrollbar subtle since we have custom one at top */
+                scrollbar-width: thin;
+                scrollbar-color: #e1e3e4 #f8f9fa;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-track {
+                background: #f8f9fa;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb {
+                background: #e1e3e4;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
+                background: #c1c1c1;
+            }
+        }
+
+        /* Tablet responsive design */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .controls {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            th, td {
+                padding: 10px 8px;
             }
         }
     </style>
@@ -675,7 +938,7 @@
 
         <div class="controls">
             <div class="control-group file-input">
-                <label for="fileInput" class="file-label">📁 Upload Excel File</label>
+                <label for="fileInput" class="file-label">Upload</label>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv">
             </div>
             
@@ -704,16 +967,9 @@
                 </select>
             </div>
             
-            <div class="control-group">
-                <label for="sortOrder">Order:</label>
-                <select id="sortOrder">
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                </select>
-            </div>
             
             <div class="control-group">
-                <button id="exportCsv" class="export-btn" disabled>📊 Export as CSV</button>
+                <button id="exportCsv" class="export-btn" disabled>Export</button>
             </div>
         </div>
 
@@ -748,7 +1004,9 @@
         </div>
 
         <div class="controls">
-            <button class="back-button" onclick="showMainView()">← Back to Main</button>
+            <div class="control-group">
+                <button class="back-button" onclick="showMainView()">Main</button>
+            </div>
             
             <div class="control-group">
                 <label for="horseAgeFilter">Filter by Age:</label>
@@ -779,20 +1037,13 @@
                 </select>
             </div>
             
+            
             <div class="control-group">
-                <label for="horseSortOrder">Order:</label>
-                <select id="horseSortOrder">
-                    <option value="desc">Descending</option>
-                    <option value="asc">Ascending</option>
-                </select>
+                <button id="exportHorseCsv" class="export-btn">Export</button>
             </div>
             
             <div class="control-group">
-                <button id="exportHorseCsv" class="export-btn">📊 Export Horse Data</button>
-            </div>
-            
-            <div class="control-group">
-                <button id="toggleColumnVisibility" class="export-btn">Show/Hide Columns</button>
+                <button id="toggleColumnVisibility" class="export-btn">Show/Hide</button>
             </div>
         </div>
         
@@ -804,7 +1055,7 @@
             </div>
             <div class="column-visibility-content">
                 <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
-                    Check/uncheck to show/hide columns. Drag to reorder them.
+                    Check/uncheck to show/hide columns. Use arrows to reorder them.
                 </p>
                 <div id="columnOrderList" class="column-order-list">
                     <!-- Dynamic column list will be populated here -->
@@ -817,8 +1068,13 @@
             </div>
         </div>
 
-        <div class="table-container">
-            <table id="horseDetailTable">
+        <div class="table-scroll-container">
+            <div class="table-container" id="horseDetailTableContainer">
+                <!-- Custom scrollbar for desktop - positioned after table headers -->
+                <div class="desktop-scroll-track" id="customScrollTrack">
+                    <div class="desktop-scroll-thumb" id="customScrollThumb"></div>
+                </div>
+                <table id="horseDetailTable">
                 <thead>
                     <tr>
                         <th onclick="sortHorseTable('date')">Date <span class="sort-indicator">↕</span></th>
@@ -868,6 +1124,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     </div>
@@ -1047,6 +1304,7 @@
             // Rebuild the entire table with proper column order
             buildTableHeader();
             displayHorseDetailData();
+            setTimeout(() => applyMobileStyles(), 50); // Apply mobile styles after table rebuild
         }
         
         function buildTableHeader() {
@@ -1136,15 +1394,121 @@
         
         console.log("🐎 Horse Racing Analyzer (Arioneo US) loaded successfully!");
         
+        // Enhanced custom scrollbar for horizontal scrolling
+        function initializeTableNavigation() {
+            const tableContainer = document.getElementById('horseDetailTableContainer');
+            const customScrollTrack = document.getElementById('customScrollTrack');
+            const customScrollThumb = document.getElementById('customScrollThumb');
+            
+            if (!tableContainer || !customScrollTrack || !customScrollThumb) return;
+            
+            let isDragging = false;
+            let startX = 0;
+            let startScrollLeft = 0;
+            
+            function updateScrollbar() {
+                const { scrollLeft, scrollWidth, clientWidth } = tableContainer;
+                
+                if (scrollWidth <= clientWidth) {
+                    customScrollTrack.style.display = 'none';
+                    return;
+                }
+                
+                customScrollTrack.style.display = 'block';
+                
+                const thumbWidth = Math.max(20, (clientWidth / scrollWidth) * customScrollTrack.offsetWidth);
+                const thumbPosition = (scrollLeft / (scrollWidth - clientWidth)) * (customScrollTrack.offsetWidth - thumbWidth);
+                
+                customScrollThumb.style.width = thumbWidth + 'px';
+                customScrollThumb.style.left = thumbPosition + 'px';
+            }
+            
+            // Track click to jump to position
+            customScrollTrack.addEventListener('click', (e) => {
+                if (e.target === customScrollThumb) return;
+                
+                const rect = customScrollTrack.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const trackWidth = customScrollTrack.offsetWidth;
+                const thumbWidth = customScrollThumb.offsetWidth;
+                
+                const newThumbPosition = Math.max(0, Math.min(clickX - thumbWidth / 2, trackWidth - thumbWidth));
+                const scrollPercentage = newThumbPosition / (trackWidth - thumbWidth);
+                const newScrollLeft = scrollPercentage * (tableContainer.scrollWidth - tableContainer.clientWidth);
+                
+                tableContainer.scrollTo({
+                    left: newScrollLeft,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Thumb dragging
+            customScrollThumb.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startScrollLeft = tableContainer.scrollLeft;
+                customScrollThumb.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const trackWidth = customScrollTrack.offsetWidth;
+                const thumbWidth = customScrollThumb.offsetWidth;
+                const scrollableTrackWidth = trackWidth - thumbWidth;
+                
+                const scrollRatio = deltaX / scrollableTrackWidth;
+                const maxScroll = tableContainer.scrollWidth - tableContainer.clientWidth;
+                const newScrollLeft = Math.max(0, Math.min(startScrollLeft + (scrollRatio * maxScroll), maxScroll));
+                
+                tableContainer.scrollLeft = newScrollLeft;
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    customScrollThumb.style.cursor = 'grab';
+                }
+            });
+            
+            // Update scrollbar when table scrolls
+            tableContainer.addEventListener('scroll', updateScrollbar);
+            
+            // Update when content changes
+            const observer = new MutationObserver(() => {
+                setTimeout(updateScrollbar, 100);
+            });
+            observer.observe(tableContainer, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            // Update when window resizes
+            window.addEventListener('resize', updateScrollbar);
+            
+            // Initial update with longer delay to ensure table is rendered
+            setTimeout(updateScrollbar, 200);
+        }
         
-        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        
+        // Add file upload event listener with debugging
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            console.log('File input found, adding event listener');
+            fileInput.addEventListener('change', handleFileUpload);
+        } else {
+            console.error('File input not found!');
+        }
         
         // Check for latest session on page load
         loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
         document.getElementById('sortBy').addEventListener('change', updateSort);
-        document.getElementById('sortOrder').addEventListener('change', updateSort);
+        const sortOrderEl = document.getElementById('sortOrder');
+        if (sortOrderEl) sortOrderEl.addEventListener('change', updateSort);
         document.getElementById('exportCsv').addEventListener('click', exportToCsv);
         
         // Column visibility event listeners
@@ -1201,7 +1565,276 @@
         // Ensure UI is updated after loading preferences
         updateColumnVisibilityUI();
 
+        // Mobile-specific styling and column freezing
+        function applyMobileStyles() {
+            // Debug logging
+            console.log('Window width:', window.innerWidth);
+            console.log('Applying mobile styles...');
+            
+            // Check if we're on mobile (increase threshold to catch more devices)
+            if (window.innerWidth <= 1024) {
+                console.log('Mobile detected, applying styles...');
+                // Add visible indicator that mobile styles are active
+                document.body.style.border = '3px solid red';
+                
+                // Header styling
+                const header = document.querySelector('.header');
+                if (header) {
+                    header.style.padding = '15px 10px';
+                    header.style.border = '2px solid blue'; // Visual indicator
+                    console.log('Header styled');
+                }
+                
+                const headerH1 = document.querySelector('.header h1');
+                if (headerH1) {
+                    headerH1.style.fontSize = '1.4em';
+                }
+                
+                const headerP = document.querySelector('.header p');
+                if (headerP) {
+                    headerP.style.fontSize = '0.9em';
+                }
+                
+                // Controls styling - make much more compact (but don't change layout)
+                const controls = document.querySelector('.controls');
+                if (controls) {
+                    controls.style.padding = '8px';
+                    controls.style.gap = '4px';
+                    controls.style.marginBottom = '2px';
+                    // Don't change display or grid - keep original flex layout
+                }
+                
+                // Control groups - make more compact
+                const controlGroups = document.querySelectorAll('.control-group');
+                controlGroups.forEach((group, index) => {
+                    group.style.marginBottom = '1px';
+                    group.style.gap = '1px';
+                });
+                
+                // Labels styling - more compact
+                const labels = document.querySelectorAll('.control-group label');
+                labels.forEach(label => {
+                    label.style.fontSize = '0.75em';
+                    label.style.marginBottom = '2px';
+                    label.style.lineHeight = '1.2';
+                });
+                
+                // Select and input styling - much more compact
+                const selects = document.querySelectorAll('select, input[type="text"]');
+                selects.forEach(element => {
+                    element.style.padding = '6px 8px';
+                    element.style.fontSize = '14px';
+                    element.style.height = '32px';
+                    element.style.lineHeight = '1.2';
+                    element.style.marginBottom = '4px';
+                    
+                    // Make text inputs smaller, but horse filter gets full width
+                    if (element.type === 'text' || element.tagName === 'INPUT') {
+                        if (element.id === 'horseFilter') {
+                            element.style.width = '100%'; // Full width for horse filter
+                            element.style.maxWidth = '100%';
+                        } else {
+                            element.style.width = '100px';
+                            element.style.maxWidth = '100px';
+                        }
+                    }
+                });
+                
+                // Button styling - much more compact (but skip file upload button)
+                const buttons = document.querySelectorAll('.export-btn, .back-button');
+                buttons.forEach(button => {
+                    button.style.padding = '6px 10px';
+                    button.style.fontSize = '13px';
+                    button.style.minHeight = '30px';
+                    button.style.height = '30px';
+                    button.style.lineHeight = '1.2';
+                    button.style.marginBottom = '4px';
+                });
+                
+                // Don't modify file upload button at all - leave it exactly as original
+                
+                // Main page controls layout - put upload and export side by side
+                const mainControls = document.querySelector('#mainView .controls');
+                if (mainControls) {
+                    // Find upload and export button containers
+                    const uploadGroup = Array.from(mainControls.children).find(child => child.querySelector('.file-label'));
+                    const exportGroup = Array.from(mainControls.children).find(child => child.querySelector('#exportCsv'));
+                    
+                    if (uploadGroup && exportGroup) {
+                        // Create a flex container for upload and export only
+                        const buttonRow = document.createElement('div');
+                        buttonRow.style.display = 'flex';
+                        buttonRow.style.gap = '8px';
+                        buttonRow.style.marginBottom = '0px';
+                        buttonRow.style.width = '100%';
+                        
+                        // Make both buttons flex equally
+                        uploadGroup.style.flex = '1';
+                        exportGroup.style.flex = '1';
+                        
+                        // Move buttons into the row
+                        buttonRow.appendChild(uploadGroup);
+                        buttonRow.appendChild(exportGroup);
+                        
+                        // Insert the button row at the beginning of controls
+                        mainControls.insertBefore(buttonRow, mainControls.firstChild);
+                    }
+                }
+                
+                // Horse detail page controls layout - use flex with fixed sizes
+                const horseDetailControls = document.querySelector('.horse-detail-view .controls');
+                if (horseDetailControls) {
+                    horseDetailControls.style.display = 'flex';
+                    horseDetailControls.style.flexDirection = 'column';
+                    horseDetailControls.style.gap = '8px';
+                    
+                    // Main button and Age filter on same row
+                    const backButtonGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('.back-button'));
+                    const ageFilterGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#horseAgeFilter'));
+                    
+                    if (backButtonGroup && ageFilterGroup) {
+                        // Create a flex row for main button and age filter
+                        const firstRow = document.createElement('div');
+                        firstRow.style.display = 'flex';
+                        firstRow.style.gap = '8px';
+                        firstRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        backButtonGroup.style.width = '90px';
+                        backButtonGroup.style.flex = 'none';
+                        ageFilterGroup.style.flex = '1';
+                        
+                        // Make main button same length as export button and align with filter
+                        const mainButton = backButtonGroup.querySelector('.back-button');
+                        if (mainButton) {
+                            mainButton.style.width = '85px';
+                            mainButton.style.padding = '8px 10px';
+                            mainButton.style.fontSize = '13px';
+                            mainButton.style.minHeight = '32px';
+                            mainButton.style.height = '32px';
+                            mainButton.style.boxSizing = 'border-box';
+                            mainButton.style.marginTop = '2px';
+                        }
+                        
+                        firstRow.appendChild(backButtonGroup);
+                        firstRow.appendChild(ageFilterGroup);
+                        horseDetailControls.insertBefore(firstRow, horseDetailControls.firstChild);
+                    }
+                    
+                    // Export and show/hide buttons on same row
+                    const exportGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#exportHorseCsv'));
+                    const toggleGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#toggleColumnVisibility'));
+                    
+                    if (exportGroup && toggleGroup) {
+                        const secondRow = document.createElement('div');
+                        secondRow.style.display = 'flex';
+                        secondRow.style.gap = '8px';
+                        secondRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        exportGroup.style.width = '90px';
+                        exportGroup.style.flex = 'none';
+                        toggleGroup.style.width = '120px';
+                        toggleGroup.style.flex = 'none';
+                        
+                        secondRow.appendChild(exportGroup);
+                        secondRow.appendChild(toggleGroup);
+                        horseDetailControls.appendChild(secondRow);
+                    }
+                }
+                
+                // Horse detail header
+                const horseHeader = document.querySelector('.horse-detail-header');
+                if (horseHeader) {
+                    horseHeader.style.padding = '15px 10px';
+                }
+                
+                const horseHeaderH1 = document.querySelector('.horse-detail-header h1');
+                if (horseHeaderH1) {
+                    horseHeaderH1.style.fontSize = '1.4em';
+                    horseHeaderH1.style.marginBottom = '5px';
+                }
+                
+                // Column freezing removed - not working properly
+                
+                // Main table text size - increase by 2 points  
+                const mainTableCells = document.querySelectorAll('#horseTable th, #horseTable td');
+                mainTableCells.forEach(cell => {
+                    if (!cell.querySelector('span')) { // Don't change cells with sort indicators
+                        cell.style.fontSize = '14px'; // Increased by 2 points from 12px
+                    }
+                });
+                
+                // Horse detail table text size
+                const horseDetailCells = document.querySelectorAll('.horse-detail-view th, .horse-detail-view td');
+                horseDetailCells.forEach(cell => {
+                    cell.style.fontSize = '13px';
+                });
+                
+            }
+        }
+        
+        // Move lost numbers completely below all content
+        setTimeout(() => {
+            const lostNumbers = document.querySelector('.lost-numbers');
+            if (lostNumbers) {
+                // Remove from current location
+                lostNumbers.remove();
+                
+                // Create new div with proper positioning
+                const newLostNumbers = document.createElement('div');
+                newLostNumbers.className = 'lost-numbers';
+                newLostNumbers.textContent = '4 8 15 16 23 42';
+                newLostNumbers.style.cssText = `
+                    position: relative !important;
+                    text-align: right !important;
+                    padding: 8px 15px 6px 0 !important;
+                    margin: 3px 0 0 0 !important;
+                    font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                    font-size: 11px !important;
+                    color: #6a9a7b !important;
+                    opacity: 0.75 !important;
+                    font-weight: normal !important;
+                    letter-spacing: 2px !important;
+                    user-select: none !important;
+                    pointer-events: none !important;
+                    background: transparent !important;
+                `;
+                
+                // Add to very end of body
+                document.body.appendChild(newLostNumbers);
+                console.log('Lost numbers moved below all content');
+            }
+        }, 200);
+
+        // NO FREEZING - removed all sticky functionality
+        
+        // Remove shadows from first columns and adjust horse column width
+        const removeShadowsStyle = document.createElement('style');
+        removeShadowsStyle.textContent = `
+            table th:first-child,
+            table td:first-child {
+                box-shadow: none !important;
+            }
+            .horse-name-cell {
+                width: 120px !important;
+                max-width: 120px !important;
+            }
+            .horse-name-col {
+                width: 120px !important;
+                max-width: 120px !important;
+            }
+        `;
+        document.head.appendChild(removeShadowsStyle);
+
+
+        // Apply mobile styles on load and resize
+        applyMobileStyles();
+        window.addEventListener('resize', applyMobileStyles);
+        window.addEventListener('orientationchange', applyMobileStyles);
+
         function handleFileUpload(event) {
+            console.log('File upload triggered!', event);
             const file = event.target.files[0];
             if (!file) {
                 console.log('No file selected');
@@ -1521,7 +2154,8 @@
 
         function updateSort() {
             const sortBy = document.getElementById('sortBy').value;
-            const sortOrder = document.getElementById('sortOrder').value;
+            const sortOrderEl = document.getElementById('sortOrder');
+            const sortOrder = sortOrderEl ? sortOrderEl.value : 'asc'; // Default to asc if no order selector
             
             currentSort = { column: sortBy, order: sortOrder };
             saveUserPreferences(); // Save sort preferences
@@ -1537,7 +2171,8 @@
             }
             
             document.getElementById('sortBy').value = column;
-            document.getElementById('sortOrder').value = currentSort.order;
+            const sortOrderEl = document.getElementById('sortOrder');
+            if (sortOrderEl) sortOrderEl.value = currentSort.order;
             
             sortData();
         }
@@ -1654,10 +2289,17 @@
                 tableContainer.scrollLeft = 0;
             }
             
+            // Initialize navigation after showing the view
+            setTimeout(() => {
+                initializeTableNavigation();
+                applyMobileStyles(); // Apply mobile styles to horse detail view
+            }, 100);
+            
             // Reset to default sort (date descending)
             currentHorseDetailSort = { column: 'date', order: 'desc' };
             document.getElementById('horseSortBy').value = 'date';
-            document.getElementById('horseSortOrder').value = 'desc';
+            const horseSortOrderEl = document.getElementById('horseSortOrder');
+            if (horseSortOrderEl) horseSortOrderEl.value = 'desc';
             
             // Reset filters
             document.getElementById('horseAgeFilter').value = '';
@@ -1668,7 +2310,8 @@
             updateHorseAgeFilter(horseName);
             
             document.getElementById('horseSortBy').addEventListener('change', updateHorseDetailSort);
-            document.getElementById('horseSortOrder').addEventListener('change', updateHorseDetailSort);
+            const horseSortOrderElement = document.getElementById('horseSortOrder');
+            if (horseSortOrderElement) horseSortOrderElement.addEventListener('change', updateHorseDetailSort);
             document.getElementById('horseAgeFilter').addEventListener('change', updateHorseDetailSort);
             document.getElementById('typeFilter').addEventListener('change', updateHorseDetailFilter);
             document.getElementById('exportHorseCsv').addEventListener('click', exportHorseDataToCsv);
@@ -1705,7 +2348,8 @@
 
         function updateHorseDetailSort() {
             const sortBy = document.getElementById('horseSortBy').value;
-            const sortOrder = document.getElementById('horseSortOrder').value;
+            const sortOrderEl = document.getElementById('horseSortOrder');
+            const sortOrder = sortOrderEl ? sortOrderEl.value : 'desc'; // Default to desc for horse details
             
             currentHorseDetailSort = { column: sortBy, order: sortOrder };
             sortHorseDetailData();
@@ -1720,7 +2364,8 @@
             }
             
             document.getElementById('horseSortBy').value = column;
-            document.getElementById('horseSortOrder').value = currentHorseDetailSort.order;
+            const horseSortOrderElem = document.getElementById('horseSortOrder');
+            if (horseSortOrderElem) horseSortOrderElem.value = currentHorseDetailSort.order;
             
             sortHorseDetailData();
         }
@@ -2021,288 +2666,6 @@
                 document.body.removeChild(dialog);
             }
         }
-
-        // Mobile-specific styling and enhancements
-        function applyMobileStyles() {
-            // Debug logging
-            console.log('Window width:', window.innerWidth);
-            console.log('Applying mobile styles...');
-            
-            // Check if we're on mobile (increase threshold to catch more devices)
-            if (window.innerWidth <= 1024) {
-                console.log('Mobile detected, applying styles...');
-                
-                // Header styling
-                const header = document.querySelector('.header');
-                if (header) {
-                    header.style.padding = '15px 10px';
-                    console.log('Header styled');
-                }
-                
-                const headerH1 = document.querySelector('.header h1');
-                if (headerH1) {
-                    headerH1.style.fontSize = '1.4em';
-                }
-                
-                const headerP = document.querySelector('.header p');
-                if (headerP) {
-                    headerP.style.fontSize = '0.9em';
-                }
-                
-                // Controls styling - make much more compact (but don't change layout)
-                const controls = document.querySelector('.controls');
-                if (controls) {
-                    controls.style.padding = '8px';
-                    controls.style.gap = '4px';
-                    controls.style.marginBottom = '2px';
-                    // Don't change display or grid - keep original flex layout
-                }
-                
-                // Control groups - make more compact
-                const controlGroups = document.querySelectorAll('.control-group');
-                controlGroups.forEach((group, index) => {
-                    group.style.marginBottom = '1px';
-                    group.style.gap = '1px';
-                });
-                
-                // Labels styling - more compact
-                const labels = document.querySelectorAll('.control-group label');
-                labels.forEach(label => {
-                    label.style.fontSize = '0.75em';
-                    label.style.marginBottom = '2px';
-                    label.style.lineHeight = '1.2';
-                });
-                
-                // Select and input styling - much more compact
-                const selects = document.querySelectorAll('select, input[type="text"]');
-                selects.forEach(element => {
-                    element.style.padding = '6px 8px';
-                    element.style.fontSize = '14px';
-                    element.style.height = '32px';
-                    element.style.lineHeight = '1.2';
-                    element.style.marginBottom = '4px';
-                    
-                    // Make text inputs smaller, but horse filter gets full width
-                    if (element.type === 'text' || element.tagName === 'INPUT') {
-                        if (element.id === 'horseFilter') {
-                            element.style.width = '100%'; // Full width for horse filter
-                            element.style.maxWidth = '100%';
-                        } else {
-                            element.style.width = '100px';
-                            element.style.maxWidth = '100px';
-                        }
-                    }
-                });
-                
-                // Button styling - much more compact (but skip file upload button)
-                const buttons = document.querySelectorAll('.export-btn, .back-button');
-                buttons.forEach(button => {
-                    button.style.padding = '6px 10px';
-                    button.style.fontSize = '13px';
-                    button.style.minHeight = '30px';
-                    button.style.height = '30px';
-                    button.style.lineHeight = '1.2';
-                    button.style.marginBottom = '4px';
-                });
-                
-                // Don't modify file upload button at all - leave it exactly as original
-                
-                // Main page controls layout - put upload and export side by side
-                const mainControls = document.querySelector('#mainView .controls');
-                if (mainControls) {
-                    // Find upload and export button containers
-                    const uploadGroup = Array.from(mainControls.children).find(child => child.querySelector('.file-label'));
-                    const exportGroup = Array.from(mainControls.children).find(child => child.querySelector('#exportCsv'));
-                    
-                    if (uploadGroup && exportGroup) {
-                        // Create a flex container for upload and export only
-                        const buttonRow = document.createElement('div');
-                        buttonRow.style.display = 'flex';
-                        buttonRow.style.gap = '8px';
-                        buttonRow.style.marginBottom = '0px';
-                        buttonRow.style.width = '100%';
-                        
-                        // Make both buttons flex equally
-                        uploadGroup.style.flex = '1';
-                        exportGroup.style.flex = '1';
-                        
-                        // Move buttons into the row
-                        buttonRow.appendChild(uploadGroup);
-                        buttonRow.appendChild(exportGroup);
-                        
-                        // Insert the button row at the beginning of controls
-                        mainControls.insertBefore(buttonRow, mainControls.firstChild);
-                    }
-                }
-                
-                // Horse detail page controls layout - use flex with fixed sizes
-                const horseDetailControls = document.querySelector('.horse-detail-view .controls');
-                if (horseDetailControls) {
-                    horseDetailControls.style.display = 'flex';
-                    horseDetailControls.style.flexDirection = 'column';
-                    horseDetailControls.style.gap = '8px';
-                    
-                    // Main button and Age filter on same row
-                    const backButtonGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('.back-button'));
-                    const ageFilterGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#horseAgeFilter'));
-                    
-                    if (backButtonGroup && ageFilterGroup) {
-                        // Create a flex row for main button and age filter
-                        const firstRow = document.createElement('div');
-                        firstRow.style.display = 'flex';
-                        firstRow.style.gap = '8px';
-                        firstRow.style.alignItems = 'center';
-                        
-                        // Set fixed widths to prevent stretching
-                        backButtonGroup.style.width = '90px';
-                        backButtonGroup.style.flex = 'none';
-                        ageFilterGroup.style.flex = '1';
-                        
-                        // Make main button same length as export button and align with filter
-                        const mainButton = backButtonGroup.querySelector('.back-button');
-                        if (mainButton) {
-                            mainButton.style.width = '85px';
-                            mainButton.style.padding = '8px 10px';
-                            mainButton.style.fontSize = '13px';
-                            mainButton.style.minHeight = '32px';
-                            mainButton.style.height = '32px';
-                            mainButton.style.boxSizing = 'border-box';
-                            mainButton.style.marginTop = '2px';
-                        }
-                        
-                        firstRow.appendChild(backButtonGroup);
-                        firstRow.appendChild(ageFilterGroup);
-                        horseDetailControls.insertBefore(firstRow, horseDetailControls.firstChild);
-                    }
-                    
-                    // Export and show/hide buttons on same row
-                    const exportGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#exportHorseCsv'));
-                    const toggleGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#toggleColumnVisibility'));
-                    
-                    if (exportGroup && toggleGroup) {
-                        const secondRow = document.createElement('div');
-                        secondRow.style.display = 'flex';
-                        secondRow.style.gap = '8px';
-                        secondRow.style.alignItems = 'center';
-                        
-                        // Set fixed widths to prevent stretching
-                        exportGroup.style.width = '90px';
-                        exportGroup.style.flex = 'none';
-                        toggleGroup.style.width = '120px';
-                        toggleGroup.style.flex = 'none';
-                        
-                        secondRow.appendChild(exportGroup);
-                        secondRow.appendChild(toggleGroup);
-                        horseDetailControls.appendChild(secondRow);
-                    }
-                }
-                
-                // Horse detail header
-                const horseHeader = document.querySelector('.horse-detail-header');
-                if (horseHeader) {
-                    horseHeader.style.padding = '15px 10px';
-                }
-                
-                const horseHeaderH1 = document.querySelector('.horse-detail-header h1');
-                if (horseHeaderH1) {
-                    horseHeaderH1.style.fontSize = '1.4em';
-                    horseHeaderH1.style.marginBottom = '5px';
-                }
-                
-                // Main table text size - increase by 2 points  
-                const mainTableCells = document.querySelectorAll('#horseTable th, #horseTable td');
-                mainTableCells.forEach(cell => {
-                    if (!cell.querySelector('span')) { // Don't change cells with sort indicators
-                        cell.style.fontSize = '14px'; // Increased by 2 points from 12px
-                    }
-                });
-                
-                // Horse detail table text size
-                const horseDetailCells = document.querySelectorAll('.horse-detail-view th, .horse-detail-view td');
-                horseDetailCells.forEach(cell => {
-                    cell.style.fontSize = '13px';
-                });
-                
-            }
-        }
-        
-        // Fix lost numbers with exact desktop CSS
-        const lostNumbersFixStyle = document.createElement('style');
-        lostNumbersFixStyle.textContent = `
-            .lost-numbers {
-                position: absolute !important;
-                bottom: 10px !important;
-                right: 15px !important;
-                font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
-                font-size: 11px !important;
-                color: #6a9a7b !important;
-                opacity: 0.75 !important;
-                font-weight: normal !important;
-                letter-spacing: 2px !important;
-                user-select: none !important;
-                pointer-events: none !important;
-                background: none !important;
-                background-color: transparent !important;
-                z-index: 1 !important;
-            }
-        `;
-        document.head.appendChild(lostNumbersFixStyle);
-
-        // Move lost numbers completely below all content
-        setTimeout(() => {
-            const lostNumbers = document.querySelector('.lost-numbers');
-            if (lostNumbers) {
-                // Remove from current location
-                lostNumbers.remove();
-                
-                // Create new div with proper positioning
-                const newLostNumbers = document.createElement('div');
-                newLostNumbers.className = 'lost-numbers';
-                newLostNumbers.textContent = '4 8 15 16 23 42';
-                newLostNumbers.style.cssText = `
-                    position: relative !important;
-                    text-align: right !important;
-                    padding: 8px 15px 6px 0 !important;
-                    margin: 3px 0 0 0 !important;
-                    font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
-                    font-size: 11px !important;
-                    color: #6a9a7b !important;
-                    opacity: 0.75 !important;
-                    font-weight: normal !important;
-                    letter-spacing: 2px !important;
-                    user-select: none !important;
-                    pointer-events: none !important;
-                    background: transparent !important;
-                `;
-                
-                // Add to very end of body
-                document.body.appendChild(newLostNumbers);
-                console.log('Lost numbers moved below all content');
-            }
-        }, 200);
-
-        // Remove shadows from first columns and adjust horse column width
-        const removeShadowsStyle = document.createElement('style');
-        removeShadowsStyle.textContent = `
-            table th:first-child,
-            table td:first-child {
-                box-shadow: none !important;
-            }
-            .horse-name-cell {
-                width: 120px !important;
-                max-width: 120px !important;
-            }
-            .horse-name-col {
-                width: 120px !important;
-                max-width: 120px !important;
-            }
-        `;
-        document.head.appendChild(removeShadowsStyle);
-
-        // Apply mobile styles on load and resize
-        applyMobileStyles();
-        window.addEventListener('resize', applyMobileStyles);
-        window.addEventListener('orientationchange', applyMobileStyles);
         
     </script>
     
