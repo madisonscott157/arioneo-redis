@@ -1784,23 +1784,30 @@
                 newLostNumbers.textContent = '4 8 15 16 23 42';
                 
                 if (window.innerWidth <= 1024) {
-                    // Mobile: below table
-                    newLostNumbers.style.cssText = `
-                        position: relative !important;
-                        text-align: right !important;
-                        padding: 8px 15px 6px 0 !important;
-                        margin: 3px 0 0 0 !important;
-                        font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
-                        font-size: 11px !important;
-                        color: #6a9a7b !important;
-                        opacity: 0.75 !important;
-                        font-weight: normal !important;
-                        letter-spacing: 2px !important;
-                        user-select: none !important;
-                        pointer-events: none !important;
-                        background: transparent !important;
-                    `;
-                    document.body.appendChild(newLostNumbers);
+                    // Mobile: check if we're on horse detail page
+                    const isHorseDetailPage = document.querySelector('.horse-detail-view') && 
+                                            document.querySelector('.horse-detail-view').style.display !== 'none';
+                    
+                    if (!isHorseDetailPage) {
+                        // Mobile main page: below table
+                        newLostNumbers.style.cssText = `
+                            position: relative !important;
+                            text-align: right !important;
+                            padding: 8px 15px 6px 0 !important;
+                            margin: 3px 0 0 0 !important;
+                            font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                            font-size: 11px !important;
+                            color: #6a9a7b !important;
+                            opacity: 0.75 !important;
+                            font-weight: normal !important;
+                            letter-spacing: 2px !important;
+                            user-select: none !important;
+                            pointer-events: none !important;
+                            background: transparent !important;
+                        `;
+                        document.body.appendChild(newLostNumbers);
+                    }
+                    // If on mobile horse detail page, don't add lost numbers (hide them)
                 } else {
                     // Desktop: fixed at bottom right
                     newLostNumbers.style.cssText = `
@@ -1836,6 +1843,40 @@
             }
         `;
         document.head.appendChild(removeShadowsStyle);
+        
+        // Desktop button alignment improvements (only apply on desktop)
+        if (window.innerWidth > 1024) {
+            const desktopButtonStyle = document.createElement('style');
+            desktopButtonStyle.textContent = `
+                .controls {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    gap: 15px !important;
+                }
+                .control-group {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                    width: 100% !important;
+                    max-width: 300px !important;
+                }
+                .control-group label {
+                    margin-bottom: 8px !important;
+                }
+                .control-group select,
+                .control-group input {
+                    width: 100% !important;
+                    text-align: center !important;
+                }
+                .export-btn, .back-button {
+                    margin: 0 auto !important;
+                    display: block !important;
+                }
+            `;
+            document.head.appendChild(desktopButtonStyle);
+        }
         
         // Mobile-only horse column width adjustment
         if (window.innerWidth <= 1024) {
