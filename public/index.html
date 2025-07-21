@@ -2083,6 +2083,13 @@
             horseData = tempHorseData;
             // allHorseDetailData is already updated in processSheetData function
             
+            // Save data to server for persistence
+            saveDataToServer({
+                horseData: horseData,
+                allHorseDetailData: allHorseDetailData,
+                timestamp: new Date().toISOString()
+            });
+            
             // Update UI
             updateHorseFilter();
             updateAgeFilter();
@@ -2906,6 +2913,65 @@
                 document.body.removeChild(dialog);
             }
         }
+        
+        // Save data to server for persistence
+        async function saveDataToServer(data) {
+            try {
+                console.log('Saving data to server...', data);
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Data saved successfully:', result);
+            } catch (error) {
+                console.error('Error saving data to server:', error);
+                // Continue without server persistence if save fails
+            }
+        }
+        
+        // Load data from server on page load
+        async function loadDataFromServer() {
+            try {
+                console.log('Loading data from server...');
+                const response = await fetch('/api/data');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.horseData && data.allHorseDetailData) {
+                        console.log('Restoring data from server');
+                        horseData = data.horseData;
+                        allHorseDetailData = data.allHorseDetailData;
+                        
+                        // Update UI with restored data
+                        updateHorseFilter();
+                        updateAgeFilter();
+                        filterData();
+                        document.getElementById('exportCsv').disabled = false;
+                        
+                        console.log(`Loaded ${horseData.length} horses from server`);
+                    }
+                } else {
+                    console.log('No saved data found on server');
+                }
+            } catch (error) {
+                console.error('Error loading data from server:', error);
+                console.log('Starting with empty data');
+            }
+        }
+        
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDataFromServer();
+        });
         
     </script>
     
