@@ -1638,8 +1638,8 @@
             console.error('File input not found!');
         }
         
-        // Standalone mode - no server session loading
-        console.log('Ready to load Excel files locally');
+        // Check for latest session on page load
+        loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
         document.getElementById('sortBy').addEventListener('change', updateSort);
@@ -2020,89 +2020,55 @@
             
             // Show upload progress
             const uploadStatus = document.createElement('div');
-            uploadStatus.innerHTML = '<p>Processing file...</p>';
+            uploadStatus.innerHTML = '<p>Uploading and processing file...</p>';
             uploadStatus.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #3498db; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
             document.body.appendChild(uploadStatus);
             
-            // Process the file directly in the browser
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Process the Excel data
-                    processExcelFile(workbook);
-                    
-                    document.body.removeChild(uploadStatus);
-                    console.log('File processed successfully');
-                    
-                } catch (error) {
-                    document.body.removeChild(uploadStatus);
-                    console.error('Error processing file:', error);
-                    alert('Error processing file: ' + error.message);
+            const formData = new FormData();
+            formData.append('excel', file);
+            
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Upload response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            };
-            
-            reader.onerror = function() {
+                return response.json();
+            })
+            .then(data => {
                 document.body.removeChild(uploadStatus);
-                alert('Error reading file');
-            };
-            
-            reader.readAsArrayBuffer(file);
+                console.log('Upload response data:', data);
+                
+                if (data.success) {
+                    // Update page with new data
+                    horseData = data.data.horseData;
+                    allHorseDetailData = data.data.allHorseDetailData;
+                    
+                    updateHorseFilter();
+                    updateAgeFilter();
+                    filterData();
+                    document.getElementById('exportCsv').disabled = false;
+                    
+                    // Show share URL
+                    const shareUrl = `${window.location.origin}/share/${data.sessionId}`;
+                    showShareDialog(shareUrl);
+                    
+                    console.log('File uploaded successfully. Share URL:', shareUrl);
+                } else {
+                    console.error('Upload failed:', data.error);
+                    alert('Error uploading file: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.body.removeChild(uploadStatus);
+                console.error('Error uploading file:', error);
+                alert('Error uploading file: ' + error.message + '\n\nPlease check the browser console for more details.');
+            });
         }
 
-        function processExcelFile(workbook) {
-            const tempHorseData = [];
-            
-            // Process each worksheet (assuming each sheet represents a horse)
-            // Skip sheets that are not horse data: Sheet1, Sheet2, Buttons
-            workbook.SheetNames.forEach(sheetName => {
-                // Skip non-horse sheets
-                if (sheetName === 'Sheet1' || sheetName === 'Sheet2' || sheetName === 'Buttons') {
-                    console.log(`Skipping sheet: ${sheetName}`);
-                    return;
-                }
-                
-                try {
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                    
-                    if (jsonData.length > 0) {
-                        const horseResult = processSheetData(jsonData, sheetName, worksheet, workbook);
-                        if (horseResult) {
-                            tempHorseData.push(horseResult);
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error processing sheet ${sheetName}:`, error);
-                }
-            });
-            
-            // Update the global data
-            horseData = tempHorseData;
-            // allHorseDetailData is already updated in processSheetData function
-            
-            // Save data to server for persistence
-            saveDataToServer({
-                horseData: horseData,
-                allHorseDetailData: allHorseDetailData,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Update UI
-            updateHorseFilter();
-            updateAgeFilter();
-            filterData();
-            document.getElementById('exportCsv').disabled = false;
-            
-            console.log(`Successfully processed ${horseData.length} horses`);
-            
-            // Debug: Check if lastWorkDate is being set correctly
-            horseData.forEach(horse => {
-                console.log(`Horse: ${horse.name}, Last Work: ${horse.lastWorkDate}`);
-            });
-        }
 
         function parseCSV(csvText) {
             const lines = csvText.split('\n');
@@ -2824,50 +2790,6 @@
             }
         }
         
-        // Load latest session on page load
-        function loadLatestSession() {
-            console.log('Loading latest session...');
-            fetch('/api/latest')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Latest session response:', data);
-                    if (data.sessionId) {
-                        console.log('Loading session:', data.sessionId);
-                        loadSessionData(data.sessionId);
-                    } else {
-                        console.log('No latest session found');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading latest session:', error);
-                });
-        }
-        
-        // Load session data
-        function loadSessionData(sessionId) {
-            fetch(`/api/session/${sessionId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.horseData && data.allHorseDetailData) {
-                        horseData = data.horseData;
-                        allHorseDetailData = data.allHorseDetailData;
-                        
-                        updateHorseFilter();
-                        updateAgeFilter();
-                        filterData();
-                        
-                        // Apply user preferences after loading data
-                        loadUserPreferences();
-                        updateColumnVisibilityUI();
-                        updateTableColumnVisibility();
-                        
-                        document.getElementById('exportCsv').disabled = false;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading session data:', error);
-                });
-        }
         
         // Show share dialog
         function showShareDialog(shareUrl) {
@@ -2914,64 +2836,43 @@
             }
         }
         
-        // Save data to server for persistence
-        async function saveDataToServer(data) {
-            try {
-                console.log('Saving data to server...', data);
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                console.log('Data saved successfully:', result);
-            } catch (error) {
-                console.error('Error saving data to server:', error);
-                // Continue without server persistence if save fails
-            }
+        
+        // Show share dialog
+        function showShareDialog(shareUrl) {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">File Uploaded Successfully!</h3>
+                        <p style="margin: 0 0 20px 0; color: #666;">Share this link with others to let them view the analysis results:</p>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 0 0 20px 0; border: 1px solid #e9ecef;">
+                            <input type="text" value="${shareUrl}" readonly style="width: 100%; border: none; background: none; font-family: monospace; font-size: 14px; color: #2c3e50; text-align: center;">
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button onclick="copyShareUrl('${shareUrl}')" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Copy Link</button>
+                            <button onclick="closeShareDialog()" style="background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            dialog.id = 'shareDialog';
+            document.body.appendChild(dialog);
         }
         
-        // Load data from server on page load
-        async function loadDataFromServer() {
-            try {
-                console.log('Loading data from server...');
-                const response = await fetch('/api/data');
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.horseData && data.allHorseDetailData) {
-                        console.log('Restoring data from server');
-                        horseData = data.horseData;
-                        allHorseDetailData = data.allHorseDetailData;
-                        
-                        // Update UI with restored data
-                        updateHorseFilter();
-                        updateAgeFilter();
-                        filterData();
-                        document.getElementById('exportCsv').disabled = false;
-                        
-                        console.log(`Loaded ${horseData.length} horses from server`);
-                    }
-                } else {
-                    console.log('No saved data found on server');
-                }
-            } catch (error) {
-                console.error('Error loading data from server:', error);
-                console.log('Starting with empty data');
-            }
+        // Copy share URL to clipboard
+        function copyShareUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Share URL copied to clipboard!');
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                // Fallback: select the text
+                const input = document.querySelector('#shareDialog input');
+                input.select();
+                input.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                alert('Share URL copied to clipboard!');
+            });
         }
-        
-        // Load data when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDataFromServer();
-        });
         
     </script>
     
