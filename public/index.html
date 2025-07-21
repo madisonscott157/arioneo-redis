@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Training</title>
+    <title>Daily Training Data - MOBILE TEST</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -18,11 +18,11 @@
             min-height: 100vh;
             padding: 20px;
             position: relative;
-            padding-bottom: 5px;
+            padding-bottom: 40px;
         }
 
         .container {
-            max-width: 1300px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -31,20 +31,16 @@
         }
         
         .horse-detail-view .container {
-            background: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
+            max-width: 100%;
+            margin: 0;
+            padding: 0 10px;
         }
         
         .horse-detail-view .table-container {
             overflow-x: auto;
-            overflow-y: auto;
             width: 100%;
-            height: 70vh;
             margin: 0;
             padding: 10px;
-            position: relative;
-            background: white;
         }
         
         .horse-detail-view table {
@@ -112,7 +108,7 @@
         .file-label {
             background: #3498db;
             color: white;
-            padding: 10px 25px;
+            padding: 10px 20px;
             border-radius: 6px;
             cursor: pointer;
             transition: background 0.3s;
@@ -376,6 +372,9 @@
         }
 
         .lost-numbers {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
             font-family: 'Courier New', 'IBM Plex Mono', monospace;
             font-size: 11px;
             color: #6a9a7b;
@@ -385,7 +384,6 @@
             user-select: none;
             pointer-events: none;
         }
-        
         
         .horse-detail-view {
             display: none;
@@ -400,7 +398,6 @@
             cursor: pointer;
             font-size: 14px;
             margin-right: 15px;
-            margin-bottom: -2px;
             transition: background 0.3s;
         }
         
@@ -670,7 +667,7 @@
         
         /* Desktop-only enhanced scrollbar positioned right under headers */
         .desktop-scroll-track {
-            display: none !important;
+            display: none;
             height: 8px;
             background: #f1f1f1;
             border-radius: 4px;
@@ -704,7 +701,7 @@
         
 
         /* Mobile Responsive Design */
-        @media (max-width: 480px) {
+        @media (max-width: 1024px) {
             body {
                 padding: 10px;
             }
@@ -795,8 +792,6 @@
 
             .horse-detail-view .table-container {
                 padding: 5px;
-                height: 60vh;
-                overflow-y: auto;
             }
 
             .horse-detail-view th, 
@@ -836,13 +831,12 @@
             }
             
             .container .file-label {
-                padding: 8px 17px !important; /* Made 10px wider */
+                padding: 8px 12px !important; /* Reduced from 12px 20px */
                 font-size: 14px !important; /* Reduced from 16px */
                 min-height: 36px !important; /* Reduced from 44px */
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: calc(100% + 10px) !important;
             }
 
             .sort-indicator {
@@ -866,7 +860,7 @@
         }
 
         /* Mobile frozen column styling */
-        @media (max-width: 480px) {
+        @media (max-width: 1024px) {
             .frozen-first-col {
                 position: sticky !important;
                 left: 0 !important;
@@ -884,61 +878,39 @@
         }
 
         /* Desktop enhancements for better mouse scrolling */
-        @media (min-width: 480px) {
+        @media (min-width: 1024px) {
             .desktop-scroll-track {
-                display: none !important;
+                display: block;
             }
             
             
             .horse-detail-view .table-container {
-                /* Hide scrollbars completely */
-                scrollbar-width: none;
-                -ms-overflow-style: none;
+                /* Make the default scrollbar subtle since we have custom one at top */
+                scrollbar-width: thin;
+                scrollbar-color: #e1e3e4 #f8f9fa;
             }
             
             .horse-detail-view .table-container::-webkit-scrollbar {
-                display: none;
+                height: 6px;
             }
-        }
-        
-        /* Frozen header for horse detail tables - minimal approach */
-        .horse-detail-view .fixed-header {
-            position: sticky;
-            top: -31px;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            display: none;
-            width: fit-content;
-            margin: 0;
-            padding: 0;
-            padding-top: 20px;
-        }
-        
-        .horse-detail-view .fixed-header table {
-            margin: 0;
-            border-collapse: collapse;
-            width: auto;
-            min-width: fit-content;
-            table-layout: auto;
-        }
-        
-        .horse-detail-view .fixed-header th {
-            background: #34495e;
-            color: white;
-            padding: 12px 8px;
-            border: 1px solid #2c3e50;
-            font-weight: bold;
-            text-align: center;
-            cursor: pointer;
-            font-size: 13px;
-            line-height: 1.2;
-            white-space: nowrap;
-            vertical-align: middle;
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-track {
+                background: #f8f9fa;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb {
+                background: #e1e3e4;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
+                background: #c1c1c1;
+            }
         }
 
         /* Tablet responsive design */
-        @media (min-width: 480px) and (max-width: 1023px) {
+        @media (min-width: 768px) and (max-width: 1023px) {
             .controls {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -988,7 +960,6 @@
                 <label for="sortBy">Sort by:</label>
                 <select id="sortBy">
                     <option value="name">Horse Name</option>
-                    <option value="lastWork">Last Work</option>
                     <option value="age">Age</option>
                     <option value="best1f">Best 1F Time</option>
                     <option value="best5f">Best 5F Time</option>
@@ -1007,7 +978,6 @@
                 <thead>
                     <tr>
                         <th onclick="sortTable('name')" class="horse-name-col">Horse <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('lastWork')" class="last-work-col">Last Work <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('age')" class="age-col">Age <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
@@ -1104,8 +1074,6 @@
                 <div class="desktop-scroll-track" id="customScrollTrack">
                     <div class="desktop-scroll-thumb" id="customScrollThumb"></div>
                 </div>
-                <!-- Fixed header for scrolling -->
-                <div class="fixed-header" id="fixedHeader"></div>
                 <table id="horseDetailTable">
                 <thead>
                     <tr>
@@ -1524,110 +1492,6 @@
             setTimeout(updateScrollbar, 200);
         }
         
-        // Initialize frozen header functionality
-        function initializeFrozenHeader() {
-            const tableContainer = document.getElementById('horseDetailTableContainer');
-            const originalTable = document.getElementById('horseDetailTable');
-            const fixedHeader = document.getElementById('fixedHeader');
-            
-            if (!tableContainer || !originalTable || !fixedHeader) return;
-            
-            const thead = originalTable.querySelector('thead');
-            if (!thead) return;
-            
-            // Create cloned header
-            function createFixedHeader() {
-                fixedHeader.innerHTML = '';
-                
-                const clonedTable = document.createElement('table');
-                clonedTable.className = originalTable.className;
-                clonedTable.style.cssText = originalTable.style.cssText;
-                
-                const clonedThead = thead.cloneNode(true);
-                clonedTable.appendChild(clonedThead);
-                fixedHeader.appendChild(clonedTable);
-                
-                // Copy event listeners for sorting
-                const originalHeaders = thead.querySelectorAll('th[onclick]');
-                const clonedHeaders = clonedThead.querySelectorAll('th[onclick]');
-                
-                originalHeaders.forEach((header, index) => {
-                    if (clonedHeaders[index]) {
-                        const onclickValue = header.getAttribute('onclick');
-                        if (onclickValue) {
-                            clonedHeaders[index].setAttribute('onclick', onclickValue);
-                        }
-                    }
-                });
-            }
-            
-            // Update header positioning and visibility
-            function updateFixedHeader() {
-                const containerRect = tableContainer.getBoundingClientRect();
-                const theadRect = thead.getBoundingClientRect();
-                const scrollTop = tableContainer.scrollTop;
-                
-                // Show fixed header when original header scrolls out of view
-                if (scrollTop > 10 && theadRect.bottom < containerRect.top) {
-                    fixedHeader.style.display = 'block';
-                    
-                    // Sync column widths precisely
-                    const originalCells = thead.querySelectorAll('th');
-                    const fixedCells = fixedHeader.querySelectorAll('th');
-                    const fixedTable = fixedHeader.querySelector('table');
-                    
-                    // Copy computed styles from original table
-                    const originalComputedStyle = window.getComputedStyle(originalTable);
-                    fixedTable.style.width = originalComputedStyle.width;
-                    
-                    originalCells.forEach((cell, index) => {
-                        if (fixedCells[index]) {
-                            const cellComputedStyle = window.getComputedStyle(cell);
-                            const width = cell.offsetWidth;
-                            const padding = cellComputedStyle.padding;
-                            const fontSize = cellComputedStyle.fontSize;
-                            const fontFamily = cellComputedStyle.fontFamily;
-                            
-                            fixedCells[index].style.cssText = `
-                                width: ${width}px !important;
-                                min-width: ${width}px !important;
-                                max-width: ${width}px !important;
-                                padding: ${padding};
-                                font-size: ${fontSize};
-                                font-family: ${fontFamily};
-                                background: #34495e;
-                                color: white;
-                                border: 1px solid #2c3e50;
-                                font-weight: bold;
-                                text-align: center;
-                                cursor: pointer;
-                                line-height: 1.2;
-                                white-space: nowrap;
-                                vertical-align: middle;
-                            `;
-                        }
-                    });
-                    
-                    // Sync horizontal scroll
-                    fixedHeader.scrollLeft = tableContainer.scrollLeft;
-                } else {
-                    fixedHeader.style.display = 'none';
-                }
-            }
-            
-            // Event listeners
-            tableContainer.addEventListener('scroll', updateFixedHeader);
-            window.addEventListener('resize', () => {
-                setTimeout(() => {
-                    createFixedHeader();
-                    updateFixedHeader();
-                }, 100);
-            });
-            
-            // Initial setup
-            createFixedHeader();
-        }
-        
         
         // Add file upload event listener with debugging
         const fileInput = document.getElementById('fileInput');
@@ -1708,7 +1572,7 @@
             console.log('Applying mobile styles...');
             
             // Check if we're on mobile (increase threshold to catch more devices)
-            if (window.innerWidth <= 480) {
+            if (window.innerWidth <= 1024) {
                 console.log('Mobile detected, applying styles...');
                 
                 // Header styling
@@ -1786,32 +1650,31 @@
                 
                 // Don't modify file upload button at all - leave it exactly as original
                 
-                // Main page controls layout - put upload next to horse filter, export stays separate
+                // Main page controls layout - put upload and export side by side
                 const mainControls = document.querySelector('#mainView .controls');
                 if (mainControls) {
-                    // Find horse filter and upload containers
-                    const horseFilterGroup = Array.from(mainControls.children).find(child => child.querySelector('#horseFilter'));
+                    // Find upload and export button containers
                     const uploadGroup = Array.from(mainControls.children).find(child => child.querySelector('.file-label'));
                     const exportGroup = Array.from(mainControls.children).find(child => child.querySelector('#exportCsv'));
                     
-                    if (horseFilterGroup && uploadGroup) {
-                        // Create a flex container for horse filter and upload
-                        const filterUploadRow = document.createElement('div');
-                        filterUploadRow.style.display = 'flex';
-                        filterUploadRow.style.gap = '5px';
-                        filterUploadRow.style.alignItems = 'end';
-                        filterUploadRow.style.marginBottom = '10px';
+                    if (uploadGroup && exportGroup) {
+                        // Create a flex container for upload and export only
+                        const buttonRow = document.createElement('div');
+                        buttonRow.style.display = 'flex';
+                        buttonRow.style.gap = '8px';
+                        buttonRow.style.marginBottom = '0px';
+                        buttonRow.style.width = '100%';
                         
-                        // Move horse filter and upload into the row
-                        filterUploadRow.appendChild(horseFilterGroup);
-                        filterUploadRow.appendChild(uploadGroup);
+                        // Make both buttons flex equally
+                        uploadGroup.style.flex = '1';
+                        exportGroup.style.flex = '1';
                         
-                        // Insert at the beginning, before other controls
-                        mainControls.insertBefore(filterUploadRow, mainControls.firstChild);
+                        // Move buttons into the row
+                        buttonRow.appendChild(uploadGroup);
+                        buttonRow.appendChild(exportGroup);
                         
-                        // Style upload group to align with bottom of text input
-                        uploadGroup.style.alignSelf = 'flex-end';
-                        uploadGroup.style.marginBottom = '0px';
+                        // Insert the button row at the beginning of controls
+                        mainControls.insertBefore(buttonRow, mainControls.firstChild);
                     }
                 }
                 
@@ -1833,29 +1696,22 @@
                         firstRow.style.gap = '8px';
                         firstRow.style.alignItems = 'center';
                         
-                        // Make main button same exact dimensions as export button and align with age filter bottom
-                        const mainButton = backButtonGroup.querySelector('.back-button');
-                        const exportButton = document.querySelector('#exportHorseCsv');
-                        if (mainButton && exportButton) {
-                            const exportStyles = window.getComputedStyle(exportButton);
-                            const exportWidth = exportButton.offsetWidth;
-                            
-                            // Set container width to be 10px wider than button width
-                            backButtonGroup.style.width = (exportWidth + 10) + 'px';
-                            backButtonGroup.style.flex = 'none';
-                            
-                            // Make button fill container and match export styling
-                            mainButton.style.width = '100%';
-                            mainButton.style.height = exportStyles.height;
-                            mainButton.style.padding = exportStyles.padding;
-                            mainButton.style.fontSize = exportStyles.fontSize;
-                            mainButton.style.minHeight = exportStyles.minHeight;
-                            mainButton.style.boxSizing = 'border-box';
-                            mainButton.style.alignSelf = 'flex-end';
-                            mainButton.style.marginBottom = '0px';
-                        }
-                        
+                        // Set fixed widths to prevent stretching
+                        backButtonGroup.style.width = '90px';
+                        backButtonGroup.style.flex = 'none';
                         ageFilterGroup.style.flex = '1';
+                        
+                        // Make main button same length as export button and align with filter
+                        const mainButton = backButtonGroup.querySelector('.back-button');
+                        if (mainButton) {
+                            mainButton.style.width = '85px';
+                            mainButton.style.padding = '8px 10px';
+                            mainButton.style.fontSize = '13px';
+                            mainButton.style.minHeight = '32px';
+                            mainButton.style.height = '32px';
+                            mainButton.style.boxSizing = 'border-box';
+                            mainButton.style.marginTop = '2px';
+                        }
                         
                         firstRow.appendChild(backButtonGroup);
                         firstRow.appendChild(ageFilterGroup);
@@ -1927,19 +1783,52 @@
                 newLostNumbers.className = 'lost-numbers';
                 newLostNumbers.textContent = '4 8 15 16 23 42';
                 
-                // Add as actual footer at end of content
-                const footer = document.createElement('footer');
-                footer.style.cssText = `
-                    position: relative !important;
-                    text-align: right !important;
-                    padding: 3px 15px 3px 0 !important;
-                    margin-top: 5px !important;
-                    background: #0d1421 !important;
-                `;
-                footer.appendChild(newLostNumbers);
-                document.body.appendChild(footer);
+                if (window.innerWidth <= 1024) {
+                    // Mobile: check if we're on horse detail page
+                    const isHorseDetailPage = document.querySelector('.horse-detail-view') && 
+                                            document.querySelector('.horse-detail-view').style.display !== 'none';
+                    
+                    if (!isHorseDetailPage) {
+                        // Mobile main page: below table
+                        newLostNumbers.style.cssText = `
+                            position: relative !important;
+                            text-align: right !important;
+                            padding: 8px 15px 6px 0 !important;
+                            margin: 3px 0 0 0 !important;
+                            font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                            font-size: 11px !important;
+                            color: #6a9a7b !important;
+                            opacity: 0.75 !important;
+                            font-weight: normal !important;
+                            letter-spacing: 2px !important;
+                            user-select: none !important;
+                            pointer-events: none !important;
+                            background: transparent !important;
+                        `;
+                        document.body.appendChild(newLostNumbers);
+                    }
+                    // If on mobile horse detail page, don't add lost numbers (hide them)
+                } else {
+                    // Desktop: fixed at bottom right
+                    newLostNumbers.style.cssText = `
+                        position: fixed !important;
+                        bottom: 10px !important;
+                        right: 15px !important;
+                        font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                        font-size: 11px !important;
+                        color: #6a9a7b !important;
+                        opacity: 0.75 !important;
+                        font-weight: normal !important;
+                        letter-spacing: 2px !important;
+                        user-select: none !important;
+                        pointer-events: none !important;
+                        background: transparent !important;
+                        z-index: 1000 !important;
+                    `;
+                    document.body.appendChild(newLostNumbers);
+                }
                 
-                console.log('Lost numbers positioned for', window.innerWidth <= 480 ? 'mobile' : 'desktop');
+                console.log('Lost numbers positioned for', window.innerWidth <= 1024 ? 'mobile' : 'desktop');
             }
         }, 200);
 
@@ -1956,7 +1845,7 @@
         document.head.appendChild(removeShadowsStyle);
         
         // Desktop button alignment improvements (only apply on desktop)
-        if (window.innerWidth > 480) {
+        if (window.innerWidth > 1024) {
             const desktopButtonStyle = document.createElement('style');
             desktopButtonStyle.textContent = `
                 .controls {
@@ -1964,7 +1853,7 @@
                     flex-wrap: wrap !important;
                     justify-content: center !important;
                     align-items: end !important;
-                    gap: 10px !important;
+                    gap: 20px !important;
                 }
                 .control-group {
                     display: flex !important;
@@ -1987,7 +1876,7 @@
         }
         
         // Mobile-only horse column width adjustment
-        if (window.innerWidth <= 480) {
+        if (window.innerWidth <= 1024) {
             const mobileHorseWidthStyle = document.createElement('style');
             mobileHorseWidthStyle.textContent = `
                 .horse-name-cell {
@@ -2069,7 +1958,6 @@
             });
         }
 
-
         function parseCSV(csvText) {
             const lines = csvText.split('\n');
             const result = [];
@@ -2119,7 +2007,6 @@
             const times5f = [];
             const speeds = [];
             const detailData = [];
-            const workDates = [];
             
             for (let i = 1; i < jsonData.length; i++) {
                 const row = jsonData[i];
@@ -2192,19 +2079,8 @@
                 };
                 
                 // Add all rows to detail data
-                if (detailRow.date && (detailRow.type || detailRow.best1f || detailRow.maxSpeed || detailRow.distance)) {
+                if (detailRow.date || detailRow.horse || detailRow.type) {
                     detailData.push(detailRow);
-                }
-                
-                // Collect work dates for Last Work calculation
-                if (isWork && dateValue) {
-                    const workDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
-                    if (!isNaN(workDate.getTime())) {
-                        workDates.push({
-                            date: workDate,
-                            dateString: dateValue.toString()
-                        });
-                    }
                 }
                 
                 // For main table summary, exclude races
@@ -2264,15 +2140,6 @@
                 maxSpeed = Math.max(...speeds);
             }
             
-            // Calculate last work date
-            let lastWorkDate = null;
-            if (workDates.length > 0) {
-                const mostRecent = workDates.reduce((latest, current) => 
-                    current.date > latest.date ? current : latest
-                );
-                lastWorkDate = mostRecent.dateString;
-            }
-            
             allHorseDetailData[horseName] = detailData;
             
             return {
@@ -2284,7 +2151,6 @@
                 fastRecovery: fastRecovery,
                 recovery15min: recovery15min,
                 maxSpeed: maxSpeed,
-                lastWorkDate: lastWorkDate,
                 best5fColor: getBest5FColor(best5f),
                 fastRecoveryColor: getFastRecoveryColor(fastRecovery),
                 recovery15Color: getRecovery15Color(recovery15min)
@@ -2365,8 +2231,7 @@
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSort.column = column;
-                // Default to 'desc' for lastWork column (most recent first), 'asc' for others
-                currentSort.order = column === 'lastWork' ? 'desc' : 'asc';
+                currentSort.order = 'asc';
             }
             
             document.getElementById('sortBy').value = column;
@@ -2377,7 +2242,6 @@
         }
 
         function sortData() {
-            console.log(`Sorting by: ${currentSort.column}, order: ${currentSort.order}`);
             filteredData.sort((a, b) => {
                 let aVal = a[currentSort.column];
                 let bVal = b[currentSort.column];
@@ -2388,16 +2252,6 @@
                 } else if (currentSort.column === 'age' || currentSort.column === 'maxSpeed' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
-                } else if (currentSort.column === 'lastWork' || currentSort.column === 'dateOfBest5f') {
-                    // Handle lastWork column by using the correct property name
-                    if (currentSort.column === 'lastWork') {
-                        aVal = a.lastWorkDate ? new Date(a.lastWorkDate) : new Date(0);
-                        bVal = b.lastWorkDate ? new Date(b.lastWorkDate) : new Date(0);
-                        console.log(`Comparing dates: ${a.name}(${a.lastWorkDate}) vs ${b.name}(${b.lastWorkDate})`);
-                    } else {
-                        aVal = aVal ? new Date(aVal) : new Date(0);
-                        bVal = bVal ? new Date(bVal) : new Date(0);
-                    }
                 } else {
                     aVal = aVal || '';
                     bVal = bVal || '';
@@ -2417,7 +2271,7 @@
             const tbody = document.getElementById('horseTableBody');
             
             if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No horses match the current filters.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No horses match the current filters.</td></tr>';
                 return;
             }
             
@@ -2429,7 +2283,6 @@
                 return `
                     <tr class="clickable-row" onclick="showHorseDetail('${horse.name}')">
                         <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${horse.name}</span></td>
-                        <td class="last-work-cell">${horse.lastWorkDate || '-'}</td>
                         <td class="age-cell age-col">${horse.age || '-'}</td>
                         <td class="time-cell">${horse.best1f || '-'}</td>
                         <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
@@ -2448,13 +2301,12 @@
                 return;
             }
 
-            const headers = ['Horse Name', 'Last Work', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery', 'Max Speed'];
+            const headers = ['Horse Name', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery', 'Max Speed'];
             let csvContent = headers.join(',') + '\n';
 
             filteredData.forEach(horse => {
                 const row = [
                     `"${horse.name}"`,
-                    horse.lastWorkDate || '',
                     horse.age || '',
                     horse.best1f || '',
                     horse.best5f || '',
@@ -2504,7 +2356,6 @@
             // Initialize navigation after showing the view
             setTimeout(() => {
                 initializeTableNavigation();
-                initializeFrozenHeader();
                 applyMobileStyles(); // Apply mobile styles to horse detail view
             }, 100);
             
@@ -2790,6 +2641,50 @@
             }
         }
         
+        // Load latest session on page load
+        function loadLatestSession() {
+            console.log('Loading latest session...');
+            fetch('/api/latest')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Latest session response:', data);
+                    if (data.sessionId) {
+                        console.log('Loading session:', data.sessionId);
+                        loadSessionData(data.sessionId);
+                    } else {
+                        console.log('No latest session found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading latest session:', error);
+                });
+        }
+        
+        // Load session data
+        function loadSessionData(sessionId) {
+            fetch(`/api/session/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.horseData && data.allHorseDetailData) {
+                        horseData = data.horseData;
+                        allHorseDetailData = data.allHorseDetailData;
+                        
+                        updateHorseFilter();
+                        updateAgeFilter();
+                        filterData();
+                        
+                        // Apply user preferences after loading data
+                        loadUserPreferences();
+                        updateColumnVisibilityUI();
+                        updateTableColumnVisibility();
+                        
+                        document.getElementById('exportCsv').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading session data:', error);
+                });
+        }
         
         // Show share dialog
         function showShareDialog(shareUrl) {
@@ -2834,44 +2729,6 @@
             if (dialog) {
                 document.body.removeChild(dialog);
             }
-        }
-        
-        
-        // Show share dialog
-        function showShareDialog(shareUrl) {
-            const dialog = document.createElement('div');
-            dialog.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">File Uploaded Successfully!</h3>
-                        <p style="margin: 0 0 20px 0; color: #666;">Share this link with others to let them view the analysis results:</p>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 0 0 20px 0; border: 1px solid #e9ecef;">
-                            <input type="text" value="${shareUrl}" readonly style="width: 100%; border: none; background: none; font-family: monospace; font-size: 14px; color: #2c3e50; text-align: center;">
-                        </div>
-                        <div style="display: flex; gap: 10px; justify-content: center;">
-                            <button onclick="copyShareUrl('${shareUrl}')" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Copy Link</button>
-                            <button onclick="closeShareDialog()" style="background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Close</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            dialog.id = 'shareDialog';
-            document.body.appendChild(dialog);
-        }
-        
-        // Copy share URL to clipboard
-        function copyShareUrl(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Share URL copied to clipboard!');
-            }).catch(err => {
-                console.error('Could not copy text: ', err);
-                // Fallback: select the text
-                const input = document.querySelector('#shareDialog input');
-                input.select();
-                input.setSelectionRange(0, 99999);
-                document.execCommand('copy');
-                alert('Share URL copied to clipboard!');
-            });
         }
         
     </script>
