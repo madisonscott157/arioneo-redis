@@ -2001,6 +2001,9 @@
                     horseData = data.data.horseData;
                     allHorseDetailData = data.data.allHorseDetailData;
                     
+                    // Calculate Last Work dates for each horse
+                    calculateLastWorkDates();
+                    
                     updateHorseFilter();
                     updateAgeFilter();
                     filterData();
@@ -2021,6 +2024,38 @@
                 console.error('Error uploading file:', error);
                 alert('Error uploading file: ' + error.message + '\n\nPlease check the browser console for more details.');
             });
+        }
+
+        function calculateLastWorkDates() {
+            if (!horseData || !allHorseDetailData) return;
+            
+            // Process each horse to find their last work date
+            horseData.forEach(horse => {
+                const horseDetailData = allHorseDetailData[horse.name];
+                if (!horseDetailData || !Array.isArray(horseDetailData)) return;
+                
+                let lastWorkDate = null;
+                
+                // Look through each detail row to find work entries
+                horseDetailData.forEach(row => {
+                    // Check if column C (type) contains "work" (case insensitive)
+                    const typeValue = row.type || '';
+                    const isWork = typeValue.toString().toLowerCase().includes('work');
+                    
+                    if (isWork && row.date && row.date !== '-') {
+                        // This is a work entry with a valid date
+                        const workDate = new Date(row.date);
+                        if (!lastWorkDate || workDate > new Date(lastWorkDate)) {
+                            lastWorkDate = row.date;
+                        }
+                    }
+                });
+                
+                // Add the last work date to the horse object
+                horse.lastWorkDate = lastWorkDate;
+            });
+            
+            console.log('Last Work dates calculated for', horseData.length, 'horses');
         }
 
         function parseCSV(csvText) {
@@ -2857,6 +2892,9 @@
                     if (data.horseData && data.allHorseDetailData) {
                         horseData = data.horseData;
                         allHorseDetailData = data.allHorseDetailData;
+                        
+                        // Calculate Last Work dates for loaded session
+                        calculateLastWorkDates();
                         
                         updateHorseFilter();
                         updateAgeFilter();
