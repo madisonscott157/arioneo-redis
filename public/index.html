@@ -2770,7 +2770,7 @@
                 });
             }
             
-            // Update header positioning and visibility
+            // Update fixed header position and visibility
             function updateFixedHeader() {
                 const containerRect = tableContainer.getBoundingClientRect();
                 const theadRect = thead.getBoundingClientRect();
@@ -2779,6 +2779,9 @@
                 // Show fixed header when original header scrolls out of view
                 if (scrollTop > 10 && theadRect.bottom < containerRect.top) {
                     fixedHeader.style.display = 'block';
+                    
+                    // Sync horizontal scroll position
+                    fixedHeader.scrollLeft = tableContainer.scrollLeft;
                     
                     // Sync column widths precisely
                     const originalCells = thead.querySelectorAll('th');
@@ -2822,8 +2825,17 @@
             createFixedHeader();
             updateFixedHeader();
             
-            // Add scroll listener
+            // Remove existing listeners to prevent duplicates
+            tableContainer.removeEventListener('scroll', updateFixedHeader);
+            
+            // Add scroll listeners
             tableContainer.addEventListener('scroll', updateFixedHeader);
+            tableContainer.addEventListener('scroll', () => {
+                // Sync horizontal scroll position
+                if (fixedHeader.style.display === 'block') {
+                    fixedHeader.scrollLeft = tableContainer.scrollLeft;
+                }
+            });
             
             // Update header on window resize
             window.addEventListener('resize', () => {
