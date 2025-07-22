@@ -1558,8 +1558,7 @@
             console.error('File input not found!');
         }
         
-        // Check for latest session on page load
-        loadLatestSession();
+        // Local file processing only - no server integration
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
         document.getElementById('sortBy').addEventListener('change', updateSort);
@@ -1963,55 +1962,80 @@
             
             console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
             
-            // Show upload progress
+            // Show processing progress
             const uploadStatus = document.createElement('div');
-            uploadStatus.innerHTML = '<p>Uploading and processing file...</p>';
+            uploadStatus.innerHTML = '<p>Processing file locally...</p>';
             uploadStatus.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #3498db; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
             document.body.appendChild(uploadStatus);
             
-            const formData = new FormData();
-            formData.append('excel', file);
+            const reader = new FileReader();
             
-            fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('Upload response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.body.removeChild(uploadStatus);
-                console.log('Upload response data:', data);
-                
-                if (data.success) {
-                    // Update page with new data
-                    horseData = data.data.horseData;
-                    allHorseDetailData = data.data.allHorseDetailData;
+            reader.onload = function(e) {
+                try {
+                    let processedData;
+                    
+                    if (file.name.toLowerCase().endsWith('.csv')) {
+                        // Process CSV file
+                        const csvText = e.target.result;
+                        processedData = parseCSV(csvText);
+                    } else {
+                        // Process Excel file
+                        const arrayBuffer = e.target.result;
+                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                        
+                        console.log('Excel workbook loaded. Sheet names:', workbook.SheetNames);
+                        
+                        const processedHorseData = [];
+                        const allDetailData = [];
+                        
+                        workbook.SheetNames.forEach(sheetName => {
+                            if (sheetName !== 'Sheet1' && sheetName.toLowerCase() !== 'buttons') { // Skip summary sheets and buttons
+                                const worksheet = workbook.Sheets[sheetName];
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                                console.log(`Processing sheet: ${sheetName}, rows: ${jsonData.length}`);
+                                
+                                if (jsonData.length > 0) {
+                                    const sheetData = processSheetData(jsonData, sheetName, worksheet, workbook);
+                                    if (sheetData) {
+                                        processedHorseData.push(sheetData);
+                                        if (allHorseDetailData[sheetName]) {
+                                            allDetailData.push(...allHorseDetailData[sheetName]);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        processedData = {
+                            horseData: processedHorseData,
+                            allHorseDetailData: allHorseDetailData
+                        };
+                    }
+                    
+                    // Update the page with processed data
+                    horseData = processedData.horseData || processedData;
                     
                     updateHorseFilter();
                     updateAgeFilter();
                     filterData();
                     document.getElementById('exportCsv').disabled = false;
                     
-                    // Show share URL
-                    const shareUrl = `${window.location.origin}/share/${data.sessionId}`;
-                    showShareDialog(shareUrl);
+                    document.body.removeChild(uploadStatus);
+                    console.log('File processing complete!');
                     
-                    console.log('File uploaded successfully. Share URL:', shareUrl);
-                } else {
-                    console.error('Upload failed:', data.error);
-                    alert('Error uploading file: ' + data.error);
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    document.body.removeChild(uploadStatus);
+                    alert('Error processing file: ' + error.message + '\n\nPlease check the browser console for more details.');
                 }
-            })
-            .catch(error => {
-                document.body.removeChild(uploadStatus);
-                console.error('Error uploading file:', error);
-                alert('Error uploading file: ' + error.message + '\n\nPlease check the browser console for more details.');
-            });
+            };
+            
+            // Read file based on type
+            if (file.name.toLowerCase().endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
         }
 
         function parseCSV(csvText) {
@@ -2736,7 +2760,6 @@
                 });
         }
         
-        // Initialize frozen header functionality
         function initializeFrozenHeader() {
             const tableContainer = document.getElementById('horseDetailTableContainer');
             const originalTable = document.getElementById('horseDetailTable');
