@@ -2765,12 +2765,15 @@
                 
                 originalHeaders.forEach((header, index) => {
                     if (clonedHeaders[index]) {
-                        clonedHeaders[index].onclick = header.onclick;
+                        const onclickValue = header.getAttribute('onclick');
+                        if (onclickValue) {
+                            clonedHeaders[index].setAttribute('onclick', onclickValue);
+                        }
                     }
                 });
             }
             
-            // Update fixed header position and visibility
+            // Update header positioning and visibility
             function updateFixedHeader() {
                 const containerRect = tableContainer.getBoundingClientRect();
                 const theadRect = thead.getBoundingClientRect();
@@ -2779,9 +2782,6 @@
                 // Show fixed header when original header scrolls out of view
                 if (scrollTop > 10 && theadRect.bottom < containerRect.top) {
                     fixedHeader.style.display = 'block';
-                    
-                    // Sync horizontal scroll position
-                    fixedHeader.scrollLeft = tableContainer.scrollLeft;
                     
                     // Sync column widths precisely
                     const originalCells = thead.querySelectorAll('th');
@@ -2804,14 +2804,17 @@
                                 width: ${width}px !important;
                                 min-width: ${width}px !important;
                                 max-width: ${width}px !important;
-                                padding: ${padding} !important;
-                                font-size: ${fontSize} !important;
-                                font-family: ${fontFamily} !important;
-                                text-align: center !important;
-                                background: #34495e !important;
-                                color: white !important;
-                                border: 1px solid #2c3e50 !important;
-                                box-sizing: border-box !important;
+                                padding: ${padding};
+                                font-size: ${fontSize};
+                                font-family: ${fontFamily};
+                                background: #34495e;
+                                color: white;
+                                border: 1px solid #2c3e50;
+                                font-weight: bold;
+                                text-align: center;
+                                cursor: pointer;
+                                line-height: 1.2;
+                                white-space: nowrap;
                                 vertical-align: middle;
                             `;
                         }
@@ -2825,17 +2828,8 @@
             createFixedHeader();
             updateFixedHeader();
             
-            // Remove existing listeners to prevent duplicates
-            tableContainer.removeEventListener('scroll', updateFixedHeader);
-            
-            // Add scroll listeners
+            // Add scroll listener
             tableContainer.addEventListener('scroll', updateFixedHeader);
-            tableContainer.addEventListener('scroll', () => {
-                // Sync horizontal scroll position
-                if (fixedHeader.style.display === 'block') {
-                    fixedHeader.scrollLeft = tableContainer.scrollLeft;
-                }
-            });
             
             // Update header on window resize
             window.addEventListener('resize', () => {
