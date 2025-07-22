@@ -38,9 +38,12 @@
         
         .horse-detail-view .table-container {
             overflow-x: auto;
+            overflow-y: auto;
             width: 100%;
+            max-height: 70vh;
             margin: 0;
             padding: 10px;
+            position: relative;
         }
         
         .horse-detail-view table {
@@ -883,10 +886,11 @@
             top: -31px;
             left: 0;
             right: 0;
-            z-index: 100;
-            background: white;
-            border-bottom: 1px solid #ddd;
+            z-index: 1000;
             display: none;
+            width: fit-content;
+            margin: 0;
+            padding: 0;
             padding-top: 20px;
         }
 
@@ -894,7 +898,7 @@
             margin: 0;
             border-collapse: collapse;
             width: auto;
-            min-width: 100%;
+            min-width: fit-content;
             table-layout: auto;
         }
 
@@ -902,8 +906,13 @@
             background: #34495e;
             color: white;
             padding: 12px 8px;
-            text-align: center;
             border: 1px solid #2c3e50;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            line-height: 1.2;
+            white-space: nowrap;
+            vertical-align: middle;
         }
 
         /* Desktop enhancements for better mouse scrolling */
@@ -2451,6 +2460,7 @@
             // Initialize navigation after showing the view
             setTimeout(() => {
                 initializeTableNavigation();
+                initializeFrozenHeader();
                 applyMobileStyles(); // Apply mobile styles to horse detail view
             }, 100);
             
