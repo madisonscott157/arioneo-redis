@@ -1332,7 +1332,6 @@
                     <option value="age">Sort: Age</option>
                     <option value="best1f">Sort: Best 1F</option>
                     <option value="best5f">Sort: Best 5F</option>
-                    <option value="maxSpeed">Sort: Max Speed</option>
                 </select>
             </div>
 
@@ -1353,12 +1352,11 @@
                         <th onclick="sortTable('dateOfBest5f')" class="date-col">Date <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast Recovery <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('recovery15min')" class="recovery15-col">15 Recovery <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('maxSpeed')" class="max-speed-col">Max Speed <span class="sort-indicator">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="horseTableBody">
                     <tr>
-                        <td colspan="11" class="no-data">No data loaded. Please upload Arioneo CSV to get started.</td>
+                        <td colspan="10" class="no-data">No data loaded. Please upload Arioneo CSV to get started.</td>
                     </tr>
                 </tbody>
             </table>
@@ -3405,7 +3403,7 @@
 
             if (filteredData.length === 0) {
                 const viewType = currentView === 'historic' ? 'historic' : 'active';
-                tbody.innerHTML = `<tr><td colspan="11" class="no-data">No ${viewType} horses match the current filters.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="no-data">No ${viewType} horses match the current filters.</td></tr>`;
                 return;
             }
 
@@ -3426,7 +3424,6 @@
                         <td class="date-col">${horse.dateOfBest5f || '-'}</td>
                         <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${horse.fastRecovery || '-'}</td>
                         <td class="recovery15-cell" ${recovery15Style}>${horse.recovery15min || '-'}</td>
-                        <td class="speed-cell max-speed-col">${horse.maxSpeed && !isNaN(parseFloat(horse.maxSpeed)) ? parseFloat(horse.maxSpeed).toFixed(1) : '-'}</td>
                     </tr>
                 `;
             }).join('');
@@ -3452,7 +3449,7 @@
                 return;
             }
 
-            const headers = ['Horse Name', 'Last Work', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery', 'Max Speed'];
+            const headers = ['Horse Name', 'Last Work', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery'];
             let csvContent = headers.join(',') + '\n';
 
             filteredData.forEach(horse => {
@@ -3464,8 +3461,7 @@
                     horse.best5f || '',
                     horse.dateOfBest5f || '',
                     horse.fastRecovery || '',
-                    horse.recovery15min || '',
-                    horse.maxSpeed ? horse.maxSpeed.toFixed(2) : ''
+                    horse.recovery15min || ''
                 ];
                 csvContent += row.join(',') + '\n';
             });
