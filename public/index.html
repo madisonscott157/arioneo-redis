@@ -66,55 +66,125 @@
         }
 
         .controls {
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
+            padding: 12px 20px;
+            background: #2c3e50;
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 8px;
             align-items: center;
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .controls-divider {
+            width: 1px;
+            height: 28px;
+            background: rgba(255,255,255,0.2);
+            margin: 0 8px;
         }
 
         .control-group {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
-            align-items: flex-start;
-        }
-        
-        /* Align buttons without labels */
-        .control-group:has(button:only-child) {
-            justify-content: flex-end;
-            padding-top: 28px; /* Space to align with labeled controls */
-        }
-        
-        /* Fallback for browsers that don't support :has() */
-        .control-group.button-only {
-            justify-content: flex-end;
-            padding-top: 28px;
+            align-items: center;
+            gap: 6px;
         }
 
         .control-group label {
-            font-weight: bold;
+            font-weight: 500;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        select, input[type="text"] {
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.95);
             color: #2c3e50;
-            font-size: 0.9em;
+            transition: all 0.2s;
         }
 
-        select, input {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        select:focus, input:focus {
+        select:focus, input[type="text"]:focus {
             outline: none;
             border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52,152,219,0.3);
         }
 
-        .file-input {
-            margin-right: 20px;
+        select {
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        input[type="text"] {
+            min-width: 140px;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .btn-danger {
+            background: rgba(231,76,60,0.8);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e74c3c;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #3498db;
+            color: white;
+        }
+
+        .file-label:hover {
+            background: #2980b9;
         }
 
         #fileInput {
@@ -1247,69 +1317,56 @@
 
         <div class="controls">
             <div class="control-group">
-                <label for="viewSelector">View:</label>
                 <select id="viewSelector" onchange="switchView()">
                     <option value="active">Active Horses</option>
                     <option value="historic">Historic</option>
                 </select>
             </div>
 
-            <div class="control-group file-input">
-                <label for="arioneoFileInput" class="file-label" style="background: #27ae60; cursor: pointer;">Upload Arioneo CSV</label>
-                <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
-            </div>
+            <div class="controls-divider"></div>
 
-            <div class="control-group button-only">
-                <button onclick="showHorseManagement()" class="export-btn" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);">Manage Horses</button>
-            </div>
+            <label for="arioneoFileInput" class="file-label">Upload CSV</label>
+            <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
-            <div class="control-group button-only">
-                <button onclick="clearAllData()" class="export-btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear Data</button>
+            <button onclick="showHorseManagement()" class="btn btn-secondary">Manage Horses</button>
+            <button onclick="clearAllData()" class="btn btn-danger">Clear</button>
+
+            <div class="controls-divider"></div>
+
+            <div class="control-group">
+                <input type="text" id="horseFilter" list="horseList" placeholder="Search horse...">
+                <datalist id="horseList"></datalist>
             </div>
 
             <div class="control-group">
-                <label for="horseFilter">Filter by Horse:</label>
-                <input type="text" id="horseFilter" list="horseList" placeholder="Type or select horse name...">
-                <datalist id="horseList">
-                </datalist>
-            </div>
-
-            <div class="control-group">
-                <label for="ownerFilter">Filter by Owner:</label>
                 <select id="ownerFilter" onchange="applyFilters()">
                     <option value="">All Owners</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="countryFilter">Filter by Country:</label>
                 <select id="countryFilter" onchange="applyFilters()">
                     <option value="">All Countries</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="ageFilter">Filter by Age:</label>
                 <select id="ageFilter">
                     <option value="">All Ages</option>
                 </select>
             </div>
-            
+
             <div class="control-group">
-                <label for="sortBy">Sort by:</label>
                 <select id="sortBy">
-                    <option value="name">Horse Name</option>
-                    <option value="age">Age</option>
-                    <option value="best1f">Best 1F Time</option>
-                    <option value="best5f">Best 5F Time</option>
-                    <option value="maxSpeed">Max Speed</option>
+                    <option value="name">Sort: Name</option>
+                    <option value="age">Sort: Age</option>
+                    <option value="best1f">Sort: Best 1F</option>
+                    <option value="best5f">Sort: Best 5F</option>
+                    <option value="maxSpeed">Sort: Max Speed</option>
                 </select>
             </div>
-            
-            
-            <div class="control-group button-only">
-                <button id="exportCsv" class="export-btn" disabled>Export</button>
-            </div>
+
+            <button id="exportCsv" class="btn btn-secondary" disabled>Export</button>
         </div>
 
         <div class="table-container">
