@@ -606,44 +606,37 @@ function formatHorseNameForDisplay(name) {
   let horseName = name.toString().trim();
   let year = null;
 
-  // Normalize all types of quotes/apostrophes to standard apostrophe
-  horseName = horseName.replace(/[''`ʻ]/g, "'");
+  // Strip any non-alphanumeric characters from start (quotes, spaces, etc)
+  horseName = horseName.replace(/^[^a-zA-Z0-9]+/, '');
 
   // Pattern 1: 4-digit year at start (2021-2099)
-  // "2022 Stoweshoe" or "2022Stoweshoe"
   const fourDigitYearStart = horseName.match(/^(20[2-9]\d)\s*(.+)$/);
   if (fourDigitYearStart) {
-    year = fourDigitYearStart[1].slice(-2); // Get last 2 digits
-    horseName = fourDigitYearStart[2].trim();
+    year = fourDigitYearStart[1].slice(-2);
+    horseName = fourDigitYearStart[2];
   }
 
-  // Pattern 2: 2-digit year at start with optional apostrophe and/or space before or after (21-99)
-  // "22 Stoweshoe" or "23' GINGER PUNCH" or "'23 GINGER PUNCH" or "' 23 NAME"
+  // Pattern 2: 2-digit year at start (21-99)
   if (!year) {
-    const twoDigitYearStart = horseName.match(/^['\s]*([2-9]\d)['\s]*(.+)$/);
+    const twoDigitYearStart = horseName.match(/^([2-9]\d)[^a-zA-Z0-9]*(.+)$/);
     if (twoDigitYearStart) {
       year = twoDigitYearStart[1];
-      horseName = twoDigitYearStart[2].trim();
+      horseName = twoDigitYearStart[2];
     }
   }
 
-  // Pattern 3: Year at end with apostrophe
-  // "GINGER PUNCH '23" or "GINGER PUNCH 23'" or "GINGER PUNCH '23'"
+  // Pattern 3: Year at end
   if (!year) {
-    const yearAtEnd = horseName.match(/^(.+?)['\s]*([2-9]\d)['\s]*$/);
+    const yearAtEnd = horseName.match(/^(.+?)[^a-zA-Z0-9]*([2-9]\d)[^a-zA-Z0-9]*$/);
     if (yearAtEnd && yearAtEnd[1].length > 2) {
-      horseName = yearAtEnd[1].trim();
+      horseName = yearAtEnd[1];
       year = yearAtEnd[2];
     }
   }
 
-  // Clean up any remaining apostrophes, quotes, and extra spaces from start and end
-  horseName = horseName.replace(/^['\s`''ʻ]+|['\s`''ʻ]+$/g, '').trim();
+  // Final cleanup - remove any non-letter characters from start/end, then uppercase
+  horseName = horseName.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '').trim().toUpperCase();
 
-  // Uppercase the horse name
-  horseName = horseName.toUpperCase();
-
-  // Combine: NAME YY
   if (year) {
     return `${horseName} ${year}`;
   }
@@ -1605,6 +1598,32 @@ app.delete('/api/horses/:name', async (req, res) => {
   } catch (error) {
     console.error('Error deleting horse mapping:', error);
     res.status(500).json({ error: 'Failed to delete horse mapping' });
+  }
+});
+
+// Regenerate all display names (apply formatting fixes without re-uploading)
+app.post('/api/regenerate', async (req, res) => {
+  try {
+    const sessionId = 'arioneo-main-session';
+    const session = await getSession(sessionId);
+
+    if (!session || !session.allHorseDetailData) {
+      return res.status(404).json({ error: 'No session data found' });
+    }
+
+    const horseMapping = await getHorseMapping();
+    const horseData = generateHorseSummary(session.allHorseDetailData, horseMapping);
+
+    await saveSession(sessionId, session.fileName, horseData, session.allHorseDetailData);
+
+    res.json({
+      success: true,
+      message: `Regenerated data for ${horseData.length} horses`,
+      horses: horseData.map(h => ({ name: h.name, displayName: h.displayName }))
+    });
+  } catch (error) {
+    console.error('Error regenerating data:', error);
+    res.status(500).json({ error: 'Failed to regenerate data' });
   }
 });
 
