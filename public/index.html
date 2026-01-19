@@ -1509,6 +1509,7 @@
         let currentHorseDetailData = [];
         let currentHorseDetailSort = { column: 'date', order: 'desc' };
         let currentTypeFilter = 'all';
+        let currentHorseRawName = ''; // Store raw name for data lookup
 
         // View: 'active' or 'historic'
         let currentView = 'active';
@@ -3525,6 +3526,9 @@
             console.log('Clicked horse:', horseName);
             console.log('Available horse detail data:', Object.keys(allHorseDetailData));
 
+            // Store the raw name for data lookups
+            currentHorseRawName = horseName;
+
             // Get the display name from horseData or use override
             const horse = horseData.find(h => h.name === horseName);
             const displayName = displayNameOverride || horse?.displayName || horseName;
@@ -3587,8 +3591,8 @@
 
         function updateHorseAgeFilter(horseName) {
             const ageFilter = document.getElementById('horseAgeFilter');
-            const horseData = allHorseDetailData[horseName] || [];
-            const ages = [...new Set(horseData.map(row => row.age).filter(age => age && age !== '-'))].sort((a, b) => a - b);
+            const horseDetailData = findHorseData(horseName);
+            const ages = [...new Set(horseDetailData.map(row => row.age).filter(age => age && age !== '-'))].sort((a, b) => a - b);
             
             ageFilter.innerHTML = '<option value="">All Ages</option>';
             ages.forEach(age => {
@@ -3629,8 +3633,8 @@
         }
 
         function sortHorseDetailData() {
-            let horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
-            let dataToSort = allHorseDetailData[horseName] || [];
+            // Use the stored raw name for data lookup, not the display name from title
+            let dataToSort = findHorseData(currentHorseRawName);
             
             // Apply age filter
             const ageFilter = document.getElementById('horseAgeFilter').value;
