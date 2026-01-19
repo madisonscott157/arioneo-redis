@@ -1271,6 +1271,10 @@
                 <button onclick="showHorseManagement()" class="export-btn" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);">Manage Horses</button>
             </div>
 
+            <div class="control-group button-only">
+                <button onclick="clearAllData()" class="export-btn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear Data</button>
+            </div>
+
             <div class="control-group">
                 <label for="horseFilter">Filter by Horse:</label>
                 <input type="text" id="horseFilter" list="horseList" placeholder="Type or select horse name...">
@@ -2582,6 +2586,42 @@
                 alert('Error processing file: ' + error.message);
                 event.target.value = '';
             });
+        }
+
+        // ============================================
+        // CLEAR DATA FUNCTION
+        // ============================================
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to clear ALL training data?\n\nThis will remove all horse training entries.\nYour horse-owner mappings will be preserved.\n\nYou can upload fresh data after clearing.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/session/clear', {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Clear local data
+                    horseData = [];
+                    allHorseDetailData = {};
+                    allSheets = {};
+                    sheetNames = [];
+                    currentSheetName = null;
+
+                    // Clear display
+                    renderTable([]);
+
+                    alert('All training data has been cleared.\n\nYou can now upload fresh Arioneo CSV data.');
+                } else {
+                    alert('Error clearing data: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                alert('Error clearing data: ' + error.message);
+            }
         }
 
         // ============================================

@@ -603,47 +603,139 @@ function processArioneoCSV(csvData) {
   const rows = [];
   const headers = csvData[0].map(h => h ? h.toString().trim() : '');
 
-  // Map Arioneo column names to our internal names
+  console.log('CSV Headers found (all):', headers);
+
+  // Map Arioneo column names to our internal names (with many variations)
   const columnMap = {
+    // Date variations
     'date': 'date',
+    'training date': 'date',
+    'session date': 'date',
+
+    // Horse name variations - CRITICAL for grouping
     'horse': 'horse',
+    'horse name': 'horse',
+    'horsename': 'horse',
+    'name': 'horse',
+    'animal': 'horse',
+    'animal name': 'horse',
+    'equine': 'horse',
+    'equine name': 'horse',
+    'cheval': 'horse',  // French
+
+    // Training type variations
     'training type': 'type',
+    'type': 'type',
+    'session type': 'type',
+    'workout type': 'type',
+    'activity': 'type',
+    'activity type': 'type',
+
+    // Track variations
     'track name': 'track',
+    'track': 'track',
+    'location': 'track',
+    'venue': 'track',
+    'training location': 'track',
+
+    // Surface variations
     'track surface': 'surface',
+    'surface': 'surface',
+    'ground': 'surface',
+    'footing': 'surface',
+
+    // Distance variations
     'working distance': 'distance',
+    'distance': 'distance',
+    'work distance': 'distance',
+
+    // Speed variations
     'main working average speed': 'avgSpeed',
+    'avg speed': 'avgSpeed',
+    'average speed': 'avgSpeed',
+    'avg. speed': 'avgSpeed',
     'max speed': 'maxSpeed',
+    'maximum speed': 'maxSpeed',
+    'top speed': 'maxSpeed',
+
+    // Furlong time variations
     'time best 1f': 'best1f',
+    'best 1f': 'best1f',
+    '1f': 'best1f',
     'time best 2f': 'best2f',
+    'best 2f': 'best2f',
+    '2f': 'best2f',
     'time best 3f': 'best3f',
+    'best 3f': 'best3f',
+    '3f': 'best3f',
     'time best 4f': 'best4f',
+    'best 4f': 'best4f',
+    '4f': 'best4f',
     'time best 5f': 'best5f',
+    'best 5f': 'best5f',
+    '5f': 'best5f',
     'time best 6f': 'best6f',
+    'best 6f': 'best6f',
+    '6f': 'best6f',
     'time best 7f': 'best7f',
+    'best 7f': 'best7f',
+    '7f': 'best7f',
+
+    // Heart rate variations
     'max heart rate reached during training': 'maxHR',
+    'max hr': 'maxHR',
+    'max heart rate': 'maxHR',
+    'maximum heart rate': 'maxHR',
     'fast recovery': 'fastRecovery',
     'fast recovery quality': 'fastQuality',
     'fast recovery in % of max hr': 'fastPercent',
     'heart rate after 15 min': 'recovery15',
+    '15 recovery': 'recovery15',
+    '15min recovery': 'recovery15',
     '15min recovery quality': 'quality15',
+    '15 quality': 'quality15',
     'hr after 15 min in % of max hr': 'hr15Percent',
+
+    // Stride variations
     'max stride length': 'maxSL',
+    'max sl': 'maxSL',
     'stride length at 20.5 mph': 'slGallop',
+    'sl gallop': 'slGallop',
     'stride frequency at 20.5 mph': 'sfGallop',
+    'sf gallop': 'sfGallop',
     'stride length at 37.3 mph': 'slWork',
+    'sl work': 'slWork',
     'stride frequency at 37.3 mph': 'sfWork',
+    'sf work': 'sfWork',
+
+    // Recovery variations
     'heart rate after 2 min': 'hr2min',
+    'hr 2 min': 'hr2min',
+    'hr 2min': 'hr2min',
     'heart rate after 5 min': 'hr5min',
+    'hr 5 min': 'hr5min',
+    'hr 5min': 'hr5min',
+
+    // Other variations
     'mean symmetry first trot': 'symmetry',
+    'symmetry': 'symmetry',
     'mean regularity first trot': 'regularity',
+    'regularity': 'regularity',
     'time to 120 bpm': 'bpm120',
+    '120bpm': 'bpm120',
+    '120 bpm': 'bpm120',
     'duration effort zone 5': 'zone5',
+    'zone 5': 'zone5',
+    'zone5': 'zone5',
     'age': 'age',
     'sex': 'sex',
+    'gender': 'sex',
     'temperature': 'temp',
-    'distance': 'distanceCol',
+    'temp': 'temp',
     'trotting average heart rate': 'trotHR',
-    'walking average hr': 'walkHR'
+    'trot hr': 'trotHR',
+    'walking average hr': 'walkHR',
+    'walk hr': 'walkHR'
   };
 
   // Find column indices
@@ -654,6 +746,50 @@ function processArioneoCSV(csvData) {
       colIndices[columnMap[normalizedHeader]] = index;
     }
   });
+
+  console.log('Column indices found:', colIndices);
+  console.log('Horse column index:', colIndices['horse']);
+
+  // FALLBACK: If no horse column found, try to detect it
+  if (colIndices['horse'] === undefined) {
+    console.log('WARNING: Horse column not found by header name. Trying fallback detection...');
+
+    // Look for a column that contains text values that look like horse names
+    // (not dates, not numbers, has multiple unique values)
+    for (let colIdx = 0; colIdx < headers.length; colIdx++) {
+      // Skip columns we already identified
+      if (Object.values(colIndices).includes(colIdx)) continue;
+
+      // Sample some values from this column
+      const sampleValues = [];
+      for (let rowIdx = 1; rowIdx < Math.min(10, csvData.length); rowIdx++) {
+        const val = csvData[rowIdx] && csvData[rowIdx][colIdx];
+        if (val) sampleValues.push(val.toString().trim());
+      }
+
+      // Check if values look like horse names (text, not dates/numbers, varied)
+      const uniqueValues = [...new Set(sampleValues)];
+      const allText = sampleValues.every(v => {
+        // Not a date (no slashes, dashes in date format)
+        if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(v)) return false;
+        // Not a pure number
+        if (/^[\d.,]+$/.test(v)) return false;
+        // Not a time format
+        if (/^\d{2}:\d{2}/.test(v)) return false;
+        return true;
+      });
+
+      if (allText && uniqueValues.length > 1 && sampleValues.length > 0) {
+        console.log(`FALLBACK: Using column ${colIdx} ("${headers[colIdx]}") as horse column. Sample values:`, uniqueValues.slice(0, 5));
+        colIndices['horse'] = colIdx;
+        break;
+      }
+    }
+  }
+
+  if (colIndices['horse'] === undefined) {
+    console.error('CRITICAL: Could not find horse column in CSV! Headers were:', headers);
+  }
 
   // Process each row
   for (let i = 1; i < csvData.length; i++) {
@@ -1105,16 +1241,34 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     const processedRows = processArioneoCSV(csvData);
     console.log(`Processed ${processedRows.length} training entries`);
 
+    // Debug: Check horse names in processed rows
+    const horseNamesInRows = [...new Set(processedRows.map(r => r.horse).filter(Boolean))];
+    console.log(`Found ${horseNamesInRows.length} unique horses in CSV:`, horseNamesInRows.slice(0, 10));
+
+    // If no horses found, something went wrong
+    if (horseNamesInRows.length === 0) {
+      console.error('ERROR: No horse names were extracted from CSV!');
+      console.log('First 3 processed rows:', JSON.stringify(processedRows.slice(0, 3), null, 2));
+    }
+
     // Get existing session data
     const sessionId = 'arioneo-main-session';
     let existingSession = await getSession(sessionId);
     let existingDetailData = existingSession?.allHorseDetailData || {};
+
+    // Debug: Show existing data keys
+    const existingKeys = Object.keys(existingDetailData);
+    console.log('Existing data keys:', existingKeys);
 
     // Get training edits to apply
     const trainingEdits = await getTrainingEdits();
 
     // Merge new data with existing
     const mergedDetailData = mergeTrainingData(existingDetailData, processedRows);
+
+    // Debug: Show merged data keys
+    const mergedKeys = Object.keys(mergedDetailData);
+    console.log('Merged data keys:', mergedKeys);
 
     // Apply any manual edits
     const finalDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
@@ -1143,6 +1297,14 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
       totalHorses: horseData.length,
       totalEntries: totalEntries,
       newEntries: newEntries,
+      debug: {
+        csvRowCount: csvData.length,
+        processedRowCount: processedRows.length,
+        uniqueHorsesInCSV: horseNamesInRows.length,
+        horseNames: horseNamesInRows.slice(0, 20),
+        existingDataKeys: existingKeys.slice(0, 20),
+        finalDataKeys: Object.keys(finalDetailData).slice(0, 20)
+      },
       data: {
         horseData,
         allHorseDetailData: finalDetailData
@@ -1407,6 +1569,75 @@ app.get('/api/countries', async (req, res) => {
   } catch (error) {
     console.error('Error getting countries:', error);
     res.status(500).json({ error: 'Failed to get countries' });
+  }
+});
+
+// Clear all session data (to remove stale data)
+app.delete('/api/session/clear', async (req, res) => {
+  try {
+    const sessionId = 'arioneo-main-session';
+
+    // Clear from Redis
+    if (redis) {
+      await redis.del(`session:${sessionId}`);
+      await redis.del('latest_session');
+      console.log('Session cleared from Redis');
+    }
+
+    // Clear from memory
+    global.sessionStorage.delete(sessionId);
+    global.latestSession = null;
+
+    res.json({
+      success: true,
+      message: 'All session data cleared. You can now upload fresh data.'
+    });
+  } catch (error) {
+    console.error('Error clearing session:', error);
+    res.status(500).json({ error: 'Failed to clear session data' });
+  }
+});
+
+// Debug endpoint to see current data structure
+app.get('/api/debug/data', async (req, res) => {
+  try {
+    const sessionId = 'arioneo-main-session';
+    const session = await getSession(sessionId);
+
+    if (!session) {
+      return res.json({ hasData: false, message: 'No session data found' });
+    }
+
+    // Get keys from allHorseDetailData to see what the grouping looks like
+    const horseKeys = Object.keys(session.allHorseDetailData || {});
+    const sampleData = {};
+
+    // Get first entry from each horse for debugging
+    horseKeys.slice(0, 5).forEach(key => {
+      const entries = session.allHorseDetailData[key];
+      sampleData[key] = {
+        entryCount: entries ? entries.length : 0,
+        firstEntry: entries && entries[0] ? {
+          date: entries[0].date,
+          horse: entries[0].horse,
+          type: entries[0].type,
+          track: entries[0].track
+        } : null
+      };
+    });
+
+    res.json({
+      hasData: true,
+      sessionId: session.id,
+      fileName: session.fileName,
+      horseDataCount: session.horseData ? session.horseData.length : 0,
+      horseDetailKeys: horseKeys,
+      horseDetailKeyCount: horseKeys.length,
+      sampleData: sampleData
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
