@@ -1,0 +1,4412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Training</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0d1421;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .horse-detail-view .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0 10px;
+        }
+        
+        .horse-detail-view .table-container {
+            overflow-x: auto;
+            overflow-y: auto;
+            width: 100%;
+            max-height: 70vh;
+            margin: 0;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .horse-detail-view table {
+            width: 100%;
+            min-width: fit-content;
+            table-layout: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: flex-start;
+        }
+        
+        /* Align buttons without labels */
+        .control-group:has(button:only-child) {
+            justify-content: flex-end;
+            padding-top: 28px; /* Space to align with labeled controls */
+        }
+        
+        /* Fallback for browsers that don't support :has() */
+        .control-group.button-only {
+            justify-content: flex-end;
+            padding-top: 28px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        select, input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .file-input {
+            margin-right: 20px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-label {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .file-label:hover {
+            background: #2980b9;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(52, 73, 94, 0.2);
+        }
+
+        .export-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 73, 94, 0.3);
+        }
+
+        .export-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e8eaed;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        
+        .horse-detail-view th, .horse-detail-view td {
+            padding: 6px 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            line-height: 1.2;
+            vertical-align: top;
+            width: 1%;
+        }
+        
+        .horse-detail-view th {
+            width: auto;
+            min-width: fit-content;
+            max-width: none;
+            word-wrap: break-word;
+        }
+        
+        .horse-detail-view .horse-name-cell {
+            width: auto;
+            min-width: 120px;
+            white-space: nowrap;
+            text-align: center;
+            padding-right: 8px;
+        }
+        
+        .horse-detail-view .recovery-cell {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .horse-detail-view .recovery15-cell {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .horse-detail-view .time-cell {
+            width: 75px;
+            max-width: 75px;
+            min-width: 75px;
+        }
+        
+        .horse-name-cell {
+            text-align: left;
+            width: 110px;
+            max-width: 110px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .horse-name-col {
+            width: 110px;
+            max-width: 110px;
+            white-space: nowrap;
+        }
+        
+        .fast-recovery-col {
+            width: 70px;
+            max-width: 70px;
+        }
+        
+        .recovery15-col {
+            width: 60px;
+            max-width: 60px;
+        }
+        
+        .best5f-col {
+            width: 70px;
+        }
+        
+        .max-speed-col {
+            width: 70px;
+        }
+        
+        .date-col {
+            width: 75px;
+            max-width: 75px;
+        }
+        
+        .age-col {
+            width: 45px;
+        }
+        
+        .type-col {
+            width: 100px;
+        }
+        
+        /* Auto-fit column widths */
+        th, td {
+            width: 1%;
+            white-space: nowrap;
+        }
+        
+        th {
+            white-space: normal;
+            padding: 8px 4px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        }
+
+        tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        tr:hover {
+            background: #e8f4fd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+        
+        .clickable-row {
+            cursor: default;
+        }
+
+        .sort-indicator {
+            margin-left: 5px;
+            opacity: 0.7;
+        }
+
+        .time-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .speed-cell {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .age-cell {
+            color: #8e44ad;
+            font-weight: bold;
+        }
+        
+        .recovery-cell {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            width: 50px;
+        }
+        
+        .recovery15-cell {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            width: 50px;
+        }
+        
+        .type-cell {
+            position: relative;
+            z-index: 10;
+            max-width: 80px;
+            min-width: 80px;
+            width: 80px;
+        }
+        
+        .type-cell-content {
+            position: relative;
+            white-space: nowrap;
+            overflow: visible;
+            z-index: 10;
+        }
+
+        .instructions {
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions p {
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .lost-numbers {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-family: 'Courier New', 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: #6a9a7b;
+            opacity: 0.75;
+            font-weight: normal;
+            letter-spacing: 2px;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .horse-detail-view {
+            display: none;
+        }
+        
+        .back-button {
+            background: #95a5a6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 15px;
+            transition: background 0.3s;
+        }
+        
+        .back-button:hover {
+            background: #7f8c8d;
+        }
+        
+        .add-new-btn {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 15px;
+            transition: background 0.3s;
+        }
+        
+        .add-new-btn:hover {
+            background: #229954;
+        }
+        
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 400px;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-content h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .modal-body {
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .cancel-btn, .upload-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .cancel-btn {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .cancel-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        .upload-btn {
+            background: #3498db;
+            color: white;
+        }
+        
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+        
+        .delete-sheet-btn {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+            min-width: 30px;
+        }
+        
+        .delete-sheet-btn:hover {
+            background: #1a252f;
+        }
+        
+        .delete-sheet-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .delete-confirm-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .delete-confirm-btn:hover {
+            background: #c0392b;
+        }
+        
+        .horse-detail-header {
+            background: linear-gradient(135deg, #1a2332 0%, #2c3e50 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .horse-detail-header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .work-row {
+            background-color: #e8f4fd !important;
+        }
+        
+        .race-row {
+            font-weight: bold !important;
+            color: #c9463a !important;
+            background-color: #fcf2f2 !important;
+        }
+        
+        .race-row td {
+            color: #c9463a !important;
+            font-weight: bold !important;
+        }
+        
+        .column-visibility-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .column-visibility-header {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .column-visibility-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .column-visibility-content {
+            padding: 20px;
+        }
+        
+        .column-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .column-group {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .column-group h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .column-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .column-group input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.1);
+        }
+        
+        .column-visibility-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .visibility-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .visibility-btn:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-1px);
+        }
+        
+        .draggable-column {
+            cursor: move;
+            user-select: none;
+            padding: 6px 0;
+            border-radius: 4px;
+            transition: all 0.2s;
+            background: white;
+            border: 1px solid #e9ecef;
+            margin-bottom: 2px;
+        }
+        
+        .draggable-column:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+        
+        .draggable-column.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .drag-handle {
+            color: #6c757d;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        
+        .drop-zone {
+            min-height: 2px;
+            border: 2px dashed transparent;
+            margin: 1px 0;
+            transition: all 0.2s;
+        }
+        
+        .drop-zone.active {
+            border-color: #3498db;
+            background: #e3f2fd;
+        }
+        
+        .column-order-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .column-item:hover {
+            border-color: #3498db;
+            transform: translateY(-1px);
+        }
+        
+        .column-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+        
+        .column-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        
+        .column-item .column-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .column-item .move-up,
+        .column-item .move-down {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            margin-left: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        
+        .column-item .move-up:hover,
+        .column-item .move-down:hover {
+            background: #2980b9;
+        }
+        
+        .column-item .move-up:disabled,
+        .column-item .move-down:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* Enhanced table scrolling for desktop */
+        .table-scroll-container {
+            position: relative;
+        }
+        
+        .horse-detail-view .table-container {
+            overflow-x: auto;
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+            scroll-behavior: smooth;
+        }
+        
+        /* Desktop-only enhanced scrollbar positioned right under headers */
+        .desktop-scroll-track {
+            display: none;
+            height: 8px;
+            background: #f1f1f1;
+            border-radius: 4px;
+            margin: 0;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .desktop-scroll-thumb {
+            height: 8px;
+            background: #c1c1c1;
+            border-radius: 4px;
+            position: absolute;
+            top: 0;
+            cursor: grab;
+            transition: background 0.3s ease;
+            min-width: 20px;
+        }
+        
+        .desktop-scroll-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .desktop-scroll-thumb:active {
+            cursor: grabbing;
+            background: #888;
+        }
+        
+
+        /* Mobile Responsive Design */
+        @media (max-width: 1024px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .container .header {
+                padding: 15px 10px !important; /* Reduced padding */
+            }
+
+            .container .header h1 {
+                font-size: 1.4em !important; /* Reduced from 1.8em */
+            }
+            
+            .container .header p {
+                font-size: 0.9em !important; /* Make subtitle smaller */
+            }
+
+            .container .controls {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px !important; /* Reduced from 15px */
+                gap: 8px !important; /* Reduced from 10px */
+            }
+            
+            .container .control-group {
+                width: 100%;
+            }
+            
+            .container .control-group label {
+                font-size: 0.8em !important; /* Smaller labels */
+                margin-bottom: 3px !important;
+            }
+
+            .container select, .container input {
+                padding: 8px !important; /* Reduced from 12px */
+                font-size: 14px !important; /* Reduced from 16px */
+            }
+
+            .file-input {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .table-container {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+
+            /* Mobile-optimized table */
+            table {
+                font-size: 12px;
+                border-radius: 8px;
+            }
+
+            th, td {
+                padding: 8px 6px;
+                min-width: 60px;
+            }
+
+            .horse-name-cell {
+                min-width: 80px;
+                max-width: 100px;
+            }
+
+            /* Better mobile column visibility panel */
+            .column-visibility-panel {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .column-visibility-content {
+                padding: 15px;
+            }
+
+            .column-groups {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            /* Mobile horse detail view */
+            .horse-detail-view .container {
+                padding: 0 5px;
+            }
+
+            .horse-detail-view .table-container {
+                padding: 5px;
+            }
+
+            .horse-detail-view th, 
+            .horse-detail-view td {
+                padding: 4px 2px;
+                font-size: 13px; /* Increased by 2 points from 11px */
+            }
+            
+            /* Mobile: Freeze first column on all tables */
+            table th:first-child,
+            table td:first-child {
+                position: sticky !important;
+                left: 0 !important;
+                background: white !important;
+                z-index: 10 !important;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.1) !important;
+                min-width: 80px !important;
+            }
+            
+            table th:first-child {
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important;
+                color: white !important;
+                z-index: 11 !important;
+            }
+            
+            /* Ensure table container allows horizontal scrolling */
+            .table-container {
+                overflow-x: auto !important;
+                position: relative !important;
+            }
+
+            /* Smaller buttons for mobile */
+            .container .export-btn {
+                padding: 8px 12px !important; /* Reduced from 12px 20px */
+                font-size: 14px !important; /* Reduced from 16px */
+                min-height: 36px !important; /* Reduced from 44px */
+            }
+            
+            .container .file-label {
+                padding: 8px 12px !important; /* Reduced from 12px 20px */
+                font-size: 14px !important; /* Reduced from 16px */
+                min-height: 36px !important; /* Reduced from 44px */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sort-indicator {
+                font-size: 14px;
+            }
+            
+            /* Make horse detail header smaller on mobile */
+            .container .horse-detail-header {
+                padding: 15px 10px !important; /* Reduced from 20px */
+            }
+            
+            .container .horse-detail-header h1 {
+                font-size: 1.4em !important; /* Reduced from 2em */
+                margin-bottom: 5px !important; /* Reduced from 8px */
+            }
+            
+            .container .back-button {
+                padding: 8px 12px !important; /* Reduced from 12px 16px */
+                font-size: 14px !important; /* Reduced from 16px */
+            }
+        }
+
+        /* Mobile frozen column styling */
+        @media (max-width: 1024px) {
+            .frozen-first-col {
+                position: sticky !important;
+                left: 0 !important;
+                z-index: 20 !important;
+                background-color: white !important;
+                box-shadow: 2px 0 4px rgba(0,0,0,0.3) !important;
+                border-right: 1px solid #ddd !important;
+            }
+            
+            .frozen-first-col th {
+                background-color: #34495e !important;
+                color: white !important;
+                z-index: 21 !important;
+            }
+        }
+
+        /* Frozen header for horse detail tables */
+        .horse-detail-view .fixed-header {
+            position: sticky;
+            top: -31px;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: none;
+            width: fit-content;
+            margin: 0;
+            padding: 0;
+            padding-top: 20px;
+        }
+
+        .horse-detail-view .fixed-header table {
+            margin: 0;
+            border-collapse: collapse;
+            width: auto;
+            min-width: fit-content;
+            table-layout: auto;
+        }
+
+        .horse-detail-view .fixed-header th {
+            background: #34495e;
+            color: white;
+            padding: 12px 8px;
+            border: 1px solid #2c3e50;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            line-height: 1.2;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        /* Desktop enhancements for better mouse scrolling */
+        @media (min-width: 1024px) {
+            .desktop-scroll-track {
+                display: none !important;
+            }
+            
+            .horse-detail-view .table-container {
+                /* Make the default scrollbar subtle since we have custom one at top */
+                scrollbar-width: thin;
+                scrollbar-color: #e1e3e4 #f8f9fa;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-track {
+                background: #f8f9fa;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb {
+                background: #e1e3e4;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
+                background: #c1c1c1;
+            }
+            
+            
+            .horse-detail-view .table-container {
+                /* Make the default scrollbar subtle since we have custom one at top */
+                scrollbar-width: thin;
+                scrollbar-color: #e1e3e4 #f8f9fa;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-track {
+                background: #f8f9fa;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb {
+                background: #e1e3e4;
+                border-radius: 3px;
+            }
+            
+            .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
+                background: #c1c1c1;
+            }
+        }
+
+        /* Tablet responsive design */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .controls {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+
+        /* Mobile-specific button layout - FORCE button grouping with CSS */
+        @media (max-width: 767px) {
+            .controls {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                padding: 8px !important;
+                grid-template-areas:
+                    "upload export"
+                    "sheet addnew"
+                    "horse horse"
+                    "sort age" !important;
+            }
+
+            /* Force specific positioning for each control group */
+            .controls .control-group:has(.file-label) {
+                grid-area: upload !important;
+            }
+
+            .controls .control-group:has(#exportCsv) {
+                grid-area: export !important;
+            }
+
+            .controls .control-group:has(#sheetSelector) {
+                grid-area: sheet !important;
+            }
+
+            .controls .control-group:has(.add-new-btn) {
+                grid-area: addnew !important;
+            }
+
+            .controls .control-group:has(#horseFilter) {
+                grid-area: horse !important;
+                grid-column: 1 / -1 !important; /* Full width */
+            }
+
+            .controls .control-group:has(#sortBy) {
+                grid-area: sort !important;
+            }
+
+            .controls .control-group:has(#ageFilter) {
+                grid-area: age !important;
+            }
+
+            /* Style all control group contents for consistent sizing */
+            .control-group button,
+            .control-group .file-label,
+            .control-group select,
+            .control-group input {
+                width: 100% !important;
+                text-align: center !important;
+                padding: 8px 6px !important;
+                font-size: 14px !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Hide trash/delete icon on mobile */
+            .delete-sheet-btn {
+                display: none !important;
+            }
+
+            /* Control group styling for grid layout */
+            .control-group {
+                margin: 0 !important;
+                padding: 0 !important;
+                gap: 2px !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            /* Consistent label styling */
+            .control-group label {
+                margin-bottom: 2px !important;
+                line-height: 1.1 !important;
+                font-size: 11px !important;
+                text-align: center !important;
+            }
+
+            /* Override any browser defaults that might add spacing */
+            .controls > * {
+                margin-top: 0 !important;
+                margin-bottom: 2px !important;
+            }
+
+            .controls > *:last-child {
+                margin-bottom: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainView">
+        <div class="header">
+            <h1>Daily Training Data</h1>
+            <p style="font-size: 1.6em; margin: -5px 0 5px 0;">🚀</p>
+            <p>Analyze horse performance data with interactive sorting and filtering</p>
+        </div>
+
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="sheetSelector">Training Sheet:</label>
+                <select id="sheetSelector" onchange="switchSheet()">
+                    <option value="Default">Default</option>
+                </select>
+            </div>
+            
+            <div class="control-group button-only">
+                <button onclick="showAddNewModal()" class="add-new-btn">Add New</button>
+            </div>
+            
+            <div class="control-group file-input">
+                <label for="fileInput" class="file-label">Upload Excel</label>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv">
+            </div>
+
+            <div class="control-group file-input">
+                <label for="arioneoFileInput" class="file-label" style="background: #27ae60;">Upload Arioneo CSV</label>
+                <input type="file" id="arioneoFileInput" accept=".csv,.xlsx">
+            </div>
+
+            <div class="control-group button-only">
+                <button onclick="showHorseManagement()" class="export-btn" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);">Manage Horses</button>
+            </div>
+
+            <div class="control-group">
+                <label for="horseFilter">Filter by Horse:</label>
+                <input type="text" id="horseFilter" list="horseList" placeholder="Type or select horse name...">
+                <datalist id="horseList">
+                </datalist>
+            </div>
+
+            <div class="control-group">
+                <label for="ownerFilter">Filter by Owner:</label>
+                <select id="ownerFilter" onchange="applyFilters()">
+                    <option value="">All Owners</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="countryFilter">Filter by Country:</label>
+                <select id="countryFilter" onchange="applyFilters()">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="ageFilter">Filter by Age:</label>
+                <select id="ageFilter">
+                    <option value="">All Ages</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy">
+                    <option value="name">Horse Name</option>
+                    <option value="age">Age</option>
+                    <option value="best1f">Best 1F Time</option>
+                    <option value="best5f">Best 5F Time</option>
+                    <option value="maxSpeed">Max Speed</option>
+                </select>
+            </div>
+            
+            
+            <div class="control-group button-only">
+                <button id="exportCsv" class="export-btn" disabled>Export</button>
+            </div>
+            
+            <div class="control-group button-only">
+                <button onclick="showDeleteSheetConfirm()" class="delete-sheet-btn" title="Delete current sheet">🗑️</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="horseTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('name')" class="horse-name-col">Horse <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('owner')">Owner <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('country')">Country <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('lastWork')" class="last-work-col">Last Work <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('age')" class="age-col">Age <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('dateOfBest5f')" class="date-col">Date <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('recovery15min')" class="recovery15-col">15 Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('maxSpeed')" class="max-speed-col">Max Speed <span class="sort-indicator">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="horseTableBody">
+                    <tr>
+                        <td colspan="8" class="no-data">No data loaded. Please upload Excel files to get started.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Horse Detail View -->
+    <div class="horse-detail-view" id="horseDetailView">
+    <div class="container">
+        <div class="horse-detail-header">
+            <h1 id="horseDetailTitle">Horse Details</h1>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <button class="back-button" onclick="showMainView()">Main</button>
+            </div>
+            
+            <div class="control-group">
+                <label for="horseAgeFilter">Filter by Age:</label>
+                <select id="horseAgeFilter">
+                    <option value="">All Ages</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="typeFilter">Filter by Type:</label>
+                <select id="typeFilter">
+                    <option value="all">All Entries</option>
+                    <option value="work">Works Only</option>
+                    <option value="race">Races Only</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="horseSortBy">Sort by:</label>
+                <select id="horseSortBy">
+                    <option value="date">Date</option>
+                    <option value="distance">Distance</option>
+                    <option value="maxSpeed">Max Speed</option>
+                    <option value="avgSpeed">Avg Speed</option>
+                    <option value="best1f">Best 1F</option>
+                    <option value="best5f">Best 5F</option>
+                    <option value="maxHR">Max HR</option>
+                </select>
+            </div>
+            
+            
+            <div class="control-group">
+                <button id="exportHorseCsv" class="export-btn">Export</button>
+            </div>
+            
+            <div class="control-group">
+                <button id="toggleColumnVisibility" class="export-btn">Show/Hide</button>
+            </div>
+        </div>
+        
+        <!-- Column Visibility Panel -->
+        <div id="columnVisibilityPanel" class="column-visibility-panel" style="display: none;">
+            <div class="column-visibility-header">
+                <h3>Show/Hide & Reorder Columns</h3>
+                <button id="closeColumnPanel" class="close-btn">×</button>
+            </div>
+            <div class="column-visibility-content">
+                <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+                    Check/uncheck to show/hide columns. Use arrows to reorder them.
+                </p>
+                <div id="columnOrderList" class="column-order-list">
+                    <!-- Dynamic column list will be populated here -->
+                </div>
+                <div class="column-visibility-actions">
+                    <button id="selectAllColumns" class="visibility-btn">Select All</button>
+                    <button id="deselectAllColumns" class="visibility-btn">Deselect All</button>
+                    <button id="resetColumns" class="visibility-btn">Reset to Default</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-scroll-container">
+            <div class="table-container" id="horseDetailTableContainer">
+                <!-- Fixed header for frozen functionality -->
+                <div class="fixed-header" id="fixedHeader"></div>
+                <!-- Custom scrollbar for desktop - positioned after table headers -->
+                <div class="desktop-scroll-track" id="customScrollTrack">
+                    <div class="desktop-scroll-thumb" id="customScrollThumb"></div>
+                </div>
+                <table id="horseDetailTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortHorseTable('date')">Date <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('horse')">Horse <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('type')">Type <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('track')">Track <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('surface')">Surface <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('distance')">Distance <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('avgSpeed')">Avg Speed <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('maxSpeed')">Max Speed <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best2f')">Best 2F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best3f')">Best 3F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best4f')">Best 4F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best6f')">Best 6F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('best7f')">Best 7F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('maxHR')">Max HR <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('fastRecovery')">Fast Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('fastQuality')">Fast Quality <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('fastPercent')">Fast % <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('recovery15')">15 Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('quality15')">15 Quality <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('hr15Percent')">HR 15% <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('maxSL')">Max SL <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('slGallop')">SL Gallop <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('sfGallop')">SF Gallop <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('slWork')">SL Work <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('sfWork')">SF Work <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('hr2min')">HR 2 min <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('hr5min')">HR 5 min <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('symmetry')">Symmetry <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('regularity')">Regularity <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('bpm120')">120bpm <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('zone5')">Zone 5 <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('age')">Age <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('sex')">Sex <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('temp')">Temp <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('distanceCol')">Distance <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('trotHR')">Trot HR <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('walkHR')">Walk HR <span class="sort-indicator">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="horseDetailTableBody">
+                    <tr>
+                        <td colspan="38" class="no-data">No data loaded for this horse.</td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        let horseData = [];
+        let filteredData = [];
+        let currentSort = { column: 'name', order: 'asc' };
+        let allHorseDetailData = {};
+        let currentHorseDetailData = [];
+        let currentHorseDetailSort = { column: 'date', order: 'desc' };
+        let currentTypeFilter = 'all';
+        
+        // Multi-sheet functionality
+        let allSheets = {};
+        let currentSheetName = 'Default';
+        let sheetNames = [];
+        
+        // Column visibility settings
+        let columnVisibility = {
+            date: true, horse: true, type: true, track: true, surface: true, distance: true,
+            avgSpeed: true, maxSpeed: true, best1f: true, best2f: true, best3f: true, best4f: true,
+            best5f: true, best6f: true, best7f: true, maxHR: true, fastRecovery: true, fastQuality: true,
+            fastPercent: true, recovery15: true, quality15: true, hr15Percent: true, maxSL: true,
+            slGallop: true, sfGallop: true, slWork: true, sfWork: true, hr2min: true, hr5min: true,
+            symmetry: true, regularity: true, bpm120: true, zone5: true, age: true, sex: true,
+            temp: true, distanceCol: true, trotHR: true, walkHR: true, notes: true
+        };
+
+        // Default column order
+        let columnOrder = [
+            'date', 'horse', 'type', 'track', 'surface', 'distance',
+            'avgSpeed', 'maxSpeed', 'best1f', 'best2f', 'best3f', 'best4f',
+            'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
+            'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
+            'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
+            'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+            'temp', 'distanceCol', 'trotHR', 'walkHR', 'notes'
+        ];
+        
+        // LocalStorage functions for multi-sheet functionality
+        function loadAllSheets() {
+            try {
+                const stored = localStorage.getItem('trainingSheets');
+                if (stored) {
+                    allSheets = JSON.parse(stored);
+                    sheetNames = Object.keys(allSheets);
+                    if (sheetNames.length > 0) {
+                        currentSheetName = sheetNames[0];
+                    }
+                }
+                updateSheetDropdown();
+            } catch (error) {
+                console.error('Error loading sheets:', error);
+            }
+        }
+        
+        function saveAllSheets() {
+            try {
+                localStorage.setItem('trainingSheets', JSON.stringify(allSheets));
+            } catch (error) {
+                console.error('Error saving sheets:', error);
+            }
+        }
+
+        // Sync sheet data to Redis backend
+        function syncSheetDataToRedis(sessionId) {
+            // Validate inputs
+            if (!sessionId) {
+                console.warn('Cannot sync sheet data: no session ID available');
+                return;
+            }
+
+            if (!allSheets || Object.keys(allSheets).length === 0) {
+                console.warn('Cannot sync sheet data: no sheet data available');
+                return;
+            }
+
+            const sheetData = {
+                allSheets: allSheets,
+                sheetNames: sheetNames,
+                currentSheetName: currentSheetName
+            };
+
+            fetch(`/api/session/${sessionId}/sheets`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sheetData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log('Sheet data synced to Redis successfully');
+                } else {
+                    console.error('Failed to sync sheet data:', data.error);
+                    // Don't show user error for sync failures - it's background operation
+                }
+            })
+            .catch(error => {
+                console.error('Error syncing sheet data to Redis:', error);
+                // Don't show user error for sync failures - it's background operation
+            });
+        }
+        
+        function getCurrentSheetData() {
+            return allSheets[currentSheetName] || { horseData: [], allHorseDetailData: {} };
+        }
+        
+        function setCurrentSheetData(horseData, allHorseDetailData) {
+            allSheets[currentSheetName] = { horseData, allHorseDetailData };
+            saveAllSheets();
+        }
+        
+        function loadCurrentSheet() {
+            const sheetData = getCurrentSheetData();
+            horseData = sheetData.horseData || [];
+            allHorseDetailData = sheetData.allHorseDetailData || {};
+            filteredData = [...horseData];
+        }
+        
+        function getFastRecoveryColor(value) {
+            if (!value || value === '-') return null;
+            
+            // Check if value contains letters (finish position in race)
+            if (/[a-zA-Z]/.test(value)) return null;
+            
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) return null;
+            
+            if (numValue >= 140) return '#fdeaea';
+            if (numValue >= 125) return '#fff3cd';
+            if (numValue >= 119) return '#f9f7e3';
+            if (numValue >= 101) return '#d4edda';
+            return '#d1ecf1';
+        }
+        
+        function getRecovery15Color(value) {
+            if (!value || value === '-') return null;
+            
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) return null;
+            
+            if (numValue >= 116) return '#fdeaea';
+            if (numValue >= 102) return '#fff3cd';
+            if (numValue >= 81) return '#d4edda';
+            return '#d1ecf1';
+        }
+        
+        function getBest5FColor(timeStr) {
+            if (!timeStr || timeStr === '-' || !isValidTime(timeStr)) return null;
+            
+            const seconds = timeToSeconds(timeStr);
+            
+            if (seconds <= 60) return '#d1ecf1';
+            if (seconds <= 65) return '#d4edda';
+            if (seconds <= 70) return '#f9f7e3';
+            if (seconds <= 75) return '#fff3cd';
+            return '#fdeaea';
+        }
+        
+        // Column visibility functions
+        function loadColumnVisibility() {
+            try {
+                const saved = localStorage.getItem('arioneoColumnVisibility');
+                if (saved) {
+                    const parsedVisibility = JSON.parse(saved);
+                    columnVisibility = {...columnVisibility, ...parsedVisibility};
+                    console.log('Loaded column visibility preferences:', Object.keys(parsedVisibility).length, 'columns');
+                }
+                
+                const savedOrder = localStorage.getItem('arioneoColumnOrder');
+                if (savedOrder) {
+                    const parsedOrder = JSON.parse(savedOrder);
+                    if (Array.isArray(parsedOrder) && parsedOrder.length > 0) {
+                        columnOrder = parsedOrder;
+                        console.log('Loaded column order preferences:', parsedOrder.length, 'columns');
+                    }
+                }
+                
+                // Save current preferences version for future compatibility
+                localStorage.setItem('arioneoPreferencesVersion', '1.0');
+                
+                updateColumnVisibilityUI();
+            } catch (error) {
+                console.error('Error loading column preferences:', error);
+                // Reset to defaults if preferences are corrupted
+                localStorage.removeItem('arioneoColumnVisibility');
+                localStorage.removeItem('arioneoColumnOrder');
+            }
+        }
+        
+        function saveColumnVisibility() {
+            localStorage.setItem('arioneoColumnVisibility', JSON.stringify(columnVisibility));
+        }
+        
+        function saveColumnOrder() {
+            localStorage.setItem('arioneoColumnOrder', JSON.stringify(columnOrder));
+            console.log('Saved column order preferences');
+        }
+        
+        // Save and load user preferences
+        function saveUserPreferences() {
+            const preferences = {
+                columnVisibility: columnVisibility,
+                columnOrder: columnOrder,
+                currentSort: currentSort,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('arioneoUserPreferences', JSON.stringify(preferences));
+            console.log('Saved user preferences');
+        }
+        
+        function loadUserPreferences() {
+            try {
+                const saved = localStorage.getItem('arioneoUserPreferences');
+                if (saved) {
+                    const preferences = JSON.parse(saved);
+                    if (preferences.columnVisibility) {
+                        columnVisibility = {...columnVisibility, ...preferences.columnVisibility};
+                        // Update the UI to reflect loaded preferences
+                        updateColumnVisibilityUI();
+                    }
+                    if (preferences.columnOrder && Array.isArray(preferences.columnOrder)) {
+                        columnOrder = preferences.columnOrder;
+                        // Update column order UI if it exists
+                        if (typeof populateColumnOrderList === 'function') {
+                            populateColumnOrderList();
+                        }
+                    }
+                    if (preferences.currentSort) {
+                        currentSort = preferences.currentSort;
+                        // Apply saved sort to UI
+                        const sortByElement = document.getElementById('sortBy');
+                        const sortOrderElement = document.getElementById('sortOrder');
+                        if (sortByElement) sortByElement.value = currentSort.column;
+                        if (sortOrderElement) sortOrderElement.value = currentSort.order;
+                    }
+                    console.log('Loaded user preferences from:', preferences.lastUpdated);
+                }
+            } catch (error) {
+                console.error('Error loading user preferences:', error);
+            }
+        }
+        
+        function updateColumnVisibilityUI() {
+            Object.keys(columnVisibility).forEach(col => {
+                const checkbox = document.getElementById(`col-${col}`);
+                if (checkbox) {
+                    checkbox.checked = columnVisibility[col];
+                }
+            });
+        }
+        
+        function toggleColumnVisibility(column, visible) {
+            columnVisibility[column] = visible;
+            saveColumnVisibility();
+            saveUserPreferences(); // Save comprehensive preferences
+            updateTableColumnVisibility();
+        }
+        
+        function updateTableColumnVisibility() {
+            const table = document.getElementById('horseDetailTable');
+            if (!table) return;
+            
+            // Rebuild the entire table with proper column order
+            buildTableHeader();
+            displayHorseDetailData();
+
+            // Coordinate visual updates to prevent race conditions
+            setTimeout(() => {
+                applyMobileStyles();
+                updateScrollbar();
+            }, 100); // Single coordinated update
+        }
+        
+        function buildTableHeader() {
+            const table = document.getElementById('horseDetailTable');
+            const thead = table.querySelector('thead');
+            if (!thead) return;
+            
+            const columnNames = {
+                date: 'Date', horse: 'Horse', type: 'Type', track: 'Track', surface: 'Surface', distance: 'Distance',
+                avgSpeed: 'Avg Speed', maxSpeed: 'Max Speed', best1f: 'Best 1F', best2f: 'Best 2F', best3f: 'Best 3F', best4f: 'Best 4F',
+                best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
+                fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
+                slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR', notes: 'Notes'
+            };
+
+            const headerHTML = columnOrder.map(col => {
+                const display = columnVisibility[col] ? '' : 'style="display: none;"';
+                return `<th onclick="sortHorseTable('${col}')" ${display}>${columnNames[col] || col} <span class="sort-indicator">↕</span></th>`;
+            }).join('');
+
+            // Add Actions column header
+            thead.innerHTML = `<tr>${headerHTML}<th style="width: 60px;">Actions</th></tr>`;
+        }
+        
+        function populateColumnOrderList() {
+            const container = document.getElementById('columnOrderList');
+            if (!container) return;
+
+            const columnNames = {
+                date: 'Date', horse: 'Horse', type: 'Type', track: 'Track', surface: 'Surface', distance: 'Distance',
+                avgSpeed: 'Avg Speed', maxSpeed: 'Max Speed', best1f: 'Best 1F', best2f: 'Best 2F', best3f: 'Best 3F', best4f: 'Best 4F',
+                best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
+                fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
+                slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR', notes: 'Notes'
+            };
+            
+            container.innerHTML = columnOrder.map((col, index) => `
+                <div class="column-item" data-column="${col}" data-index="${index}">
+                    <input type="checkbox" ${columnVisibility[col] ? 'checked' : ''}>
+                    <span class="column-name">${columnNames[col] || col}</span>
+                    <button class="move-up" ${index === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="move-down" ${index === columnOrder.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
+            `).join('');
+            
+            // Add event listeners for checkboxes and move buttons
+            const columnItems = container.querySelectorAll('.column-item');
+            columnItems.forEach((item, index) => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const moveUpBtn = item.querySelector('.move-up');
+                const moveDownBtn = item.querySelector('.move-down');
+                const column = item.dataset.column;
+                
+                checkbox.addEventListener('change', function(e) {
+                    columnVisibility[column] = e.target.checked;
+                    saveColumnVisibility();
+                    updateTableColumnVisibility();
+                });
+                
+                moveUpBtn.addEventListener('click', function() {
+                    if (index > 0) {
+                        moveColumn(index, index - 1);
+                    }
+                });
+                
+                moveDownBtn.addEventListener('click', function() {
+                    if (index < columnOrder.length - 1) {
+                        moveColumn(index, index + 1);
+                    }
+                });
+            });
+        }
+        
+        function moveColumn(fromIndex, toIndex) {
+            const movedColumn = columnOrder[fromIndex];
+            columnOrder.splice(fromIndex, 1);
+            columnOrder.splice(toIndex, 0, movedColumn);
+            
+            saveColumnOrder();
+            saveUserPreferences(); // Save comprehensive preferences
+            populateColumnOrderList();
+            updateTableColumnVisibility();
+        }
+        
+        console.log("🐎 Horse Racing Analyzer (Arioneo US) loaded successfully!");
+        
+        // Enhanced custom scrollbar for horizontal scrolling
+        function initializeTableNavigation() {
+            const tableContainer = document.getElementById('horseDetailTableContainer');
+            const customScrollTrack = document.getElementById('customScrollTrack');
+            const customScrollThumb = document.getElementById('customScrollThumb');
+            
+            if (!tableContainer || !customScrollTrack || !customScrollThumb) return;
+            
+            let isDragging = false;
+            let startX = 0;
+            let startScrollLeft = 0;
+            
+            function updateScrollbar() {
+                const { scrollLeft, scrollWidth, clientWidth } = tableContainer;
+                
+                if (scrollWidth <= clientWidth) {
+                    customScrollTrack.style.display = 'none';
+                    return;
+                }
+                
+                customScrollTrack.style.display = 'block';
+                
+                const thumbWidth = Math.max(20, (clientWidth / scrollWidth) * customScrollTrack.offsetWidth);
+                const thumbPosition = (scrollLeft / (scrollWidth - clientWidth)) * (customScrollTrack.offsetWidth - thumbWidth);
+                
+                customScrollThumb.style.width = thumbWidth + 'px';
+                customScrollThumb.style.left = thumbPosition + 'px';
+            }
+            
+            // Track click to jump to position
+            customScrollTrack.addEventListener('click', (e) => {
+                if (e.target === customScrollThumb) return;
+                
+                const rect = customScrollTrack.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const trackWidth = customScrollTrack.offsetWidth;
+                const thumbWidth = customScrollThumb.offsetWidth;
+                
+                const newThumbPosition = Math.max(0, Math.min(clickX - thumbWidth / 2, trackWidth - thumbWidth));
+                const scrollPercentage = newThumbPosition / (trackWidth - thumbWidth);
+                const newScrollLeft = scrollPercentage * (tableContainer.scrollWidth - tableContainer.clientWidth);
+                
+                tableContainer.scrollTo({
+                    left: newScrollLeft,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Thumb dragging
+            customScrollThumb.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startScrollLeft = tableContainer.scrollLeft;
+                customScrollThumb.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const trackWidth = customScrollTrack.offsetWidth;
+                const thumbWidth = customScrollThumb.offsetWidth;
+                const scrollableTrackWidth = trackWidth - thumbWidth;
+                
+                const scrollRatio = deltaX / scrollableTrackWidth;
+                const maxScroll = tableContainer.scrollWidth - tableContainer.clientWidth;
+                const newScrollLeft = Math.max(0, Math.min(startScrollLeft + (scrollRatio * maxScroll), maxScroll));
+                
+                tableContainer.scrollLeft = newScrollLeft;
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    customScrollThumb.style.cursor = 'grab';
+                }
+            });
+            
+            // Update scrollbar when table scrolls
+            tableContainer.addEventListener('scroll', updateScrollbar);
+            
+            // Update when content changes
+            const observer = new MutationObserver(() => {
+                setTimeout(updateScrollbar, 50);
+            });
+            observer.observe(tableContainer, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            // Update when window resizes
+            window.addEventListener('resize', updateScrollbar);
+            
+            // Initial update with sufficient delay to ensure table is rendered
+            setTimeout(updateScrollbar, 150);
+        }
+        
+        
+        // Add file upload event listener with debugging
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            console.log('File input found, adding event listener');
+            fileInput.addEventListener('change', handleFileUpload);
+        } else {
+            console.error('File input not found!');
+        }
+
+        // Add Arioneo CSV upload event listener
+        const arioneoFileInput = document.getElementById('arioneoFileInput');
+        if (arioneoFileInput) {
+            console.log('Arioneo file input found, adding event listener');
+            arioneoFileInput.addEventListener('change', handleArioneoUpload);
+        }
+
+        // Initialize multi-sheet functionality
+        loadAllSheets();
+
+        // Load horse mapping for filters
+        loadHorseFilters();
+        
+        // Check for latest session on page load
+        loadLatestSession();
+        document.getElementById('horseFilter').addEventListener('input', filterData);
+        document.getElementById('ageFilter').addEventListener('change', filterData);
+        document.getElementById('sortBy').addEventListener('change', updateSort);
+        const sortOrderEl = document.getElementById('sortOrder');
+        if (sortOrderEl) sortOrderEl.addEventListener('change', updateSort);
+        document.getElementById('exportCsv').addEventListener('click', exportToCsv);
+        
+        // Column visibility event listeners
+        document.getElementById('toggleColumnVisibility').addEventListener('click', function() {
+            document.getElementById('columnVisibilityPanel').style.display = 'block';
+            populateColumnOrderList();
+        });
+        
+        document.getElementById('closeColumnPanel').addEventListener('click', function() {
+            document.getElementById('columnVisibilityPanel').style.display = 'none';
+        });
+        
+        document.getElementById('selectAllColumns').addEventListener('click', function() {
+            Object.keys(columnVisibility).forEach(col => {
+                columnVisibility[col] = true;
+            });
+            saveColumnVisibility();
+            populateColumnOrderList();
+            updateTableColumnVisibility();
+        });
+        
+        document.getElementById('deselectAllColumns').addEventListener('click', function() {
+            Object.keys(columnVisibility).forEach(col => {
+                columnVisibility[col] = false;
+            });
+            saveColumnVisibility();
+            populateColumnOrderList();
+            updateTableColumnVisibility();
+        });
+        
+        document.getElementById('resetColumns').addEventListener('click', function() {
+            Object.keys(columnVisibility).forEach(col => {
+                columnVisibility[col] = true;
+            });
+            // Reset column order to default
+            columnOrder = [
+                'date', 'horse', 'type', 'track', 'surface', 'distance',
+                'avgSpeed', 'maxSpeed', 'best1f', 'best2f', 'best3f', 'best4f',
+                'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
+                'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
+                'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
+                'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+                'temp', 'distanceCol', 'trotHR', 'walkHR'
+            ];
+            saveColumnVisibility();
+            saveColumnOrder();
+            populateColumnOrderList();
+            updateTableColumnVisibility();
+        });
+        
+        // Load user preferences on page load
+        loadUserPreferences();
+        loadColumnVisibility();
+        // Ensure UI is updated after loading preferences
+        updateColumnVisibilityUI();
+
+        // Mobile-specific styling and column freezing
+        function applyMobileStyles() {
+            // Debug logging
+            console.log('Window width:', window.innerWidth);
+            console.log('Applying mobile styles...');
+            
+            // Check if we're on mobile (increase threshold to catch more devices)
+            if (window.innerWidth <= 1024) {
+                console.log('Mobile detected, applying styles...');
+                
+                // Header styling
+                const header = document.querySelector('.header');
+                if (header) {
+                    header.style.padding = '15px 10px';
+                    console.log('Header styled');
+                }
+                
+                const headerH1 = document.querySelector('.header h1');
+                if (headerH1) {
+                    headerH1.style.fontSize = '1.4em';
+                }
+                
+                const headerP = document.querySelector('.header p');
+                if (headerP) {
+                    headerP.style.fontSize = '0.9em';
+                }
+                
+                // Controls styling disabled - using pure CSS instead
+                // const controls = document.querySelector('.controls');
+                // CSS handles all mobile controls styling now
+                
+                // Control groups styling disabled - using pure CSS instead
+                // const controlGroups = document.querySelectorAll('.control-group');
+                // CSS handles all control group styling now
+                
+                // Labels styling disabled - using pure CSS instead
+                // const labels = document.querySelectorAll('.control-group label');
+                // CSS handles all label styling now
+                
+                // Select and input styling disabled - using pure CSS instead
+                // const selects = document.querySelectorAll('select, input[type="text"]');
+                // CSS handles all input styling now
+                /*
+                selects.forEach(element => {
+                    element.style.padding = '6px 8px';
+                    element.style.fontSize = '14px';
+                    element.style.height = '32px';
+                    element.style.lineHeight = '1.2';
+                    element.style.marginBottom = '4px';
+                    
+                    // Make text inputs smaller, but horse filter gets full width
+                    if (element.type === 'text' || element.tagName === 'INPUT') {
+                        if (element.id === 'horseFilter') {
+                            element.style.width = '100%'; // Full width for horse filter
+                            element.style.maxWidth = '100%';
+                        } else {
+                            element.style.width = '100px';
+                            element.style.maxWidth = '100px';
+                        }
+                    }
+                });
+                
+                // Button styling - much more compact (but skip file upload button)
+                const buttons = document.querySelectorAll('.export-btn, .back-button');
+                buttons.forEach(button => {
+                    button.style.padding = '6px 10px';
+                    button.style.fontSize = '13px';
+                    button.style.minHeight = '30px';
+                    button.style.height = '30px';
+                    button.style.lineHeight = '1.2';
+                    button.style.marginBottom = '4px';
+                });
+                
+                // Don't modify file upload button at all - leave it exactly as original
+
+                // Main page controls layout - re-enable button grouping only
+                const mainControls = document.querySelector('#mainView .controls');
+                if (mainControls) {
+                    console.log('Found main controls, children:', mainControls.children.length);
+
+                    // Find upload and export button containers with better debugging
+                    const uploadGroup = Array.from(mainControls.children).find(child =>
+                        child.querySelector('.file-label') || child.querySelector('input[type="file"]')
+                    );
+                    const exportGroup = Array.from(mainControls.children).find(child =>
+                        child.querySelector('#exportCsv') || child.querySelector('.export-btn')
+                    );
+
+                    console.log('Upload group found:', !!uploadGroup);
+                    console.log('Export group found:', !!exportGroup);
+                    
+                    if (uploadGroup && exportGroup) {
+                        // Create a mobile button row using our new CSS class
+                        const buttonRow = document.createElement('div');
+                        buttonRow.classList.add('mobile-button-row');
+
+                        // Move buttons into the row
+                        buttonRow.appendChild(uploadGroup);
+                        buttonRow.appendChild(exportGroup);
+
+                        // Insert the button row at the beginning of controls
+                        mainControls.insertBefore(buttonRow, mainControls.firstChild);
+                    }
+
+                    // Group Training Sheet dropdown with Add New button
+                    const sheetGroup = Array.from(mainControls.children).find(child => child.querySelector('#sheetSelector'));
+                    const addNewGroup = Array.from(mainControls.children).find(child => child.querySelector('.add-new-btn'));
+
+                    console.log('Sheet group found:', !!sheetGroup);
+                    console.log('Add New group found:', !!addNewGroup);
+
+                    if (sheetGroup && addNewGroup) {
+                        // Create a mobile button row for sheet controls
+                        const sheetRow = document.createElement('div');
+                        sheetRow.classList.add('mobile-button-row');
+
+                        // Move elements into the row
+                        sheetRow.appendChild(sheetGroup);
+                        sheetRow.appendChild(addNewGroup);
+
+                        // Find where to insert (after the upload/export row)
+                        const uploadRow = mainControls.querySelector('.mobile-button-row');
+                        if (uploadRow) {
+                            mainControls.insertBefore(sheetRow, uploadRow.nextSibling);
+                        }
+                    }
+
+                    // Group Sort by and Filter by Age on the same row
+                    const sortGroup = Array.from(mainControls.children).find(child => child.querySelector('#sortBy'));
+                    const ageFilterGroup = Array.from(mainControls.children).find(child => child.querySelector('#ageFilter'));
+
+                    if (sortGroup && ageFilterGroup) {
+                        // Create a mobile button row for filters
+                        const filterRow = document.createElement('div');
+                        filterRow.classList.add('mobile-button-row');
+
+                        // Move elements into the row
+                        filterRow.appendChild(sortGroup);
+                        filterRow.appendChild(ageFilterGroup);
+
+                        // Insert after other controls
+                        const lastRow = mainControls.querySelectorAll('.mobile-button-row');
+                        if (lastRow.length > 0) {
+                            const lastElement = lastRow[lastRow.length - 1];
+                            mainControls.insertBefore(filterRow, lastElement.nextSibling);
+                        }
+                    }
+                }
+                
+                // Horse detail page controls layout - use flex with fixed sizes
+                const horseDetailControls = document.querySelector('.horse-detail-view .controls');
+                if (horseDetailControls) {
+                    horseDetailControls.style.display = 'flex';
+                    horseDetailControls.style.flexDirection = 'column';
+                    horseDetailControls.style.gap = '8px';
+                    
+                    // Main button and Age filter on same row
+                    const backButtonGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('.back-button'));
+                    const ageFilterGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#horseAgeFilter'));
+                    
+                    if (backButtonGroup && ageFilterGroup) {
+                        // Create a flex row for main button and age filter
+                        const firstRow = document.createElement('div');
+                        firstRow.style.display = 'flex';
+                        firstRow.style.gap = '8px';
+                        firstRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        backButtonGroup.style.width = '90px';
+                        backButtonGroup.style.flex = 'none';
+                        ageFilterGroup.style.flex = '1';
+                        
+                        // Make main button same length as export button and align with filter
+                        const mainButton = backButtonGroup.querySelector('.back-button');
+                        if (mainButton) {
+                            mainButton.style.width = '85px';
+                            mainButton.style.padding = '8px 10px';
+                            mainButton.style.fontSize = '13px';
+                            mainButton.style.minHeight = '32px';
+                            mainButton.style.height = '32px';
+                            mainButton.style.boxSizing = 'border-box';
+                            mainButton.style.marginTop = '2px';
+                        }
+                        
+                        firstRow.appendChild(backButtonGroup);
+                        firstRow.appendChild(ageFilterGroup);
+                        horseDetailControls.insertBefore(firstRow, horseDetailControls.firstChild);
+                    }
+                    
+                    // Export and show/hide buttons on same row
+                    const exportGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#exportHorseCsv'));
+                    const toggleGroup = Array.from(horseDetailControls.children).find(child => child.querySelector('#toggleColumnVisibility'));
+                    
+                    if (exportGroup && toggleGroup) {
+                        const secondRow = document.createElement('div');
+                        secondRow.style.display = 'flex';
+                        secondRow.style.gap = '8px';
+                        secondRow.style.alignItems = 'center';
+                        
+                        // Set fixed widths to prevent stretching
+                        exportGroup.style.width = '90px';
+                        exportGroup.style.flex = 'none';
+                        toggleGroup.style.width = '120px';
+                        toggleGroup.style.flex = 'none';
+                        
+                        secondRow.appendChild(exportGroup);
+                        secondRow.appendChild(toggleGroup);
+                        horseDetailControls.appendChild(secondRow);
+                    }
+                }
+                
+                // Horse detail header
+                const horseHeader = document.querySelector('.horse-detail-header');
+                if (horseHeader) {
+                    horseHeader.style.padding = '15px 10px';
+                }
+                
+                const horseHeaderH1 = document.querySelector('.horse-detail-header h1');
+                if (horseHeaderH1) {
+                    horseHeaderH1.style.fontSize = '1.4em';
+                    horseHeaderH1.style.marginBottom = '5px';
+                }
+                
+                // Column freezing removed - not working properly
+                */
+                // END OF DISABLED MOBILE STYLING - CSS handles spacing, JS handles button grouping only
+
+                // Main table text size - increase by 2 points  
+                const mainTableCells = document.querySelectorAll('#horseTable th, #horseTable td');
+                mainTableCells.forEach(cell => {
+                    if (!cell.querySelector('span')) { // Don't change cells with sort indicators
+                        cell.style.fontSize = '14px'; // Increased by 2 points from 12px
+                    }
+                });
+                
+                // Horse detail table text size
+                const horseDetailCells = document.querySelectorAll('.horse-detail-view th, .horse-detail-view td');
+                horseDetailCells.forEach(cell => {
+                    cell.style.fontSize = '13px';
+                });
+                
+            }
+        }
+        
+        // Position lost numbers based on screen size
+        setTimeout(() => {
+            const lostNumbers = document.querySelector('.lost-numbers');
+            if (lostNumbers) {
+                // Remove from current location
+                lostNumbers.remove();
+                
+                // Create new div with proper positioning
+                const newLostNumbers = document.createElement('div');
+                newLostNumbers.className = 'lost-numbers';
+                newLostNumbers.textContent = '4 8 15 16 23 42';
+                
+                if (window.innerWidth <= 1024) {
+                    // Mobile: check if we're on horse detail page
+                    const isHorseDetailPage = document.querySelector('.horse-detail-view') && 
+                                            document.querySelector('.horse-detail-view').style.display !== 'none';
+                    
+                    if (!isHorseDetailPage) {
+                        // Mobile main page: below table
+                        newLostNumbers.style.cssText = `
+                            position: relative !important;
+                            text-align: right !important;
+                            padding: 8px 15px 6px 0 !important;
+                            margin: 3px 0 0 0 !important;
+                            font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                            font-size: 11px !important;
+                            color: #6a9a7b !important;
+                            opacity: 0.75 !important;
+                            font-weight: normal !important;
+                            letter-spacing: 2px !important;
+                            user-select: none !important;
+                            pointer-events: none !important;
+                            background: transparent !important;
+                        `;
+                        document.body.appendChild(newLostNumbers);
+                    }
+                    // If on mobile horse detail page, don't add lost numbers (hide them)
+                } else {
+                    // Desktop: fixed at bottom right
+                    newLostNumbers.style.cssText = `
+                        position: fixed !important;
+                        bottom: 10px !important;
+                        right: 15px !important;
+                        font-family: 'Courier New', 'IBM Plex Mono', monospace !important;
+                        font-size: 11px !important;
+                        color: #6a9a7b !important;
+                        opacity: 0.75 !important;
+                        font-weight: normal !important;
+                        letter-spacing: 2px !important;
+                        user-select: none !important;
+                        pointer-events: none !important;
+                        background: transparent !important;
+                        z-index: 1000 !important;
+                    `;
+                    document.body.appendChild(newLostNumbers);
+                }
+                
+                console.log('Lost numbers positioned for', window.innerWidth <= 1024 ? 'mobile' : 'desktop');
+            }
+        }, 200);
+
+        // NO FREEZING - removed all sticky functionality
+        
+        // Remove shadows from first columns (always applied)
+        const removeShadowsStyle = document.createElement('style');
+        removeShadowsStyle.textContent = `
+            table th:first-child,
+            table td:first-child {
+                box-shadow: none !important;
+            }
+        `;
+        document.head.appendChild(removeShadowsStyle);
+        
+        // Desktop button alignment improvements (only apply on desktop)
+        if (window.innerWidth > 1024) {
+            const desktopButtonStyle = document.createElement('style');
+            desktopButtonStyle.textContent = `
+                .controls {
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    justify-content: center !important;
+                    align-items: end !important;
+                    gap: 20px !important;
+                }
+                .control-group {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                }
+                .control-group label {
+                    margin-bottom: 5px !important;
+                }
+                .control-group select,
+                .control-group input {
+                    text-align: center !important;
+                }
+                .export-btn, .back-button {
+                    margin-top: auto !important;
+                }
+            `;
+            document.head.appendChild(desktopButtonStyle);
+        }
+        
+        // Mobile-only horse column width adjustment
+        if (window.innerWidth <= 1024) {
+            const mobileHorseWidthStyle = document.createElement('style');
+            mobileHorseWidthStyle.textContent = `
+                .horse-name-cell {
+                    width: 120px !important;
+                    max-width: 120px !important;
+                }
+                .horse-name-col {
+                    width: 120px !important;
+                    max-width: 120px !important;
+                }
+            `;
+            document.head.appendChild(mobileHorseWidthStyle);
+        }
+
+
+        // Apply mobile styles on load and resize with delay to ensure DOM is ready
+        setTimeout(() => applyMobileStyles(), 500);
+        window.addEventListener('resize', applyMobileStyles);
+        window.addEventListener('orientationchange', applyMobileStyles);
+
+        function handleFileUpload(event) {
+            console.log('File upload triggered!', event);
+            const file = event.target.files[0];
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
+            
+            console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+            
+            // Show upload progress
+            const uploadStatus = document.createElement('div');
+            uploadStatus.innerHTML = '<p>Uploading and processing file...</p>';
+            uploadStatus.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #3498db; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
+            document.body.appendChild(uploadStatus);
+            
+            const formData = new FormData();
+            formData.append('excel', file);
+            
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Upload response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.body.removeChild(uploadStatus);
+                console.log('Upload response data:', data);
+                
+                if (data.success) {
+                    // Update page with new data
+                    horseData = data.data.horseData;
+                    allHorseDetailData = data.data.allHorseDetailData;
+
+                    // Store in current sheet
+                    setCurrentSheetData(horseData, allHorseDetailData);
+
+                    // Store and sync session data
+                    if (data.sessionId) {
+                        localStorage.setItem('currentSessionId', data.sessionId);
+                        syncSheetDataToRedis(data.sessionId);
+                    }
+
+                    // Calculate Last Work dates for each horse
+                    calculateLastWorkDates();
+
+                    updateHorseFilter();
+                    updateAgeFilter();
+                    filterData();
+                    document.getElementById('exportCsv').disabled = false;
+
+                    // Show share URL
+                    const shareUrl = `${window.location.origin}/share/${data.sessionId}`;
+                    showShareDialog(shareUrl);
+
+                    console.log('File uploaded successfully. Share URL:', shareUrl);
+                } else {
+                    console.error('Upload failed:', data.error);
+                    alert('Error uploading file: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.body.removeChild(uploadStatus);
+                console.error('Error uploading file:', error);
+                alert('Error uploading file: ' + error.message + '\n\nPlease check the browser console for more details.');
+            });
+        }
+
+        function calculateLastWorkDates() {
+            if (!horseData || !allHorseDetailData) return;
+
+            // Process each horse to find their last work date
+            horseData.forEach(horse => {
+                const horseDetailData = allHorseDetailData[horse.name];
+                if (!horseDetailData || !Array.isArray(horseDetailData)) return;
+
+                let lastWorkDate = null;
+
+                // Look through each detail row to find work entries
+                horseDetailData.forEach(row => {
+                    // Check if column C (type) contains "work" (case insensitive)
+                    const typeValue = row.type || '';
+                    const isWork = typeValue.toString().toLowerCase().includes('work');
+
+                    if (isWork && row.date && row.date !== '-') {
+                        // This is a work entry with a valid date
+                        const workDate = new Date(row.date);
+                        if (!lastWorkDate || workDate > new Date(lastWorkDate)) {
+                            lastWorkDate = row.date;
+                        }
+                    }
+                });
+
+                // Add the last work date to the horse object
+                horse.lastWorkDate = lastWorkDate;
+            });
+
+            console.log('Last Work dates calculated for', horseData.length, 'horses');
+        }
+
+        // ============================================
+        // ARIONEO CSV UPLOAD HANDLER
+        // ============================================
+        function handleArioneoUpload(event) {
+            console.log('Arioneo CSV upload triggered!', event);
+            const file = event.target.files[0];
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
+
+            console.log('Arioneo file selected:', file.name);
+
+            // Show upload progress
+            const uploadStatus = document.createElement('div');
+            uploadStatus.innerHTML = '<p>Processing Arioneo data...</p><p style="font-size: 12px; color: #666;">Applying transformations and merging with existing data</p>';
+            uploadStatus.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #27ae60; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center;';
+            document.body.appendChild(uploadStatus);
+
+            const formData = new FormData();
+            formData.append('csv', file);
+
+            fetch('/api/upload/arioneo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.body.removeChild(uploadStatus);
+                console.log('Arioneo upload response:', data);
+
+                if (data.success) {
+                    // Update page with new data
+                    horseData = data.data.horseData;
+                    allHorseDetailData = data.data.allHorseDetailData;
+
+                    // Store in current sheet
+                    setCurrentSheetData(horseData, allHorseDetailData);
+
+                    // Store session ID
+                    if (data.sessionId) {
+                        localStorage.setItem('currentSessionId', data.sessionId);
+                    }
+
+                    // Calculate Last Work dates
+                    calculateLastWorkDates();
+
+                    // Refresh filters
+                    updateHorseFilter();
+                    updateAgeFilter();
+                    loadHorseFilters();
+                    filterData();
+                    document.getElementById('exportCsv').disabled = false;
+
+                    // Show success message
+                    alert(`Success!\n\n${data.message}\n\nTotal horses: ${data.totalHorses}\nTotal entries: ${data.totalEntries}`);
+
+                    console.log('Arioneo data processed successfully');
+                } else {
+                    alert('Error processing file: ' + data.error);
+                }
+
+                // Reset the file input
+                event.target.value = '';
+            })
+            .catch(error => {
+                document.body.removeChild(uploadStatus);
+                console.error('Error uploading Arioneo file:', error);
+                alert('Error processing file: ' + error.message);
+                event.target.value = '';
+            });
+        }
+
+        // ============================================
+        // HORSE FILTER FUNCTIONS (Owner/Country)
+        // ============================================
+        async function loadHorseFilters() {
+            try {
+                const response = await fetch('/api/horses');
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                // Populate owner filter
+                const ownerSelect = document.getElementById('ownerFilter');
+                if (ownerSelect && data.owners) {
+                    ownerSelect.innerHTML = '<option value="">All Owners</option>' +
+                        data.owners.map(o => `<option value="${o}">${o}</option>`).join('');
+                }
+
+                // Populate country filter
+                const countrySelect = document.getElementById('countryFilter');
+                if (countrySelect && data.countries) {
+                    countrySelect.innerHTML = '<option value="">All Countries</option>' +
+                        data.countries.map(c => `<option value="${c}">${c}</option>`).join('');
+                }
+
+                console.log('Loaded filters - Owners:', data.owners?.length || 0, 'Countries:', data.countries?.length || 0);
+            } catch (error) {
+                console.error('Error loading horse filters:', error);
+            }
+        }
+
+        function applyFilters() {
+            filterData();
+        }
+
+        // ============================================
+        // HORSE MANAGEMENT MODAL
+        // ============================================
+        function showHorseManagement() {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('horseManagementModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'horseManagementModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                        <h2 style="margin-top: 0;">Manage Horses</h2>
+
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <h4 style="margin-top: 0;">Add/Edit Horse</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Horse Name</label>
+                                    <input type="text" id="horseNameInput" placeholder="Horse name..." style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Owner</label>
+                                    <input type="text" id="horseOwnerInput" placeholder="Owner..." style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Country</label>
+                                    <input type="text" id="horseCountryInput" placeholder="Country..." style="width: 100%; padding: 8px;">
+                                </div>
+                                <button onclick="saveHorseMapping()" class="export-btn" style="height: 38px;">Save</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <h4 style="margin-top: 0;">Bulk Import</h4>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                Upload CSV/Excel with columns: Horse Name, Owner, Country
+                            </p>
+                            <input type="file" id="horseMappingFile" accept=".csv,.xlsx" style="margin-right: 10px;">
+                            <button onclick="importHorseMappings()" class="export-btn">Import</button>
+                        </div>
+
+                        <div>
+                            <h4>Current Mappings</h4>
+                            <div id="horseMappingList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f1f1f1; position: sticky; top: 0;">
+                                            <th style="padding: 10px; text-align: left;">Horse</th>
+                                            <th style="padding: 10px; text-align: left;">Owner</th>
+                                            <th style="padding: 10px; text-align: left;">Country</th>
+                                            <th style="padding: 10px; width: 60px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="horseMappingTableBody">
+                                        <tr><td colspan="4" style="padding: 20px; text-align: center; color: #666;">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer" style="margin-top: 20px; text-align: right;">
+                            <button onclick="closeHorseManagement()" class="cancel-btn">Close</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            modal.style.display = 'flex';
+            loadHorseMappingList();
+        }
+
+        function closeHorseManagement() {
+            const modal = document.getElementById('horseManagementModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function loadHorseMappingList() {
+            try {
+                const response = await fetch('/api/horses');
+                const data = await response.json();
+
+                const tbody = document.getElementById('horseMappingTableBody');
+                if (!tbody) return;
+
+                if (!data.horses || data.horses.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #666;">No horses mapped yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.horses.map(h => `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.owner || '-'}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.country || '-'}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
+                            <button onclick="editHorseMapping('${h.name}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
+                            <button onclick="deleteHorseMapping('${h.name}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading horse mappings:', error);
+            }
+        }
+
+        async function saveHorseMapping() {
+            const name = document.getElementById('horseNameInput').value.trim();
+            const owner = document.getElementById('horseOwnerInput').value.trim();
+            const country = document.getElementById('horseCountryInput').value.trim();
+
+            if (!name) {
+                alert('Horse name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/horses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, owner, country })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Clear inputs
+                    document.getElementById('horseNameInput').value = '';
+                    document.getElementById('horseOwnerInput').value = '';
+                    document.getElementById('horseCountryInput').value = '';
+
+                    // Refresh list and filters
+                    loadHorseMappingList();
+                    loadHorseFilters();
+
+                    // Refresh main data display
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error saving horse mapping:', error);
+                alert('Error saving horse mapping');
+            }
+        }
+
+        function editHorseMapping(name) {
+            // Pre-fill the form with existing data
+            fetch('/api/horses')
+                .then(r => r.json())
+                .then(data => {
+                    const horse = data.horses.find(h => h.name === name);
+                    if (horse) {
+                        document.getElementById('horseNameInput').value = horse.name;
+                        document.getElementById('horseOwnerInput').value = horse.owner || '';
+                        document.getElementById('horseCountryInput').value = horse.country || '';
+                    }
+                });
+        }
+
+        async function deleteHorseMapping(name) {
+            if (!confirm(`Delete mapping for "${name}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/horses/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    loadHorseMappingList();
+                    loadHorseFilters();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting horse mapping:', error);
+            }
+        }
+
+        async function importHorseMappings() {
+            const fileInput = document.getElementById('horseMappingFile');
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('csv', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/horses/import', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(data.message);
+                    fileInput.value = '';
+                    loadHorseMappingList();
+                    loadHorseFilters();
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error importing horse mappings:', error);
+                alert('Error importing file');
+            }
+        }
+
+        // ============================================
+        // EDIT TRAINING ENTRY
+        // ============================================
+        function showEditTrainingModal(horse, date, currentData) {
+            let modal = document.getElementById('editTrainingModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'editTrainingModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px;">
+                        <h2 style="margin-top: 0;">Edit Training Entry</h2>
+                        <p id="editTrainingInfo" style="color: #666; margin-bottom: 20px;"></p>
+
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="editType" style="width: 100%; padding: 8px;">
+                                <option value="">-- Select --</option>
+                                <option value="Work">Work</option>
+                                <option value="Work - G">Work - G (Gate)</option>
+                                <option value="Race">Race</option>
+                                <option value="">Gallop/Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Track</label>
+                            <input type="text" id="editTrack" style="width: 100%; padding: 8px;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Surface</label>
+                            <select id="editSurface" style="width: 100%; padding: 8px;">
+                                <option value="">-- Select --</option>
+                                <option value="D">Dirt</option>
+                                <option value="T">Turf</option>
+                                <option value="AWT">All Weather</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="editNotes" rows="3" style="width: 100%; padding: 8px;" placeholder="Add notes about this training..."></textarea>
+                        </div>
+
+                        <input type="hidden" id="editHorse">
+                        <input type="hidden" id="editDate">
+
+                        <div class="modal-footer">
+                            <button onclick="closeEditTrainingModal()" class="cancel-btn">Cancel</button>
+                            <button onclick="saveTrainingEdit()" class="upload-btn">Save Changes</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // Populate fields
+            document.getElementById('editTrainingInfo').textContent = `${horse} - ${date}`;
+            document.getElementById('editHorse').value = horse;
+            document.getElementById('editDate').value = date;
+            document.getElementById('editType').value = currentData.type || '';
+            document.getElementById('editTrack').value = currentData.track || '';
+            document.getElementById('editSurface').value = currentData.surface || '';
+            document.getElementById('editNotes').value = currentData.notes || '';
+
+            modal.style.display = 'flex';
+        }
+
+        function closeEditTrainingModal() {
+            const modal = document.getElementById('editTrainingModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function saveTrainingEdit() {
+            const horse = document.getElementById('editHorse').value;
+            const date = document.getElementById('editDate').value;
+            const type = document.getElementById('editType').value;
+            const track = document.getElementById('editTrack').value;
+            const surface = document.getElementById('editSurface').value;
+            const notes = document.getElementById('editNotes').value;
+
+            try {
+                const response = await fetch('/api/training/edit', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horse, date, type, track, surface, notes })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    closeEditTrainingModal();
+
+                    // Refresh the data
+                    loadLatestSession();
+
+                    alert('Training entry updated');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error saving training edit:', error);
+                alert('Error saving changes');
+            }
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const result = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    const row = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            row.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    row.push(current.trim());
+                    result.push(row);
+                }
+            }
+            
+            return result;
+        }
+        
+        function processSheetData(jsonData, horseName, worksheet, workbook) {
+            if (jsonData.length === 0) return null;
+            
+            const headers = jsonData[0].map(h => h ? h.toString().toLowerCase().trim() : '');
+            console.log(`Processing sheet: ${horseName}`);
+            console.log('Headers found:', headers);
+            
+            let age = null;
+            let best1f = null;
+            let best5f = null;
+            let dateOfBest5f = null;
+            let maxSpeed = null;
+            let fastRecovery = null;
+            let recovery15min = null;
+            
+            const times1f = [];
+            const times5f = [];
+            const speeds = [];
+            const detailData = [];
+            
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+                
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = row[index] ? row[index].toString().trim() : '';
+                });
+                
+                let dateValue = row[0] || rowData.date || '';
+                if (typeof dateValue === 'number' && dateValue > 40000) {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+                    dateValue = jsDate.toLocaleDateString();
+                } else if (dateValue instanceof Date) {
+                    dateValue = dateValue.toLocaleDateString();
+                } else if (dateValue.toString().includes('T')) {
+                    const date = new Date(dateValue);
+                    dateValue = date.toLocaleDateString();
+                }
+                
+                // Check if this is a work or race row
+                const typeValue = row[2] || rowData.type || '';
+                const isRace = typeValue.toString().toLowerCase().includes('race');
+                const isWork = typeValue.toString().toLowerCase().includes('work');
+                
+                const detailRow = {
+                    date: dateValue,
+                    horse: rowData.horse || horseName,
+                    type: typeValue,
+                    track: rowData.track || '',
+                    surface: rowData.surface || '',
+                    distance: rowData.distance || '',
+                    avgSpeed: rowData['avg speed'] || '',
+                    maxSpeed: rowData['max speed'] || '',
+                    best1f: rowData['best 1f'] || '',
+                    best2f: rowData['best 2f'] || '',
+                    best3f: rowData['best 3f'] || '',
+                    best4f: rowData['best 4f'] || '',
+                    best5f: rowData['best 5f'] || '',
+                    best6f: rowData['best 6f'] || '',
+                    best7f: rowData['best 7f'] || '',
+                    maxHR: rowData['max hr'] || '',
+                    fastRecovery: rowData['fast recovery'] || '',
+                    fastQuality: rowData['fast quality'] || '',
+                    fastPercent: rowData['fast %'] || '',
+                    recovery15: rowData['15 recovery'] || '',
+                    quality15: rowData['15 quality'] || '',
+                    hr15Percent: rowData['hr 15%'] || '',
+                    maxSL: rowData['max sl'] || '',
+                    slGallop: rowData['sl gallop'] || '',
+                    sfGallop: rowData['sf gallop'] || '',
+                    slWork: rowData['sl work'] || '',
+                    sfWork: rowData['sf work'] || '',
+                    hr2min: rowData['hr 2 min'] || '',
+                    hr5min: rowData['hr 5 min'] || '',
+                    symmetry: rowData.symmetry || '',
+                    regularity: rowData.regularity || '',
+                    bpm120: rowData['120bpm'] || '',
+                    zone5: rowData['zone 5'] || '',
+                    age: rowData.age || '',
+                    sex: rowData.sex || '',
+                    temp: rowData.temp || '',
+                    distanceCol: rowData.distance || '',
+                    trotHR: rowData['trot hr'] || '',
+                    walkHR: rowData['walk hr'] || '',
+                    isRace: isRace,
+                    isWork: isWork
+                };
+                
+                // Add all rows to detail data
+                if (detailRow.date || detailRow.horse || detailRow.type) {
+                    detailData.push(detailRow);
+                }
+                
+                // For main table summary, exclude races
+                if (!isRace) {
+                    // Get age
+                    if (!age && detailRow.age) {
+                        const parsedAge = parseInt(detailRow.age);
+                        if (!isNaN(parsedAge)) {
+                            age = parsedAge;
+                        }
+                    }
+                    
+                    // Check for 1F times
+                    if (detailRow.best1f && isValidTime(detailRow.best1f)) {
+                        times1f.push({ time: detailRow.best1f, seconds: timeToSeconds(detailRow.best1f) });
+                    }
+                    
+                    // Check for 5F times
+                    if (detailRow.best5f && isValidTime(detailRow.best5f)) {
+                        times5f.push({ 
+                            time: detailRow.best5f, 
+                            seconds: timeToSeconds(detailRow.best5f),
+                            date: dateValue.toString(),
+                            fastRecovery: detailRow.fastRecovery,
+                            recovery15min: detailRow.recovery15
+                        });
+                    }
+                    
+                    // Check for max speed
+                    if (detailRow.maxSpeed) {
+                        const speed = parseFloat(detailRow.maxSpeed);
+                        if (!isNaN(speed)) {
+                            speeds.push(speed);
+                        }
+                    }
+                }
+            }
+            
+            if (times1f.length > 0) {
+                const fastest1f = times1f.reduce((min, current) => 
+                    current.seconds < min.seconds ? current : min
+                );
+                best1f = fastest1f.time;
+            }
+            
+            if (times5f.length > 0) {
+                const fastest5f = times5f.reduce((min, current) => 
+                    current.seconds < min.seconds ? current : min
+                );
+                best5f = fastest5f.time;
+                dateOfBest5f = fastest5f.date;
+                fastRecovery = fastest5f.fastRecovery;
+                recovery15min = fastest5f.recovery15min;
+            }
+            
+            if (speeds.length > 0) {
+                maxSpeed = Math.max(...speeds);
+            }
+            
+            // Calculate last work date
+            let lastWorkDate = null;
+            const workDates = detailData.filter(row => row.isWork && row.date && row.date !== '-').map(row => row.date);
+            if (workDates.length > 0) {
+                const mostRecent = workDates.sort((a, b) => new Date(b) - new Date(a))[0];
+                lastWorkDate = mostRecent;
+            }
+            
+            allHorseDetailData[horseName] = detailData;
+            
+            return {
+                name: horseName,
+                age: age,
+                lastWorkDate: lastWorkDate,
+                best1f: best1f,
+                best5f: best5f,
+                dateOfBest5f: dateOfBest5f,
+                fastRecovery: fastRecovery,
+                recovery15min: recovery15min,
+                maxSpeed: maxSpeed,
+                best5fColor: getBest5FColor(best5f),
+                fastRecoveryColor: getFastRecoveryColor(fastRecovery),
+                recovery15Color: getRecovery15Color(recovery15min)
+            };
+        }
+
+        function isValidTime(timeStr) {
+            if (!timeStr) return false;
+            const str = timeStr.toString().trim();
+            if (str === '-' || str === '' || str === 'NaN') return false;
+            return /^\d{2}:\d{2}\.\d{2}$/.test(str);
+        }
+
+        function timeToSeconds(timeStr) {
+            const parts = timeStr.toString().trim().split(':');
+            const minutes = parseInt(parts[0]);
+            const secondsParts = parts[1].split('.');
+            const seconds = parseInt(secondsParts[0]);
+            const hundredths = parseInt(secondsParts[1]);
+            
+            return minutes * 60 + seconds + hundredths / 100;
+        }
+
+        function updateHorseFilter() {
+            const horseList = document.getElementById('horseList');
+            const horses = horseData.map(horse => horse.name).sort();
+            
+            horseList.innerHTML = '';
+            horses.forEach(horseName => {
+                const option = document.createElement('option');
+                option.value = horseName;
+                horseList.appendChild(option);
+            });
+        }
+
+        function updateAgeFilter() {
+            const ageFilter = document.getElementById('ageFilter');
+            const ages = [...new Set(horseData.map(horse => horse.age).filter(age => age !== null))].sort((a, b) => a - b);
+            
+            ageFilter.innerHTML = '<option value="">All Ages</option>';
+            ages.forEach(age => {
+                const option = document.createElement('option');
+                option.value = age;
+                option.textContent = age;
+                ageFilter.appendChild(option);
+            });
+        }
+
+        function filterData() {
+            const horseFilter = document.getElementById('horseFilter').value.toLowerCase().trim();
+            const ageFilter = document.getElementById('ageFilter').value;
+            const ownerFilter = document.getElementById('ownerFilter')?.value || '';
+            const countryFilter = document.getElementById('countryFilter')?.value || '';
+
+            filteredData = horseData.filter(horse => {
+                if (horseFilter && !horse.name.toLowerCase().includes(horseFilter)) {
+                    return false;
+                }
+                if (ageFilter && horse.age !== parseInt(ageFilter)) {
+                    return false;
+                }
+                if (ownerFilter && horse.owner !== ownerFilter) {
+                    return false;
+                }
+                if (countryFilter && horse.country !== countryFilter) {
+                    return false;
+                }
+                return true;
+            });
+
+            sortData();
+        }
+
+        function updateSort() {
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrderEl = document.getElementById('sortOrder');
+            const sortOrder = sortOrderEl ? sortOrderEl.value : 'asc'; // Default to asc if no order selector
+            
+            currentSort = { column: sortBy, order: sortOrder };
+            saveUserPreferences(); // Save sort preferences
+            sortData();
+        }
+
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                // Default to 'desc' for lastWork column (most recent first), 'asc' for others
+                currentSort.order = column === 'lastWork' ? 'desc' : 'asc';
+            }
+            
+            document.getElementById('sortBy').value = column;
+            const sortOrderEl = document.getElementById('sortOrder');
+            if (sortOrderEl) sortOrderEl.value = currentSort.order;
+            
+            sortData();
+        }
+
+        function sortData() {
+            filteredData.sort((a, b) => {
+                let aVal = a[currentSort.column];
+                let bVal = b[currentSort.column];
+                
+                if (currentSort.column === 'best1f' || currentSort.column === 'best5f') {
+                    aVal = aVal ? timeToSeconds(aVal) : Infinity;
+                    bVal = bVal ? timeToSeconds(bVal) : Infinity;
+                } else if (currentSort.column === 'lastWork') {
+                    aVal = a.lastWorkDate ? new Date(a.lastWorkDate) : new Date(0);
+                    bVal = b.lastWorkDate ? new Date(b.lastWorkDate) : new Date(0);
+                } else if (currentSort.column === 'age' || currentSort.column === 'maxSpeed' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                }
+                
+                if (currentSort.order === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            displayData();
+        }
+
+        function displayData() {
+            const tbody = document.getElementById('horseTableBody');
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="no-data">No horses match the current filters.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(horse => {
+                const best5fStyle = horse.best5fColor ? `style="background-color: ${horse.best5fColor}; color: #000;"` : '';
+                const fastRecoveryStyle = horse.fastRecoveryColor ? `style="background-color: ${horse.fastRecoveryColor}; color: #000;"` : '';
+                const recovery15Style = horse.recovery15Color ? `style="background-color: ${horse.recovery15Color}; color: #000;"` : '';
+
+                return `
+                    <tr class="clickable-row" onclick="showHorseDetail('${horse.name}')">
+                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${horse.name}</span></td>
+                        <td>${horse.owner || '-'}</td>
+                        <td>${horse.country || '-'}</td>
+                        <td class="last-work-cell">${horse.lastWorkDate || '-'}</td>
+                        <td class="age-cell age-col">${horse.age || '-'}</td>
+                        <td class="time-cell">${horse.best1f || '-'}</td>
+                        <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
+                        <td class="date-col">${horse.dateOfBest5f || '-'}</td>
+                        <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${horse.fastRecovery || '-'}</td>
+                        <td class="recovery15-cell" ${recovery15Style}>${horse.recovery15min || '-'}</td>
+                        <td class="speed-cell max-speed-col">${horse.maxSpeed && !isNaN(parseFloat(horse.maxSpeed)) ? parseFloat(horse.maxSpeed).toFixed(1) : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function exportToCsv() {
+            if (filteredData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Horse Name', 'Last Work', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery', 'Max Speed'];
+            let csvContent = headers.join(',') + '\n';
+
+            filteredData.forEach(horse => {
+                const row = [
+                    `"${horse.name}"`,
+                    horse.lastWorkDate || '',
+                    horse.age || '',
+                    horse.best1f || '',
+                    horse.best5f || '',
+                    horse.dateOfBest5f || '',
+                    horse.fastRecovery || '',
+                    horse.recovery15min || '',
+                    horse.maxSpeed ? horse.maxSpeed.toFixed(2) : ''
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'horse_training_summary.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+
+        function showHorseDetail(horseName) {
+            console.log('Clicked horse:', horseName);
+            console.log('Available horse detail data:', Object.keys(allHorseDetailData));
+            console.log('Data for', horseName, ':', allHorseDetailData[horseName]);
+            
+            document.getElementById('horseDetailTitle').textContent = `${horseName} - Training Details`;
+            currentHorseDetailData = allHorseDetailData[horseName] || [];
+            
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('horseDetailView').style.display = 'block';
+            
+            // Reset scroll position to top and left
+            window.scrollTo(0, 0);
+            
+            // Reset table scroll position to left
+            const tableContainer = document.querySelector('.horse-detail-view .table-container');
+            if (tableContainer) {
+                tableContainer.scrollLeft = 0;
+            }
+            
+            // Initialize navigation after showing the view
+            setTimeout(() => {
+                initializeTableNavigation();
+                initializeFrozenHeader();
+                applyMobileStyles(); // Apply mobile styles to horse detail view
+            }, 100);
+            
+            // Reset to default sort (date descending)
+            currentHorseDetailSort = { column: 'date', order: 'desc' };
+            document.getElementById('horseSortBy').value = 'date';
+            const horseSortOrderEl = document.getElementById('horseSortOrder');
+            if (horseSortOrderEl) horseSortOrderEl.value = 'desc';
+            
+            // Reset filters
+            document.getElementById('horseAgeFilter').value = '';
+            document.getElementById('typeFilter').value = 'all';
+            currentTypeFilter = 'all';
+            
+            // Populate age filter for this horse
+            updateHorseAgeFilter(horseName);
+            
+            document.getElementById('horseSortBy').addEventListener('change', updateHorseDetailSort);
+            const horseSortOrderElement = document.getElementById('horseSortOrder');
+            if (horseSortOrderElement) horseSortOrderElement.addEventListener('change', updateHorseDetailSort);
+            document.getElementById('horseAgeFilter').addEventListener('change', updateHorseDetailSort);
+            document.getElementById('typeFilter').addEventListener('change', updateHorseDetailFilter);
+            document.getElementById('exportHorseCsv').addEventListener('click', exportHorseDataToCsv);
+            
+            sortHorseDetailData();
+        }
+
+        function showMainView() {
+            document.getElementById('horseDetailView').style.display = 'none';
+            document.getElementById('mainView').style.display = 'block';
+            
+            document.getElementById('horseFilter').value = '';
+            filterData();
+        }
+
+        function updateHorseAgeFilter(horseName) {
+            const ageFilter = document.getElementById('horseAgeFilter');
+            const horseData = allHorseDetailData[horseName] || [];
+            const ages = [...new Set(horseData.map(row => row.age).filter(age => age && age !== '-'))].sort((a, b) => a - b);
+            
+            ageFilter.innerHTML = '<option value="">All Ages</option>';
+            ages.forEach(age => {
+                const option = document.createElement('option');
+                option.value = age;
+                option.textContent = age;
+                ageFilter.appendChild(option);
+            });
+        }
+
+        function updateHorseDetailFilter() {
+            currentTypeFilter = document.getElementById('typeFilter').value;
+            sortHorseDetailData();
+        }
+
+        function updateHorseDetailSort() {
+            const sortBy = document.getElementById('horseSortBy').value;
+            const sortOrderEl = document.getElementById('horseSortOrder');
+            const sortOrder = sortOrderEl ? sortOrderEl.value : 'desc'; // Default to desc for horse details
+            
+            currentHorseDetailSort = { column: sortBy, order: sortOrder };
+            sortHorseDetailData();
+        }
+
+        function sortHorseTable(column) {
+            if (currentHorseDetailSort.column === column) {
+                currentHorseDetailSort.order = currentHorseDetailSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentHorseDetailSort.column = column;
+                currentHorseDetailSort.order = 'asc';
+            }
+            
+            document.getElementById('horseSortBy').value = column;
+            const horseSortOrderElem = document.getElementById('horseSortOrder');
+            if (horseSortOrderElem) horseSortOrderElem.value = currentHorseDetailSort.order;
+            
+            sortHorseDetailData();
+        }
+
+        function sortHorseDetailData() {
+            let horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
+            let dataToSort = allHorseDetailData[horseName] || [];
+            
+            // Apply age filter
+            const ageFilter = document.getElementById('horseAgeFilter').value;
+            if (ageFilter) {
+                dataToSort = dataToSort.filter(row => row.age === ageFilter);
+            }
+            
+            // Apply type filter
+            if (currentTypeFilter === 'work') {
+                dataToSort = dataToSort.filter(row => row.isWork === true);
+            } else if (currentTypeFilter === 'race') {
+                dataToSort = dataToSort.filter(row => row.isRace === true);
+            }
+            
+            currentHorseDetailData = [...dataToSort];
+            
+            currentHorseDetailData.sort((a, b) => {
+                let aVal = a[currentHorseDetailSort.column];
+                let bVal = b[currentHorseDetailSort.column];
+                
+                if (currentHorseDetailSort.column === 'best1f' || currentHorseDetailSort.column === 'best2f' || currentHorseDetailSort.column === 'best3f' || currentHorseDetailSort.column === 'best4f' || currentHorseDetailSort.column === 'best5f' || currentHorseDetailSort.column === 'best6f' || currentHorseDetailSort.column === 'best7f') {
+                    aVal = aVal && isValidTime(aVal) ? timeToSeconds(aVal) : Infinity;
+                    bVal = bVal && isValidTime(bVal) ? timeToSeconds(bVal) : Infinity;
+                } else if (currentHorseDetailSort.column === 'age' || currentHorseDetailSort.column === 'distance' || currentHorseDetailSort.column === 'avgSpeed' || currentHorseDetailSort.column === 'maxSpeed' || currentHorseDetailSort.column === 'maxHR' || currentHorseDetailSort.column === 'fastRecovery' || currentHorseDetailSort.column === 'recovery15') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else if (currentHorseDetailSort.column === 'date') {
+                    aVal = aVal ? new Date(aVal) : new Date(0);
+                    bVal = bVal ? new Date(bVal) : new Date(0);
+                } else {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                }
+                
+                if (currentHorseDetailSort.order === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            buildTableHeader();
+            displayHorseDetailData();
+            
+            // Initialize frozen header after data is displayed
+            setTimeout(() => {
+                initializeFrozenHeader();
+            }, 100);
+        }
+
+        function displayHorseDetailData() {
+            const tbody = document.getElementById('horseDetailTableBody');
+            
+            if (currentHorseDetailData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="38" class="no-data">No training data available for this horse.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = currentHorseDetailData.map((row, index) => {
+                let rowClass = '';
+                if (row.isWork) {
+                    rowClass = 'work-row';
+                } else if (row.isRace) {
+                    rowClass = 'race-row';
+                }
+                
+                const best5fColor = getBest5FColor(row.best5f);
+                const fastRecoveryColor = getFastRecoveryColor(row.fastRecovery);
+                const recovery15Color = getRecovery15Color(row.recovery15);
+                
+                const best5fStyle = best5fColor ? `background-color: ${best5fColor}; color: #000;` : '';
+                const fastRecoveryStyle = fastRecoveryColor ? `background-color: ${fastRecoveryColor}; color: #000;` : '';
+                const recovery15Style = recovery15Color ? `background-color: ${recovery15Color}; color: #000;` : '';
+                
+                // Escape quotes for JSON in onclick
+                const rowDataStr = JSON.stringify({
+                    type: row.type || '',
+                    track: row.track || '',
+                    surface: row.surface || '',
+                    notes: row.notes || ''
+                }).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                const cellData = {
+                    date: row.date || '-',
+                    horse: `<strong>${row.horse || '-'}</strong>`,
+                    type: `<div class="type-cell-content">${row.type || '-'}</div>`,
+                    track: row.track || '-',
+                    surface: row.surface || '-',
+                    distance: row.distance || '-',
+                    avgSpeed: row.avgSpeed && !isNaN(parseFloat(row.avgSpeed)) ? parseFloat(row.avgSpeed).toFixed(1) : (row.avgSpeed || '-'),
+                    maxSpeed: row.maxSpeed && !isNaN(parseFloat(row.maxSpeed)) ? parseFloat(row.maxSpeed).toFixed(1) : (row.maxSpeed || '-'),
+                    best1f: row.best1f || '-',
+                    best2f: row.best2f || '-',
+                    best3f: row.best3f || '-',
+                    best4f: row.best4f || '-',
+                    best5f: row.best5f || '-',
+                    best6f: row.best6f || '-',
+                    best7f: row.best7f || '-',
+                    maxHR: row.maxHR || '-',
+                    fastRecovery: row.fastRecovery || '-',
+                    fastQuality: row.fastQuality || '-',
+                    fastPercent: row.fastPercent || '-',
+                    recovery15: row.recovery15 || '-',
+                    quality15: row.quality15 || '-',
+                    hr15Percent: row.hr15Percent || '-',
+                    maxSL: row.maxSL || '-',
+                    slGallop: row.slGallop || '-',
+                    sfGallop: row.sfGallop || '-',
+                    slWork: row.slWork && !isNaN(parseFloat(row.slWork)) ? parseFloat(row.slWork).toFixed(2) : (row.slWork || '-'),
+                    sfWork: row.sfWork || '-',
+                    hr2min: row.hr2min || '-',
+                    hr5min: row.hr5min || '-',
+                    symmetry: row.symmetry || '-',
+                    regularity: row.regularity || '-',
+                    bpm120: row.bpm120 || '-',
+                    zone5: row.zone5 || '-',
+                    age: row.age || '-',
+                    sex: row.sex || '-',
+                    temp: row.temp || '-',
+                    distanceCol: row.distanceCol || '-',
+                    trotHR: row.trotHR || '-',
+                    walkHR: row.walkHR || '-',
+                    notes: row.notes ? `<span title="${row.notes}" style="cursor: help;">📝</span>` : '-'
+                };
+
+                const rowHTML = columnOrder.map(col => {
+                    const display = columnVisibility[col] ? '' : 'style="display: none;"';
+                    let cellStyle = '';
+                    let cellClass = '';
+
+                    // Apply special styling for specific columns
+                    if (col === 'best5f' && best5fStyle) {
+                        cellStyle = `style="${best5fStyle}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'time-cell';
+                    } else if (col === 'fastRecovery' && fastRecoveryStyle) {
+                        cellStyle = `style="${fastRecoveryStyle}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'recovery-cell';
+                    } else if (col === 'recovery15' && recovery15Style) {
+                        cellStyle = `style="${recovery15Style}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'recovery15-cell';
+                    } else if (col === 'horse') {
+                        cellClass = 'horse-name-cell';
+                        cellStyle = display;
+                    } else if (col === 'maxSpeed') {
+                        cellClass = 'speed-cell';
+                        cellStyle = display;
+                    } else if (col === 'age') {
+                        cellClass = 'age-cell';
+                        cellStyle = display;
+                    } else if (col === 'type') {
+                        cellClass = 'type-cell';
+                        cellStyle = display;
+                    } else if (col.includes('best') && col !== 'best5f') {
+                        cellClass = 'time-cell';
+                        cellStyle = display;
+                    } else {
+                        cellStyle = display;
+                    }
+
+                    return `<td class="${cellClass}" ${cellStyle}>${cellData[col] || '-'}</td>`;
+                }).join('');
+
+                // Add Edit button at the end
+                const editBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModal('${row.horse}', '${row.date}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
+
+                return `<tr class="${rowClass}">${rowHTML}${editBtn}</tr>`;
+            }).join('');
+        }
+        
+        function exportHorseDataToCsv() {
+            if (currentHorseDetailData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
+            
+            // Create CSV header with all English columns
+            const headers = [
+                'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed', 
+                'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F', 
+                'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality', 
+                'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min', 
+                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp', 
+                'Distance', 'Trot HR', 'Walk HR'
+            ];
+            let csvContent = headers.join(',') + '\n';
+
+            // Add data rows
+            currentHorseDetailData.forEach(row => {
+                const csvRow = [
+                    `"${row.date || ''}"`, `"${row.horse || ''}"`, `"${row.type || ''}"`, 
+                    `"${row.track || ''}"`, `"${row.surface || ''}"`, row.distance || '',
+                    row.avgSpeed || '', row.maxSpeed || '', row.best1f || '', row.best2f || '',
+                    row.best3f || '', row.best4f || '', row.best5f || '', row.best6f || '',
+                    row.best7f || '', row.maxHR || '', row.fastRecovery || '', row.fastQuality || '',
+                    row.fastPercent || '', row.recovery15 || '', row.quality15 || '', 
+                    row.hr15Percent || '', row.maxSL || '', row.slGallop || '', row.sfGallop || '',
+                    row.slWork || '', row.sfWork || '', row.hr2min || '', row.hr5min || '',
+                    row.symmetry || '', row.regularity || '', row.bpm120 || '', row.zone5 || '',
+                    row.age || '', row.sex || '', row.temp || '', row.distanceCol || '',
+                    row.trotHR || '', row.walkHR || ''
+                ];
+                csvContent += csvRow.join(',') + '\n';
+            });
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset-utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${horseName}_arioneo_training_data.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+        
+        // Load latest session on page load
+        function loadLatestSession() {
+            console.log('Loading latest session...');
+            fetch('/api/latest')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Latest session response:', data);
+                    if (data.sessionId) {
+                        console.log('Loading session:', data.sessionId);
+                        localStorage.setItem('currentSessionId', data.sessionId);
+                        loadSessionData(data.sessionId);
+                    } else {
+                        console.log('No latest session found, loading from current sheet');
+                        loadCurrentSheet();
+                        updateDisplays();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading latest session:', error);
+                    console.log('Falling back to current sheet data');
+                    loadCurrentSheet();
+                    updateDisplays();
+                });
+        }
+        
+        function initializeFrozenHeader() {
+            const tableContainer = document.getElementById('horseDetailTableContainer');
+            const originalTable = document.getElementById('horseDetailTable');
+            const fixedHeader = document.getElementById('fixedHeader');
+            
+            if (!tableContainer || !originalTable || !fixedHeader) return;
+            
+            const thead = originalTable.querySelector('thead');
+            if (!thead) return;
+            
+            // Create cloned header
+            function createFixedHeader() {
+                fixedHeader.innerHTML = '';
+                
+                const clonedTable = document.createElement('table');
+                clonedTable.className = originalTable.className;
+                clonedTable.style.cssText = originalTable.style.cssText;
+                
+                const clonedThead = thead.cloneNode(true);
+                clonedTable.appendChild(clonedThead);
+                fixedHeader.appendChild(clonedTable);
+                
+                // Copy event listeners for sorting
+                const originalHeaders = thead.querySelectorAll('th[onclick]');
+                const clonedHeaders = clonedThead.querySelectorAll('th[onclick]');
+                
+                originalHeaders.forEach((header, index) => {
+                    if (clonedHeaders[index]) {
+                        const onclickValue = header.getAttribute('onclick');
+                        if (onclickValue) {
+                            clonedHeaders[index].setAttribute('onclick', onclickValue);
+                        }
+                    }
+                });
+            }
+            
+            // Update header positioning and visibility
+            function updateFixedHeader() {
+                const containerRect = tableContainer.getBoundingClientRect();
+                const theadRect = thead.getBoundingClientRect();
+                const scrollTop = tableContainer.scrollTop;
+                
+                // Show fixed header when original header scrolls out of view
+                if (scrollTop > 10 && theadRect.bottom < containerRect.top) {
+                    fixedHeader.style.display = 'block';
+                    
+                    // Sync column widths precisely
+                    const originalCells = thead.querySelectorAll('th');
+                    const fixedCells = fixedHeader.querySelectorAll('th');
+                    const fixedTable = fixedHeader.querySelector('table');
+                    
+                    // Copy computed styles from original table
+                    const originalComputedStyle = window.getComputedStyle(originalTable);
+                    fixedTable.style.width = originalComputedStyle.width;
+                    
+                    originalCells.forEach((cell, index) => {
+                        if (fixedCells[index]) {
+                            const cellComputedStyle = window.getComputedStyle(cell);
+                            const width = cell.offsetWidth;
+                            const padding = cellComputedStyle.padding;
+                            const fontSize = cellComputedStyle.fontSize;
+                            const fontFamily = cellComputedStyle.fontFamily;
+                            
+                            fixedCells[index].style.cssText = `
+                                width: ${width}px !important;
+                                min-width: ${width}px !important;
+                                max-width: ${width}px !important;
+                                padding: ${padding};
+                                font-size: ${fontSize};
+                                font-family: ${fontFamily};
+                                background: #34495e;
+                                color: white;
+                                border: 1px solid #2c3e50;
+                                font-weight: bold;
+                                text-align: center;
+                                cursor: pointer;
+                                line-height: 1.2;
+                                white-space: nowrap;
+                                vertical-align: middle;
+                            `;
+                        }
+                    });
+                } else {
+                    fixedHeader.style.display = 'none';
+                }
+            }
+            
+            // Initialize
+            createFixedHeader();
+            updateFixedHeader();
+            
+            // Add scroll listener
+            tableContainer.addEventListener('scroll', updateFixedHeader);
+            
+            // Update header on window resize
+            window.addEventListener('resize', () => {
+                setTimeout(() => {
+                    createFixedHeader();
+                    updateFixedHeader();
+                }, 100);
+            });
+        }
+        
+        // Load session data
+        function loadSessionData(sessionId) {
+            fetch(`/api/session/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.horseData && data.allHorseDetailData) {
+                        horseData = data.horseData;
+                        allHorseDetailData = data.allHorseDetailData;
+
+                        // Load sheet data from Redis if available
+                        if (data.allSheets && data.sheetNames) {
+                            allSheets = data.allSheets;
+                            sheetNames = data.sheetNames;
+                            if (data.currentSheetName) {
+                                currentSheetName = data.currentSheetName;
+                            }
+                            updateSheetDropdown();
+
+                            // Load the correct sheet data instead of using session data directly
+                            loadCurrentSheet();
+                            console.log('Loaded sheet-specific data from Redis for sheet:', currentSheetName, 'horses:', horseData.length);
+                        } else {
+                            // Fallback to localStorage for backwards compatibility
+                            loadAllSheets();
+                        }
+
+                        // Calculate Last Work dates for loaded session
+                        calculateLastWorkDates();
+
+                        updateHorseFilter();
+                        updateAgeFilter();
+                        filterData();
+
+                        // Apply user preferences after loading data
+                        loadUserPreferences();
+                        updateColumnVisibilityUI();
+                        updateTableColumnVisibility();
+
+                        document.getElementById('exportCsv').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading session data:', error);
+                });
+        }
+        
+        // Show share dialog
+        function showShareDialog(shareUrl) {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <h3 style="margin: 0 0 20px 0; color: #2c3e50;">File Uploaded Successfully!</h3>
+                        <p style="margin: 0 0 20px 0; color: #666;">Share this link with others to let them view the analysis results:</p>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 0 0 20px 0; border: 1px solid #e9ecef;">
+                            <input type="text" value="${shareUrl}" readonly style="width: 100%; border: none; background: none; font-family: monospace; font-size: 14px; color: #2c3e50; text-align: center;">
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button onclick="copyShareUrl('${shareUrl}')" style="background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Copy Link</button>
+                            <button onclick="closeShareDialog()" style="background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            dialog.id = 'shareDialog';
+            document.body.appendChild(dialog);
+        }
+        
+        // Copy share URL to clipboard
+        function copyShareUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Share URL copied to clipboard!');
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                // Fallback: select the text
+                const input = document.querySelector('#shareDialog input');
+                input.select();
+                input.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                alert('Share URL copied to clipboard!');
+            });
+        }
+        
+        // Close share dialog
+        function closeShareDialog() {
+            const dialog = document.getElementById('shareDialog');
+            if (dialog) {
+                document.body.removeChild(dialog);
+            }
+        }
+        
+        // Multi-sheet management functions
+        function updateSheetDropdown() {
+            const dropdown = document.getElementById('sheetSelector');
+            dropdown.innerHTML = '';
+            
+            if (sheetNames.length === 0) {
+                const option = document.createElement('option');
+                option.value = 'Default';
+                option.textContent = 'Default';
+                dropdown.appendChild(option);
+                updateDeleteButtonState();
+                return;
+            }
+            
+            sheetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                if (name === currentSheetName) {
+                    option.selected = true;
+                }
+                dropdown.appendChild(option);
+            });
+            
+            updateDeleteButtonState();
+        }
+        
+        function switchSheet() {
+            const dropdown = document.getElementById('sheetSelector');
+            const selectedSheet = dropdown.value;
+
+            if (selectedSheet !== currentSheetName) {
+                console.log('Switching from', currentSheetName, 'to', selectedSheet);
+                currentSheetName = selectedSheet;
+
+                loadCurrentSheet();
+                console.log('Loaded sheet data:', {
+                    horsesCount: horseData.length,
+                    detailDataKeys: Object.keys(allHorseDetailData),
+                    firstHorse: horseData[0]?.name
+                });
+
+                // Calculate Last Work dates for the newly loaded sheet
+                calculateLastWorkDates();
+                console.log('After calculating last work dates, first horse:', horseData[0]);
+
+                updateDisplays();
+                updateDeleteButtonState();
+
+                console.log('Sheet switch completed to', currentSheetName);
+            }
+        }
+        
+        function showAddNewModal() {
+            document.getElementById('addNewModal').style.display = 'flex';
+            document.getElementById('sheetTitle').value = '';
+            document.getElementById('newSheetFile').value = '';
+        }
+        
+        function closeAddNewModal() {
+            document.getElementById('addNewModal').style.display = 'none';
+        }
+        
+        function closeModalOnOutsideClick(event, modalId = 'addNewModal') {
+            if (event.target === event.currentTarget) {
+                if (modalId === 'deleteSheetModal') {
+                    closeDeleteSheetModal();
+                } else {
+                    closeAddNewModal();
+                }
+            }
+        }
+        
+        // Sheet deletion functions
+        function showDeleteSheetConfirm() {
+            // Don't allow deleting if there's only one sheet or it's Default
+            if (sheetNames.length <= 1 || currentSheetName === 'Default') {
+                if (currentSheetName === 'Default') {
+                    alert('Cannot delete the Default sheet.');
+                } else {
+                    alert('Cannot delete the last remaining sheet.');
+                }
+                return;
+            }
+            
+            document.getElementById('deleteSheetName').textContent = currentSheetName;
+            document.getElementById('deleteSheetModal').style.display = 'flex';
+        }
+        
+        function closeDeleteSheetModal() {
+            document.getElementById('deleteSheetModal').style.display = 'none';
+        }
+        
+        function confirmDeleteSheet() {
+            if (currentSheetName === 'Default') {
+                alert('Cannot delete the Default sheet.');
+                closeDeleteSheetModal();
+                return;
+            }
+            
+            if (sheetNames.length <= 1) {
+                alert('Cannot delete the last remaining sheet.');
+                closeDeleteSheetModal();
+                return;
+            }
+            
+            const sheetToDelete = currentSheetName;
+            
+            // Remove from allSheets and sheetNames
+            delete allSheets[sheetToDelete];
+            sheetNames = sheetNames.filter(name => name !== sheetToDelete);
+            
+            // Switch to the first available sheet
+            if (sheetNames.length > 0) {
+                currentSheetName = sheetNames[0];
+            } else {
+                currentSheetName = 'Default';
+                sheetNames = ['Default'];
+                allSheets['Default'] = { horseData: [], allHorseDetailData: {} };
+            }
+            
+            // Save changes and update UI
+            saveAllSheets();
+            loadCurrentSheet();
+
+            // Calculate Last Work dates for the newly loaded sheet
+            calculateLastWorkDates();
+
+            updateDisplays();
+            updateSheetDropdown();
+            updateDeleteButtonState();
+            closeDeleteSheetModal();
+
+            // Sync sheet data to Redis if we have a current session
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session') || localStorage.getItem('currentSessionId');
+            if (sessionId) {
+                syncSheetDataToRedis(sessionId);
+            }
+            
+            alert(`Sheet "${sheetToDelete}" has been deleted.`);
+        }
+        
+        function updateDeleteButtonState() {
+            const deleteBtn = document.querySelector('.delete-sheet-btn');
+            if (deleteBtn) {
+                // Disable delete button if only one sheet or current is Default
+                const shouldDisable = sheetNames.length <= 1 || currentSheetName === 'Default';
+                deleteBtn.disabled = shouldDisable;
+                deleteBtn.title = shouldDisable ? 
+                    (currentSheetName === 'Default' ? 'Cannot delete Default sheet' : 'Cannot delete last sheet') : 
+                    'Delete current sheet';
+            }
+        }
+        
+        function uploadNewSheet() {
+            const title = document.getElementById('sheetTitle').value.trim();
+            const fileInput = document.getElementById('newSheetFile');
+            
+            if (!title) {
+                alert('Please enter a title for the sheet.');
+                return;
+            }
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a file to upload.');
+                return;
+            }
+            
+            if (sheetNames.includes(title)) {
+                if (!confirm(`A sheet named "${title}" already exists. Do you want to replace it?`)) {
+                    return;
+                }
+            }
+            
+            currentSheetName = title;
+            const file = fileInput.files[0];
+            processFileForNewSheet(file);
+        }
+        
+        function processFileForNewSheet(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    parseAndStoreNewSheetData(jsonData);
+                    
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    alert('Error reading the file. Please make sure it\'s a valid Excel file.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function parseAndStoreNewSheetData(jsonData) {
+            try {
+                const newHorseData = [];
+                const newAllHorseDetailData = {};
+                
+                // Debug: Log the first row to see actual column names
+                if (jsonData.length > 0) {
+                    console.log('First row columns:', Object.keys(jsonData[0]));
+                    console.log('First row sample:', jsonData[0]);
+                }
+                
+                // Use the same parsing logic as the original file upload
+                jsonData.forEach(row => {
+                    const processedRow = parseRow(row);
+                    if (processedRow) {
+                        const horseName = processedRow.horse;
+                        if (!newAllHorseDetailData[horseName]) {
+                            newAllHorseDetailData[horseName] = [];
+                        }
+                        newAllHorseDetailData[horseName].push(processedRow);
+                    }
+                });
+                
+                // Generate summary data for the main view
+                for (let horseName in newAllHorseDetailData) {
+                    const horseRows = newAllHorseDetailData[horseName];
+                    const summaryData = generateHorseSummary(horseName, horseRows);
+                    if (summaryData) {
+                        newHorseData.push(summaryData);
+                    }
+                }
+                
+                // Store the new sheet data
+                allSheets[currentSheetName] = { 
+                    horseData: newHorseData, 
+                    allHorseDetailData: newAllHorseDetailData 
+                };
+                
+                if (!sheetNames.includes(currentSheetName)) {
+                    sheetNames.push(currentSheetName);
+                }
+                
+                saveAllSheets();
+                loadCurrentSheet();
+                updateDisplays();
+                updateSheetDropdown();
+                updateDeleteButtonState();
+                closeAddNewModal();
+
+                // Sync sheet data to Redis if we have a current session
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessionId = urlParams.get('session') || localStorage.getItem('currentSessionId');
+                if (sessionId) {
+                    syncSheetDataToRedis(sessionId);
+                }
+
+                alert(`Sheet "${currentSheetName}" has been successfully added!`);
+                
+            } catch (error) {
+                console.error('Error processing sheet data:', error);
+                alert('Error processing the sheet data. Please check the file format.');
+            }
+        }
+        
+        function updateDisplays() {
+            filterData();
+            updateHorseFilter();
+            updateAgeFilter();
+        }
+        
+        // Helper function to generate horse summary (reused from existing logic)
+        function generateHorseSummary(horseName, horseRows) {
+            if (!horseRows || horseRows.length === 0) return null;
+            
+            // Find the most recent work
+            const workRows = horseRows.filter(row => row.type === 'Work');
+            const lastWork = workRows.length > 0 ? workRows[0] : null;
+            const lastWorkDate = lastWork ? lastWork.date : 'N/A';
+            
+            // Get best times and other metrics from the most recent or best entries
+            const best1f = findBestTime(horseRows, 'best1f');
+            const best5f = findBestTime(horseRows, 'best5f');
+            const dateOfBest5f = findDateOfBestTime(horseRows, 'best5f');
+            const fastRecovery = findLatestValue(horseRows, 'fastRecovery');
+            const recovery15min = findLatestValue(horseRows, 'recovery15');
+            const maxSpeed = findHighestValue(horseRows, 'maxSpeed');
+            const age = horseRows[0].age || 'N/A';
+            
+            return {
+                name: horseName,
+                age: age,
+                lastWorkDate: lastWorkDate,
+                best1f: best1f,
+                best5f: best5f,
+                dateOfBest5f: dateOfBest5f,
+                fastRecovery: fastRecovery,
+                recovery15min: recovery15min,
+                maxSpeed: maxSpeed,
+                best5fColor: getBest5FColor(best5f),
+                fastRecoveryColor: getFastRecoveryColor(fastRecovery),
+                recovery15Color: getRecovery15Color(recovery15min)
+            };
+        }
+        
+        function findBestTime(rows, field) {
+            let best = null;
+            rows.forEach(row => {
+                if (row[field] && row[field] !== '-') {
+                    if (!best || parseTime(row[field]) < parseTime(best)) {
+                        best = row[field];
+                    }
+                }
+            });
+            return best || '-';
+        }
+        
+        function findDateOfBestTime(rows, field) {
+            let bestTime = null;
+            let bestDate = null;
+            rows.forEach(row => {
+                if (row[field] && row[field] !== '-') {
+                    if (!bestTime || parseTime(row[field]) < parseTime(bestTime)) {
+                        bestTime = row[field];
+                        bestDate = row.date;
+                    }
+                }
+            });
+            return bestDate || '-';
+        }
+        
+        function findLatestValue(rows, field) {
+            for (let row of rows) {
+                if (row[field] && row[field] !== '-') {
+                    return row[field];
+                }
+            }
+            return '-';
+        }
+        
+        function findHighestValue(rows, field) {
+            let highest = null;
+            rows.forEach(row => {
+                if (row[field] && row[field] !== '-') {
+                    const val = parseFloat(row[field]);
+                    if (!isNaN(val) && (highest === null || val > highest)) {
+                        highest = val;
+                    }
+                }
+            });
+            return highest !== null ? highest.toString() : '-';
+        }
+        
+        // Parse individual row from Excel data
+        function parseRow(row) {
+            try {
+                // Map the Excel columns to our internal structure
+                const parsedRow = {};
+                
+                // Create a flexible column mapping that handles variations
+                const columnMappings = {
+                    'date': ['Date', 'date', 'DATE', 'Date/Time'],
+                    'horse': ['Horse', 'horse', 'HORSE', 'Horse Name', 'HorseName', 'Name'],
+                    'type': ['Type', 'type', 'TYPE', 'Entry Type', 'EntryType'],
+                    'track': ['Track', 'track', 'TRACK'],
+                    'surface': ['Surface', 'surface', 'SURFACE'],
+                    'distance': ['Distance', 'distance', 'DISTANCE', 'Dist'],
+                    'avgSpeed': ['Avg Speed', 'Average Speed', 'AvgSpeed', 'avgSpeed', 'AVG_SPEED'],
+                    'maxSpeed': ['Max Speed', 'Maximum Speed', 'MaxSpeed', 'maxSpeed', 'MAX_SPEED'],
+                    'best1f': ['Best 1F', 'Best1F', 'best1f', '1F', '1f'],
+                    'best2f': ['Best 2F', 'Best2F', 'best2f', '2F', '2f'],
+                    'best3f': ['Best 3F', 'Best3F', 'best3f', '3F', '3f'],
+                    'best4f': ['Best 4F', 'Best4F', 'best4f', '4F', '4f'],
+                    'best5f': ['Best 5F', 'Best5F', 'best5f', '5F', '5f'],
+                    'best6f': ['Best 6F', 'Best6F', 'best6f', '6F', '6f'],
+                    'best7f': ['Best 7F', 'Best7F', 'best7f', '7F', '7f'],
+                    'maxHR': ['Max HR', 'Maximum HR', 'MaxHR', 'maxHR', 'MAX_HR', 'Heart Rate Max'],
+                    'fastRecovery': ['Fast Recovery', 'FastRecovery', 'fastRecovery', 'FAST_RECOVERY'],
+                    'fastQuality': ['Fast Quality', 'FastQuality', 'fastQuality', 'FAST_QUALITY'],
+                    'fastPercent': ['Fast %', 'Fast Percent', 'FastPercent', 'fastPercent', 'FAST_PERCENT'],
+                    'recovery15': ['15 Recovery', '15Recovery', 'recovery15', 'RECOVERY_15', 'Recovery 15'],
+                    'quality15': ['15 Quality', '15Quality', 'quality15', 'QUALITY_15', 'Quality 15'],
+                    'hr15Percent': ['HR 15%', 'HR15%', 'hr15Percent', 'HR_15_PERCENT'],
+                    'maxSL': ['Max SL', 'MaxSL', 'maxSL', 'MAX_SL'],
+                    'slGallop': ['SL Gallop', 'SLGallop', 'slGallop', 'SL_GALLOP'],
+                    'sfGallop': ['SF Gallop', 'SFGallop', 'sfGallop', 'SF_GALLOP'],
+                    'slWork': ['SL Work', 'SLWork', 'slWork', 'SL_WORK'],
+                    'sfWork': ['SF Work', 'SFWork', 'sfWork', 'SF_WORK'],
+                    'hr2min': ['HR 2 min', 'HR2min', 'hr2min', 'HR_2_MIN'],
+                    'hr5min': ['HR 5 min', 'HR5min', 'hr5min', 'HR_5_MIN'],
+                    'symmetry': ['Symmetry', 'symmetry', 'SYMMETRY'],
+                    'regularity': ['Regularity', 'regularity', 'REGULARITY'],
+                    'bpm120': ['120bpm', '120 BPM', 'bpm120', 'BPM_120'],
+                    'zone5': ['Zone 5', 'Zone5', 'zone5', 'ZONE_5'],
+                    'age': ['Age', 'age', 'AGE'],
+                    'sex': ['Sex', 'sex', 'SEX', 'Gender'],
+                    'temp': ['Temp', 'temp', 'TEMP', 'Temperature'],
+                    'trotHR': ['Trot HR', 'TrotHR', 'trotHR', 'TROT_HR'],
+                    'walkHR': ['Walk HR', 'WalkHR', 'walkHR', 'WALK_HR']
+                };
+                
+                // Find matching columns using flexible mapping
+                for (const [internalCol, possibleNames] of Object.entries(columnMappings)) {
+                    let foundValue = null;
+                    
+                    for (const possibleName of possibleNames) {
+                        if (row.hasOwnProperty(possibleName)) {
+                            foundValue = row[possibleName];
+                            break;
+                        }
+                    }
+                    
+                    if (foundValue !== null) {
+                        parsedRow[internalCol] = foundValue || '-';
+                    } else {
+                        parsedRow[internalCol] = '-';
+                    }
+                }
+                
+                // Debug: Log column mapping results for first few rows
+                if (Math.random() < 0.1) { // Log ~10% of rows for debugging
+                    console.log('Parsed row sample:', {
+                        originalKeys: Object.keys(row),
+                        parsedData: parsedRow,
+                        horse: parsedRow.horse
+                    });
+                }
+                
+                // Ensure horse name exists
+                if (!parsedRow.horse || parsedRow.horse === '-') {
+                    return null;
+                }
+                
+                // Clean up the data
+                parsedRow.horse = parsedRow.horse.toString().trim();
+                
+                // Determine if it's a work or race
+                if (parsedRow.type) {
+                    const typeStr = parsedRow.type.toString().toLowerCase();
+                    parsedRow.isWork = typeStr.includes('work');
+                    parsedRow.isRace = typeStr.includes('race');
+                }
+                
+                // Format date
+                if (parsedRow.date) {
+                    parsedRow.date = formatDate(parsedRow.date);
+                }
+                
+                return parsedRow;
+            } catch (error) {
+                console.error('Error parsing row:', error, row);
+                return null;
+            }
+        }
+        
+        // Helper function to format dates
+        function formatDate(dateValue) {
+            try {
+                if (!dateValue) return '-';
+                
+                // If it's already a formatted string, return as is
+                if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                    return dateValue;
+                }
+                
+                // If it's an Excel date number
+                if (typeof dateValue === 'number') {
+                    const date = new Date((dateValue - 25569) * 86400 * 1000);
+                    return (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
+                }
+                
+                // Try to parse as date
+                const date = new Date(dateValue);
+                if (!isNaN(date.getTime())) {
+                    return (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
+                }
+                
+                return dateValue.toString();
+            } catch (error) {
+                return dateValue ? dateValue.toString() : '-';
+            }
+        }
+        
+    </script>
+    
+    <!-- Add New Sheet Modal -->
+    <div id="addNewModal" class="modal" style="display: none;" onclick="closeModalOnOutsideClick(event)">
+        <div class="modal-content">
+            <h2>Add New Training Sheet</h2>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="sheetTitle">Sheet Title:</label>
+                    <input type="text" id="sheetTitle" placeholder="e.g., Repole, Solis/Litt" maxlength="30">
+                </div>
+                <div class="form-group">
+                    <label for="newSheetFile">Select File:</label>
+                    <input type="file" id="newSheetFile" accept=".xlsx,.xls,.xlsm,.csv">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeAddNewModal()" class="cancel-btn">Cancel</button>
+                <button onclick="uploadNewSheet()" class="upload-btn">Upload</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Sheet Confirmation Modal -->
+    <div id="deleteSheetModal" class="modal" style="display: none;" onclick="closeModalOnOutsideClick(event, 'deleteSheetModal')">
+        <div class="modal-content">
+            <h2>Delete Training Sheet</h2>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the training sheet "<span id="deleteSheetName"></span>"?</p>
+                <p style="color: #e74c3c; font-weight: bold;">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeleteSheetModal()" class="cancel-btn">Cancel</button>
+                <button onclick="confirmDeleteSheet()" class="delete-confirm-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="lost-numbers">4 8 15 16 23 42</div></function_results>
+
+<function_calls>
+<invoke name="TodoWrite">
+<parameter name="todos">[{"content": "Add delete button next to sheet selector", "status": "completed", "activeForm": "Adding delete button"}, {"content": "Create delete confirmation modal", "status": "in_progress", "activeForm": "Creating delete confirmation"}, {"content": "Implement sheet deletion logic with localStorage update", "status": "pending", "activeForm": "Implementing deletion logic"}, {"content": "Handle edge cases like deleting current sheet", "status": "pending", "activeForm": "Handling edge cases"}]
+</body>
+</html>

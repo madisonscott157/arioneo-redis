@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Training Data - Arioneo US</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0d1421;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .horse-detail-view .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0 10px;
+        }
+        
+        .horse-detail-view .table-container {
+            overflow-x: auto;
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+        }
+        
+        .horse-detail-view table {
+            width: 100%;
+            min-width: fit-content;
+            table-layout: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .share-info {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .share-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .share-info p {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        select, input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(52, 73, 94, 0.2);
+        }
+
+        .export-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 73, 94, 0.3);
+        }
+
+        .export-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e8eaed;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .horse-detail-view th, .horse-detail-view td {
+            padding: 6px 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            line-height: 1.2;
+            vertical-align: top;
+            width: 1%;
+        }
+        
+        .horse-detail-view th {
+            width: auto;
+            min-width: fit-content;
+            max-width: none;
+            word-wrap: break-word;
+        }
+        
+        .horse-detail-view .horse-name-cell {
+            width: 110px;
+            max-width: 110px;
+            white-space: nowrap;
+            text-align: center;
+            padding-right: 8px;
+        }
+        
+        .horse-detail-view .recovery-cell {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .horse-detail-view .recovery15-cell {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .horse-detail-view .time-cell {
+            width: 75px;
+            max-width: 75px;
+            min-width: 75px;
+        }
+        
+        .horse-name-cell {
+            text-align: left;
+            width: 110px;
+            max-width: 110px;
+            white-space: nowrap;
+        }
+        
+        .horse-name-col {
+            width: 85px;
+            max-width: 85px;
+            min-width: 85px;
+        }
+        
+        .fast-recovery-col {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .recovery15-col {
+            width: 65px;
+            max-width: 65px;
+        }
+        
+        .best5f-col {
+            width: 70px;
+        }
+        
+        .max-speed-col {
+            width: 70px;
+        }
+        
+        .date-col {
+            width: 90px;
+            max-width: 90px;
+        }
+        
+        .age-col {
+            width: 45px;
+        }
+        
+        .type-col {
+            width: 100px;
+        }
+        
+        /* Auto-fit column widths */
+        th, td {
+            width: 1%;
+            white-space: nowrap;
+        }
+        
+        th {
+            white-space: normal;
+            padding: 8px 4px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        }
+
+        tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        tr:hover {
+            background: #e8f4fd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+        
+        .clickable-row {
+            cursor: default;
+        }
+
+        .sort-indicator {
+            margin-left: 5px;
+            opacity: 0.7;
+        }
+
+        .time-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .speed-cell {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .age-cell {
+            color: #8e44ad;
+            font-weight: bold;
+        }
+        
+        .recovery-cell {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            width: 65px;
+        }
+        
+        .recovery15-cell {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            width: 50px;
+        }
+        
+        .type-cell {
+            position: relative;
+            z-index: 10;
+            max-width: 80px;
+            min-width: 80px;
+            width: 80px;
+        }
+        
+        .type-cell-content {
+            position: relative;
+            white-space: nowrap;
+            overflow: visible;
+            z-index: 10;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .lost-numbers {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-family: 'Courier New', 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: #6a9a7b;
+            opacity: 0.75;
+            font-weight: normal;
+            letter-spacing: 2px;
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .horse-detail-view {
+            display: none;
+        }
+        
+        .back-button {
+            background: #95a5a6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 15px;
+            transition: background 0.3s;
+        }
+        
+        .back-button:hover {
+            background: #7f8c8d;
+        }
+        
+        .horse-detail-header {
+            background: linear-gradient(135deg, #1a2332 0%, #2c3e50 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .horse-detail-header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .work-row {
+            background-color: #e8f4fd !important;
+        }
+        
+        .race-row {
+            font-weight: bold !important;
+            color: #c9463a !important;
+            background-color: #fcf2f2 !important;
+        }
+        
+        .race-row td {
+            color: #c9463a !important;
+            font-weight: bold !important;
+        }
+        
+        .column-visibility-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .column-visibility-header {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .column-visibility-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .column-visibility-content {
+            padding: 20px;
+        }
+        
+        .column-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .column-group {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .column-group h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .column-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .column-group input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.1);
+        }
+        
+        .column-visibility-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .visibility-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .visibility-btn:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-1px);
+        }
+        
+        .column-order-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .column-item:hover {
+            border-color: #3498db;
+            transform: translateY(-1px);
+        }
+        
+        .column-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        .column-item .column-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .column-item .move-up,
+        .column-item .move-down {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            margin-left: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        
+        .column-item .move-up:hover,
+        .column-item .move-down:hover {
+            background: #2980b9;
+        }
+        
+        .column-item .move-up:disabled,
+        .column-item .move-down:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainView">
+        <div class="header">
+            <h1>Daily Training Data</h1>
+            <p style="font-size: 1.6em; margin: -5px 0 5px 0;">🚀</p>
+            <p>View horse performance data analysis</p>
+        </div>
+
+        <div class="share-info" id="shareInfo">
+            <h3>Loading shared data...</h3>
+            <p class="loading">Please wait while we load the training data.</p>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <div class="control-group">
+                <label for="horseFilter">Filter by Horse:</label>
+                <input type="text" id="horseFilter" list="horseList" placeholder="Type or select horse name...">
+                <datalist id="horseList">
+                </datalist>
+            </div>
+            
+            <div class="control-group">
+                <label for="ageFilter">Filter by Age:</label>
+                <select id="ageFilter">
+                    <option value="">All Ages</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy">
+                    <option value="name">Horse Name</option>
+                    <option value="age">Age</option>
+                    <option value="best1f">Best 1F Time</option>
+                    <option value="best5f">Best 5F Time</option>
+                    <option value="maxSpeed">Max Speed</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="sortOrder">Order:</label>
+                <select id="sortOrder">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <button id="exportCsv" class="export-btn">📊 Export as CSV</button>
+            </div>
+        </div>
+
+        <div class="table-container" id="tableContainer" style="display: none;">
+            <table id="horseTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('name')" class="horse-name-col">Horse <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('age')" class="age-col">Age <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('dateOfBest5f')" class="date-col">Date <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('recovery15min')" class="recovery15-col">15 Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('maxSpeed')" class="max-speed-col">Max Speed <span class="sort-indicator">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="horseTableBody">
+                    <tr>
+                        <td colspan="8" class="no-data">No data loaded.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Horse Detail View (same as in the original) -->
+    <div class="horse-detail-view" id="horseDetailView">
+        <div class="container">
+            <div class="horse-detail-header">
+                <h1 id="horseDetailTitle">Horse Details</h1>
+            </div>
+
+            <div class="controls">
+                <button class="back-button" onclick="showMainView()">← Back to Main</button>
+                
+                <div class="control-group">
+                    <label for="horseAgeFilter">Filter by Age:</label>
+                    <select id="horseAgeFilter">
+                        <option value="">All Ages</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="typeFilter">Filter by Type:</label>
+                    <select id="typeFilter">
+                        <option value="all">All Entries</option>
+                        <option value="work">Works Only</option>
+                        <option value="race">Races Only</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="horseSortBy">Sort by:</label>
+                    <select id="horseSortBy">
+                        <option value="date">Date</option>
+                        <option value="distance">Distance</option>
+                        <option value="maxSpeed">Max Speed</option>
+                        <option value="avgSpeed">Avg Speed</option>
+                        <option value="best1f">Best 1F</option>
+                        <option value="best5f">Best 5F</option>
+                        <option value="maxHR">Max HR</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="horseSortOrder">Order:</label>
+                    <select id="horseSortOrder">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <button id="exportHorseCsv" class="export-btn">📊 Export Horse Data</button>
+                </div>
+                
+                <div class="control-group">
+                    <button id="toggleColumnVisibility" class="export-btn">Show/Hide Columns</button>
+                </div>
+            </div>
+            
+            <!-- Column Visibility Panel -->
+            <div id="columnVisibilityPanel" class="column-visibility-panel" style="display: none;">
+                <div class="column-visibility-header">
+                    <h3>Show/Hide & Reorder Columns</h3>
+                    <button id="closeColumnPanel" class="close-btn">×</button>
+                </div>
+                <div class="column-visibility-content">
+                    <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+                        Check/uncheck to show/hide columns. Use buttons to reorder.
+                    </p>
+                    <div id="columnOrderList" class="column-order-list">
+                        <!-- Dynamic column list will be populated here -->
+                    </div>
+                    <div class="column-visibility-actions">
+                        <button id="selectAllColumns" class="visibility-btn">Select All</button>
+                        <button id="deselectAllColumns" class="visibility-btn">Deselect All</button>
+                        <button id="resetColumns" class="visibility-btn">Reset to Default</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="horseDetailTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortHorseTable('date')">Date <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('horse')">Horse <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('type')">Type <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('track')">Track <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('surface')">Surface <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('distance')">Distance <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('avgSpeed')">Avg Speed <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('maxSpeed')">Max Speed <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best2f')">Best 2F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best3f')">Best 3F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best4f')">Best 4F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best6f')">Best 6F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('best7f')">Best 7F <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('maxHR')">Max HR <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('fastRecovery')">Fast Recovery <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('fastQuality')">Fast Quality <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('fastPercent')">Fast % <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('recovery15')">15 Recovery <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('quality15')">15 Quality <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('hr15Percent')">HR 15% <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('maxSL')">Max SL <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('slGallop')">SL Gallop <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('sfGallop')">SF Gallop <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('slWork')">SL Work <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('sfWork')">SF Work <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('hr2min')">HR 2 min <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('hr5min')">HR 5 min <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('symmetry')">Symmetry <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('regularity')">Regularity <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('bpm120')">120bpm <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('zone5')">Zone 5 <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('age')">Age <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('sex')">Sex <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('temp')">Temp <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('distanceCol')">Distance <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('trotHR')">Trot HR <span class="sort-indicator">↕</span></th>
+                            <th onclick="sortHorseTable('walkHR')">Walk HR <span class="sort-indicator">↕</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="horseDetailTableBody">
+                        <tr>
+                            <td colspan="38" class="no-data">No data loaded for this horse.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get session ID from URL
+        const sessionId = window.location.pathname.split('/').pop();
+        
+        // Global variables (similar to main app)
+        let horseData = [];
+        let filteredData = [];
+        let currentSort = { column: 'name', order: 'asc' };
+        let allHorseDetailData = {};
+        let currentHorseDetailData = [];
+        let currentHorseDetailSort = { column: 'date', order: 'desc' };
+        let currentTypeFilter = 'all';
+        let sessionInfo = null;
+        
+        // Column visibility settings
+        let columnVisibility = {
+            date: true, horse: true, type: true, track: true, surface: true, distance: true,
+            avgSpeed: true, maxSpeed: true, best1f: true, best2f: true, best3f: true, best4f: true,
+            best5f: true, best6f: true, best7f: true, maxHR: true, fastRecovery: true, fastQuality: true,
+            fastPercent: true, recovery15: true, quality15: true, hr15Percent: true, maxSL: true,
+            slGallop: true, sfGallop: true, slWork: true, sfWork: true, hr2min: true, hr5min: true,
+            symmetry: true, regularity: true, bpm120: true, zone5: true, age: true, sex: true,
+            temp: true, distanceCol: true, trotHR: true, walkHR: true
+        };
+        
+        // Default column order
+        let columnOrder = [
+            'date', 'horse', 'type', 'track', 'surface', 'distance',
+            'avgSpeed', 'maxSpeed', 'best1f', 'best2f', 'best3f', 'best4f',
+            'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
+            'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
+            'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
+            'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+            'temp', 'distanceCol', 'trotHR', 'walkHR'
+        ];
+        
+        // Save and load user preferences
+        function saveUserPreferences() {
+            const preferences = {
+                columnVisibility: columnVisibility,
+                columnOrder: columnOrder,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('arioneoUserPreferences', JSON.stringify(preferences));
+            console.log('Saved user preferences');
+        }
+        
+        function loadUserPreferences() {
+            try {
+                const saved = localStorage.getItem('arioneoUserPreferences');
+                if (saved) {
+                    const preferences = JSON.parse(saved);
+                    if (preferences.columnVisibility) {
+                        columnVisibility = {...columnVisibility, ...preferences.columnVisibility};
+                        updateColumnVisibilityUI();
+                    }
+                    if (preferences.columnOrder && Array.isArray(preferences.columnOrder)) {
+                        columnOrder = preferences.columnOrder;
+                        if (typeof populateColumnOrderList === 'function') {
+                            populateColumnOrderList();
+                        }
+                    }
+                    console.log('Loaded user preferences from:', preferences.lastUpdated);
+                }
+            } catch (error) {
+                console.error('Error loading user preferences:', error);
+            }
+        }
+        
+        function updateColumnVisibilityUI() {
+            Object.keys(columnVisibility).forEach(col => {
+                const checkbox = document.querySelector(`[data-column="${col}"] input[type="checkbox"]`);
+                if (checkbox) {
+                    checkbox.checked = columnVisibility[col];
+                }
+            });
+        }
+        
+        // Load session data on page load
+        loadSessionData();
+        
+        // All the same functions from the main app (copied for consistency)
+        function getFastRecoveryColor(value) {
+            if (!value || value === '-') return null;
+            
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) return null;
+            
+            if (numValue >= 140) return '#fdeaea';
+            if (numValue >= 125) return '#fff3cd';
+            if (numValue >= 119) return '#f9f7e3';
+            if (numValue >= 101) return '#d4edda';
+            return '#d1ecf1';
+        }
+        
+        function getRecovery15Color(value) {
+            if (!value || value === '-') return null;
+            
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) return null;
+            
+            if (numValue >= 116) return '#fdeaea';
+            if (numValue >= 102) return '#fff3cd';
+            if (numValue >= 81) return '#d4edda';
+            return '#d1ecf1';
+        }
+        
+        function getBest5FColor(timeStr) {
+            if (!timeStr || timeStr === '-' || !isValidTime(timeStr)) return null;
+            
+            const seconds = timeToSeconds(timeStr);
+            
+            if (seconds <= 60) return '#d1ecf1';
+            if (seconds <= 65) return '#d4edda';
+            if (seconds <= 70) return '#f9f7e3';
+            if (seconds <= 75) return '#fff3cd';
+            return '#fdeaea';
+        }
+        
+        function isValidTime(timeStr) {
+            if (!timeStr) return false;
+            const str = timeStr.toString().trim();
+            if (str === '-' || str === '' || str === 'NaN') return false;
+            return /^\d{2}:\d{2}\.\d{2}$/.test(str);
+        }
+
+        function timeToSeconds(timeStr) {
+            const parts = timeStr.toString().trim().split(':');
+            const minutes = parseInt(parts[0]);
+            const secondsParts = parts[1].split('.');
+            const seconds = parseInt(secondsParts[0]);
+            const hundredths = parseInt(secondsParts[1]);
+            
+            return minutes * 60 + seconds + hundredths / 100;
+        }
+        
+        function loadSessionData() {
+            fetch(`/api/session/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    sessionInfo = data;
+                    horseData = data.horseData || [];
+                    allHorseDetailData = data.allHorseDetailData || {};
+                    
+                    // Update share info
+                    const shareInfo = document.getElementById('shareInfo');
+                    shareInfo.innerHTML = `
+                        <h3>Training Data: ${data.fileName}</h3>
+                        <p>Uploaded: ${new Date(data.uploadedAt).toLocaleString()}</p>
+                        <p>Last Updated: ${new Date(data.updatedAt).toLocaleString()}</p>
+                        <p>Horses: ${horseData.length}</p>
+                    `;
+                    
+                    // Show controls and table
+                    document.getElementById('controls').style.display = 'flex';
+                    document.getElementById('tableContainer').style.display = 'block';
+                    
+                    // Initialize the interface
+                    updateHorseFilter();
+                    updateAgeFilter();
+                    
+                    // Load user preferences and apply them
+                    loadUserPreferences();
+                    updateColumnVisibilityUI();
+                    
+                    filterData();
+                    
+                    // Set up event listeners
+                    setupEventListeners();
+                })
+                .catch(error => {
+                    console.error('Error loading session data:', error);
+                    showError('Failed to load session data');
+                });
+        }
+        
+        function showError(message) {
+            const shareInfo = document.getElementById('shareInfo');
+            shareInfo.innerHTML = `
+                <div class="error">
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('horseFilter').addEventListener('input', filterData);
+            document.getElementById('ageFilter').addEventListener('change', filterData);
+            document.getElementById('sortBy').addEventListener('change', updateSort);
+            document.getElementById('sortOrder').addEventListener('change', updateSort);
+            document.getElementById('exportCsv').addEventListener('click', exportToCsv);
+            
+            // Column visibility event listeners
+            document.getElementById('toggleColumnVisibility').addEventListener('click', function() {
+                document.getElementById('columnVisibilityPanel').style.display = 'block';
+                populateColumnOrderList();
+            });
+            
+            document.getElementById('closeColumnPanel').addEventListener('click', function() {
+                document.getElementById('columnVisibilityPanel').style.display = 'none';
+            });
+            
+            document.getElementById('selectAllColumns').addEventListener('click', function() {
+                Object.keys(columnVisibility).forEach(col => {
+                    columnVisibility[col] = true;
+                });
+                populateColumnOrderList();
+                updateTableColumnVisibility();
+            });
+            
+            document.getElementById('deselectAllColumns').addEventListener('click', function() {
+                Object.keys(columnVisibility).forEach(col => {
+                    columnVisibility[col] = false;
+                });
+                populateColumnOrderList();
+                updateTableColumnVisibility();
+            });
+            
+            document.getElementById('resetColumns').addEventListener('click', function() {
+                Object.keys(columnVisibility).forEach(col => {
+                    columnVisibility[col] = true;
+                });
+                // Reset column order to default
+                columnOrder = [
+                    'date', 'horse', 'type', 'track', 'surface', 'distance',
+                    'avgSpeed', 'maxSpeed', 'best1f', 'best2f', 'best3f', 'best4f',
+                    'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
+                    'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
+                    'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
+                    'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+                    'temp', 'distanceCol', 'trotHR', 'walkHR'
+                ];
+                populateColumnOrderList();
+                updateTableColumnVisibility();
+            });
+        }
+        
+        // Copy all the main functions from the original app
+        function updateHorseFilter() {
+            const horseList = document.getElementById('horseList');
+            const horses = horseData.map(horse => horse.name).sort();
+            
+            horseList.innerHTML = '';
+            horses.forEach(horseName => {
+                const option = document.createElement('option');
+                option.value = horseName;
+                horseList.appendChild(option);
+            });
+        }
+
+        function updateAgeFilter() {
+            const ageFilter = document.getElementById('ageFilter');
+            const ages = [...new Set(horseData.map(horse => horse.age).filter(age => age !== null))].sort((a, b) => a - b);
+            
+            ageFilter.innerHTML = '<option value="">All Ages</option>';
+            ages.forEach(age => {
+                const option = document.createElement('option');
+                option.value = age;
+                option.textContent = age;
+                ageFilter.appendChild(option);
+            });
+        }
+
+        function filterData() {
+            const horseFilter = document.getElementById('horseFilter').value.toLowerCase().trim();
+            const ageFilter = document.getElementById('ageFilter').value;
+            
+            filteredData = horseData.filter(horse => {
+                if (horseFilter && !horse.name.toLowerCase().includes(horseFilter)) {
+                    return false;
+                }
+                if (ageFilter && horse.age !== parseInt(ageFilter)) {
+                    return false;
+                }
+                return true;
+            });
+            
+            sortData();
+        }
+
+        function updateSort() {
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            
+            currentSort = { column: sortBy, order: sortOrder };
+            sortData();
+        }
+
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.order = 'asc';
+            }
+            
+            document.getElementById('sortBy').value = column;
+            document.getElementById('sortOrder').value = currentSort.order;
+            
+            sortData();
+        }
+
+        function sortData() {
+            filteredData.sort((a, b) => {
+                let aVal = a[currentSort.column];
+                let bVal = b[currentSort.column];
+                
+                if (currentSort.column === 'best1f' || currentSort.column === 'best5f') {
+                    aVal = aVal ? timeToSeconds(aVal) : Infinity;
+                    bVal = bVal ? timeToSeconds(bVal) : Infinity;
+                } else if (currentSort.column === 'age' || currentSort.column === 'maxSpeed' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                }
+                
+                if (currentSort.order === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            displayData();
+        }
+
+        function displayData() {
+            const tbody = document.getElementById('horseTableBody');
+            
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No horses match the current filters.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filteredData.map(horse => {
+                const best5fColor = getBest5FColor(horse.best5f);
+                const fastRecoveryColor = getFastRecoveryColor(horse.fastRecovery);
+                const recovery15Color = getRecovery15Color(horse.recovery15min);
+                
+                const best5fStyle = best5fColor ? `style="background-color: ${best5fColor}; color: #000;"` : '';
+                const fastRecoveryStyle = fastRecoveryColor ? `style="background-color: ${fastRecoveryColor}; color: #000;"` : '';
+                const recovery15Style = recovery15Color ? `style="background-color: ${recovery15Color}; color: #000;"` : '';
+                
+                return `
+                    <tr class="clickable-row" onclick="showHorseDetail('${horse.name}')">
+                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${horse.name}</span></td>
+                        <td class="age-cell age-col">${horse.age || '-'}</td>
+                        <td class="time-cell">${horse.best1f || '-'}</td>
+                        <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
+                        <td class="date-col">${horse.dateOfBest5f || '-'}</td>
+                        <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${horse.fastRecovery || '-'}</td>
+                        <td class="recovery15-cell" ${recovery15Style}>${horse.recovery15min || '-'}</td>
+                        <td class="speed-cell max-speed-col">${horse.maxSpeed && !isNaN(parseFloat(horse.maxSpeed)) ? parseFloat(horse.maxSpeed).toFixed(1) : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function exportToCsv() {
+            if (filteredData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Horse Name', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery', 'Max Speed'];
+            let csvContent = headers.join(',') + '\n';
+
+            filteredData.forEach(horse => {
+                const row = [
+                    `"${horse.name}"`,
+                    horse.age || '',
+                    horse.best1f || '',
+                    horse.best5f || '',
+                    horse.dateOfBest5f || '',
+                    horse.fastRecovery || '',
+                    horse.recovery15min || '',
+                    horse.maxSpeed ? horse.maxSpeed.toFixed(2) : ''
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${sessionInfo.fileName}_summary.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Include all the horse detail functions from the original app
+        function showHorseDetail(horseName) {
+            document.getElementById('horseDetailTitle').textContent = `${horseName} - Training Details`;
+            currentHorseDetailData = allHorseDetailData[horseName] || [];
+            
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('horseDetailView').style.display = 'block';
+            
+            // Reset scroll position to top and left
+            window.scrollTo(0, 0);
+            
+            // Reset table scroll position to left
+            const tableContainer = document.querySelector('.horse-detail-view .table-container');
+            if (tableContainer) {
+                tableContainer.scrollLeft = 0;
+            }
+            
+            // Reset to default sort (date descending)
+            currentHorseDetailSort = { column: 'date', order: 'desc' };
+            document.getElementById('horseSortBy').value = 'date';
+            document.getElementById('horseSortOrder').value = 'desc';
+            
+            // Reset filters
+            document.getElementById('horseAgeFilter').value = '';
+            document.getElementById('typeFilter').value = 'all';
+            currentTypeFilter = 'all';
+            
+            // Populate age filter for this horse
+            updateHorseAgeFilter(horseName);
+            
+            document.getElementById('horseSortBy').addEventListener('change', updateHorseDetailSort);
+            document.getElementById('horseSortOrder').addEventListener('change', updateHorseDetailSort);
+            document.getElementById('horseAgeFilter').addEventListener('change', updateHorseDetailSort);
+            document.getElementById('typeFilter').addEventListener('change', updateHorseDetailFilter);
+            document.getElementById('exportHorseCsv').addEventListener('click', exportHorseDataToCsv);
+            
+            sortHorseDetailData();
+        }
+
+        function showMainView() {
+            document.getElementById('horseDetailView').style.display = 'none';
+            document.getElementById('mainView').style.display = 'block';
+            
+            document.getElementById('horseFilter').value = '';
+            filterData();
+        }
+
+        function updateHorseAgeFilter(horseName) {
+            const ageFilter = document.getElementById('horseAgeFilter');
+            const horseData = allHorseDetailData[horseName] || [];
+            const ages = [...new Set(horseData.map(row => row.age).filter(age => age && age !== '-'))].sort((a, b) => a - b);
+            
+            ageFilter.innerHTML = '<option value="">All Ages</option>';
+            ages.forEach(age => {
+                const option = document.createElement('option');
+                option.value = age;
+                option.textContent = age;
+                ageFilter.appendChild(option);
+            });
+        }
+
+        function updateHorseDetailFilter() {
+            currentTypeFilter = document.getElementById('typeFilter').value;
+            sortHorseDetailData();
+        }
+
+        function updateHorseDetailSort() {
+            const sortBy = document.getElementById('horseSortBy').value;
+            const sortOrder = document.getElementById('horseSortOrder').value;
+            
+            currentHorseDetailSort = { column: sortBy, order: sortOrder };
+            sortHorseDetailData();
+        }
+
+        function sortHorseTable(column) {
+            if (currentHorseDetailSort.column === column) {
+                currentHorseDetailSort.order = currentHorseDetailSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentHorseDetailSort.column = column;
+                currentHorseDetailSort.order = 'asc';
+            }
+            
+            document.getElementById('horseSortBy').value = column;
+            document.getElementById('horseSortOrder').value = currentHorseDetailSort.order;
+            
+            sortHorseDetailData();
+        }
+
+        function sortHorseDetailData() {
+            let horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
+            let dataToSort = allHorseDetailData[horseName] || [];
+            
+            // Apply age filter
+            const ageFilter = document.getElementById('horseAgeFilter').value;
+            if (ageFilter) {
+                dataToSort = dataToSort.filter(row => row.age === ageFilter);
+            }
+            
+            // Apply type filter
+            if (currentTypeFilter === 'work') {
+                dataToSort = dataToSort.filter(row => row.isWork === true);
+            } else if (currentTypeFilter === 'race') {
+                dataToSort = dataToSort.filter(row => row.isRace === true);
+            }
+            
+            currentHorseDetailData = [...dataToSort];
+            
+            currentHorseDetailData.sort((a, b) => {
+                let aVal = a[currentHorseDetailSort.column];
+                let bVal = b[currentHorseDetailSort.column];
+                
+                if (currentHorseDetailSort.column === 'best1f' || currentHorseDetailSort.column === 'best2f' || currentHorseDetailSort.column === 'best3f' || currentHorseDetailSort.column === 'best4f' || currentHorseDetailSort.column === 'best5f' || currentHorseDetailSort.column === 'best6f' || currentHorseDetailSort.column === 'best7f') {
+                    aVal = aVal && isValidTime(aVal) ? timeToSeconds(aVal) : Infinity;
+                    bVal = bVal && isValidTime(bVal) ? timeToSeconds(bVal) : Infinity;
+                } else if (currentHorseDetailSort.column === 'age' || currentHorseDetailSort.column === 'distance' || currentHorseDetailSort.column === 'avgSpeed' || currentHorseDetailSort.column === 'maxSpeed' || currentHorseDetailSort.column === 'maxHR' || currentHorseDetailSort.column === 'fastRecovery' || currentHorseDetailSort.column === 'recovery15') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else if (currentHorseDetailSort.column === 'date') {
+                    aVal = aVal ? new Date(aVal) : new Date(0);
+                    bVal = bVal ? new Date(bVal) : new Date(0);
+                } else {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                }
+                
+                if (currentHorseDetailSort.order === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            buildTableHeader();
+            displayHorseDetailData();
+        }
+
+        // Include all the column visibility functions
+        function buildTableHeader() {
+            const table = document.getElementById('horseDetailTable');
+            const thead = table.querySelector('thead');
+            if (!thead) return;
+            
+            const columnNames = {
+                date: 'Date', horse: 'Horse', type: 'Type', track: 'Track', surface: 'Surface', distance: 'Distance',
+                avgSpeed: 'Avg Speed', maxSpeed: 'Max Speed', best1f: 'Best 1F', best2f: 'Best 2F', best3f: 'Best 3F', best4f: 'Best 4F',
+                best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
+                fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
+                slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR'
+            };
+            
+            const headerHTML = columnOrder.map(col => {
+                const display = columnVisibility[col] ? '' : 'style="display: none;"';
+                return `<th onclick="sortHorseTable('${col}')" ${display}>${columnNames[col] || col} <span class="sort-indicator">↕</span></th>`;
+            }).join('');
+            
+            thead.innerHTML = `<tr>${headerHTML}</tr>`;
+        }
+
+        function populateColumnOrderList() {
+            const container = document.getElementById('columnOrderList');
+            if (!container) return;
+            
+            const columnNames = {
+                date: 'Date', horse: 'Horse', type: 'Type', track: 'Track', surface: 'Surface', distance: 'Distance',
+                avgSpeed: 'Avg Speed', maxSpeed: 'Max Speed', best1f: 'Best 1F', best2f: 'Best 2F', best3f: 'Best 3F', best4f: 'Best 4F',
+                best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
+                fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
+                slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR'
+            };
+            
+            container.innerHTML = columnOrder.map((col, index) => `
+                <div class="column-item" data-column="${col}" data-index="${index}">
+                    <input type="checkbox" ${columnVisibility[col] ? 'checked' : ''}>
+                    <span class="column-name">${columnNames[col] || col}</span>
+                    <button class="move-up" ${index === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="move-down" ${index === columnOrder.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
+            `).join('');
+            
+            // Add event listeners for checkboxes and move buttons
+            const columnItems = container.querySelectorAll('.column-item');
+            columnItems.forEach((item, index) => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const moveUpBtn = item.querySelector('.move-up');
+                const moveDownBtn = item.querySelector('.move-down');
+                const column = item.dataset.column;
+                
+                checkbox.addEventListener('change', function(e) {
+                    columnVisibility[column] = e.target.checked;
+                    saveUserPreferences();
+                    updateTableColumnVisibility();
+                });
+                
+                moveUpBtn.addEventListener('click', function() {
+                    if (index > 0) {
+                        moveColumn(index, index - 1);
+                    }
+                });
+                
+                moveDownBtn.addEventListener('click', function() {
+                    if (index < columnOrder.length - 1) {
+                        moveColumn(index, index + 1);
+                    }
+                });
+            });
+        }
+
+        function moveColumn(fromIndex, toIndex) {
+            const movedColumn = columnOrder[fromIndex];
+            columnOrder.splice(fromIndex, 1);
+            columnOrder.splice(toIndex, 0, movedColumn);
+            
+            saveUserPreferences();
+            populateColumnOrderList();
+            updateTableColumnVisibility();
+        }
+
+        function updateTableColumnVisibility() {
+            const table = document.getElementById('horseDetailTable');
+            if (!table) return;
+            
+            // Rebuild the entire table with proper column order
+            buildTableHeader();
+            displayHorseDetailData();
+        }
+
+        function displayHorseDetailData() {
+            const tbody = document.getElementById('horseDetailTableBody');
+            
+            if (currentHorseDetailData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="38" class="no-data">No training data available for this horse.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = currentHorseDetailData.map((row, index) => {
+                let rowClass = '';
+                if (row.isWork) {
+                    rowClass = 'work-row';
+                } else if (row.isRace) {
+                    rowClass = 'race-row';
+                }
+                
+                const best5fColor = getBest5FColor(row.best5f);
+                const fastRecoveryColor = getFastRecoveryColor(row.fastRecovery);
+                const recovery15Color = getRecovery15Color(row.recovery15);
+                
+                const best5fStyle = best5fColor ? `background-color: ${best5fColor}; color: #000;` : '';
+                const fastRecoveryStyle = fastRecoveryColor ? `background-color: ${fastRecoveryColor}; color: #000;` : '';
+                const recovery15Style = recovery15Color ? `background-color: ${recovery15Color}; color: #000;` : '';
+                
+                const cellData = {
+                    date: row.date || '-',
+                    horse: `<strong>${row.horse || '-'}</strong>`,
+                    type: `<div class="type-cell-content">${row.type || '-'}</div>`,
+                    track: row.track || '-',
+                    surface: row.surface || '-',
+                    distance: row.distance || '-',
+                    avgSpeed: row.avgSpeed && !isNaN(parseFloat(row.avgSpeed)) ? parseFloat(row.avgSpeed).toFixed(1) : (row.avgSpeed || '-'),
+                    maxSpeed: row.maxSpeed && !isNaN(parseFloat(row.maxSpeed)) ? parseFloat(row.maxSpeed).toFixed(1) : (row.maxSpeed || '-'),
+                    best1f: row.best1f || '-',
+                    best2f: row.best2f || '-',
+                    best3f: row.best3f || '-',
+                    best4f: row.best4f || '-',
+                    best5f: row.best5f || '-',
+                    best6f: row.best6f || '-',
+                    best7f: row.best7f || '-',
+                    maxHR: row.maxHR || '-',
+                    fastRecovery: row.fastRecovery || '-',
+                    fastQuality: row.fastQuality || '-',
+                    fastPercent: row.fastPercent || '-',
+                    recovery15: row.recovery15 || '-',
+                    quality15: row.quality15 || '-',
+                    hr15Percent: row.hr15Percent || '-',
+                    maxSL: row.maxSL || '-',
+                    slGallop: row.slGallop || '-',
+                    sfGallop: row.sfGallop || '-',
+                    slWork: row.slWork && !isNaN(parseFloat(row.slWork)) ? parseFloat(row.slWork).toFixed(2) : (row.slWork || '-'),
+                    sfWork: row.sfWork || '-',
+                    hr2min: row.hr2min || '-',
+                    hr5min: row.hr5min || '-',
+                    symmetry: row.symmetry || '-',
+                    regularity: row.regularity || '-',
+                    bpm120: row.bpm120 || '-',
+                    zone5: row.zone5 || '-',
+                    age: row.age || '-',
+                    sex: row.sex || '-',
+                    temp: row.temp || '-',
+                    distanceCol: row.distanceCol || '-',
+                    trotHR: row.trotHR || '-',
+                    walkHR: row.walkHR || '-'
+                };
+                
+                const rowHTML = columnOrder.map(col => {
+                    const display = columnVisibility[col] ? '' : 'style="display: none;"';
+                    let cellStyle = '';
+                    let cellClass = '';
+                    
+                    // Apply special styling for specific columns
+                    if (col === 'best5f' && best5fStyle) {
+                        cellStyle = `style="${best5fStyle}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'time-cell';
+                    } else if (col === 'fastRecovery' && fastRecoveryStyle) {
+                        cellStyle = `style="${fastRecoveryStyle}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'recovery-cell';
+                    } else if (col === 'recovery15' && recovery15Style) {
+                        cellStyle = `style="${recovery15Style}${display ? ' ' + display.substring(7) : ''}"`;
+                        cellClass = 'recovery15-cell';
+                    } else if (col === 'horse') {
+                        cellClass = 'horse-name-cell';
+                        cellStyle = display;
+                    } else if (col === 'maxSpeed') {
+                        cellClass = 'speed-cell';
+                        cellStyle = display;
+                    } else if (col === 'age') {
+                        cellClass = 'age-cell';
+                        cellStyle = display;
+                    } else if (col === 'type') {
+                        cellClass = 'type-cell';
+                        cellStyle = display;
+                    } else if (col.includes('best') && col !== 'best5f') {
+                        cellClass = 'time-cell';
+                        cellStyle = display;
+                    } else {
+                        cellStyle = display;
+                    }
+                    
+                    return `<td class="${cellClass}" ${cellStyle}>${cellData[col] || '-'}</td>`;
+                }).join('');
+                
+                return `<tr class="${rowClass}">${rowHTML}</tr>`;
+            }).join('');
+        }
+
+        function exportHorseDataToCsv() {
+            if (currentHorseDetailData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
+            
+            // Create CSV header with all English columns
+            const headers = [
+                'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed', 
+                'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F', 
+                'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality', 
+                'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min', 
+                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp', 
+                'Distance', 'Trot HR', 'Walk HR'
+            ];
+            let csvContent = headers.join(',') + '\n';
+
+            // Add data rows
+            currentHorseDetailData.forEach(row => {
+                const csvRow = [
+                    `"${row.date || ''}"`, `"${row.horse || ''}"`, `"${row.type || ''}"`, 
+                    `"${row.track || ''}"`, `"${row.surface || ''}"`, row.distance || '',
+                    row.avgSpeed || '', row.maxSpeed || '', row.best1f || '', row.best2f || '',
+                    row.best3f || '', row.best4f || '', row.best5f || '', row.best6f || '',
+                    row.best7f || '', row.maxHR || '', row.fastRecovery || '', row.fastQuality || '',
+                    row.fastPercent || '', row.recovery15 || '', row.quality15 || '', 
+                    row.hr15Percent || '', row.maxSL || '', row.slGallop || '', row.sfGallop || '',
+                    row.slWork || '', row.sfWork || '', row.hr2min || '', row.hr5min || '',
+                    row.symmetry || '', row.regularity || '', row.bpm120 || '', row.zone5 || '',
+                    row.age || '', row.sex || '', row.temp || '', row.distanceCol || '',
+                    row.trotHR || '', row.walkHR || ''
+                ];
+                csvContent += csvRow.join(',') + '\n';
+            });
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${horseName}_${sessionInfo.fileName}_training_data.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+    </script>
+    
+    <div class="lost-numbers">4 8 15 16 23 42</div>
+</body>
+</html>
