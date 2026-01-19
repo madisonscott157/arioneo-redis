@@ -3448,8 +3448,11 @@
             console.log('Clicked horse:', horseName);
             console.log('Available horse detail data:', Object.keys(allHorseDetailData));
             console.log('Data for', horseName, ':', allHorseDetailData[horseName]);
-            
-            document.getElementById('horseDetailTitle').textContent = `${horseName} - Training Details`;
+
+            // Get the display name from horseData
+            const horse = horseData.find(h => h.name === horseName);
+            const displayName = horse?.displayName || horseName;
+            document.getElementById('horseDetailTitle').textContent = `${displayName} - Training Details`;
             currentHorseDetailData = allHorseDetailData[horseName] || [];
             
             document.getElementById('mainView').style.display = 'none';
