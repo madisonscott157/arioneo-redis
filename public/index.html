@@ -1247,16 +1247,13 @@
 
         <div class="controls">
             <div class="control-group">
-                <label for="sheetSelector">Training Sheet:</label>
-                <select id="sheetSelector" onchange="switchSheet()">
-                    <option value="Default">Default</option>
+                <label for="viewSelector">View:</label>
+                <select id="viewSelector" onchange="switchView()">
+                    <option value="active">Active Horses</option>
+                    <option value="historic">Historic</option>
                 </select>
             </div>
-            
-            <div class="control-group button-only">
-                <button onclick="showAddNewModal()" class="add-new-btn">Add New</button>
-            </div>
-            
+
             <div class="control-group file-input">
                 <label for="arioneoFileInput" class="file-label" style="background: #27ae60;">Upload Arioneo CSV</label>
                 <input type="file" id="arioneoFileInput" accept=".csv,.xlsx">
@@ -1312,10 +1309,6 @@
             
             <div class="control-group button-only">
                 <button id="exportCsv" class="export-btn" disabled>Export</button>
-            </div>
-            
-            <div class="control-group button-only">
-                <button onclick="showDeleteSheetConfirm()" class="delete-sheet-btn" title="Delete current sheet">🗑️</button>
             </div>
         </div>
 
@@ -1488,11 +1481,9 @@
         let currentHorseDetailData = [];
         let currentHorseDetailSort = { column: 'date', order: 'desc' };
         let currentTypeFilter = 'all';
-        
-        // Multi-sheet functionality
-        let allSheets = {};
-        let currentSheetName = 'Default';
-        let sheetNames = [];
+
+        // View: 'active' or 'historic'
+        let currentView = 'active';
         
         // Column visibility settings
         let columnVisibility = {
@@ -2669,7 +2660,7 @@
 
                         <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <h4 style="margin-top: 0;">Add/Edit Horse</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 10px; align-items: end;">
                                 <div>
                                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Horse Name</label>
                                     <input type="text" id="horseNameInput" placeholder="Horse name..." style="width: 100%; padding: 8px;">
@@ -2681,6 +2672,13 @@
                                 <div>
                                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Country</label>
                                     <input type="text" id="horseCountryInput" placeholder="Country..." style="width: 100%; padding: 8px;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Status</label>
+                                    <select id="horseStatusInput" style="width: 100%; padding: 8px;">
+                                        <option value="active">Active</option>
+                                        <option value="historic">Historic</option>
+                                    </select>
                                 </div>
                                 <button onclick="saveHorseMapping()" class="export-btn" style="height: 38px;">Save</button>
                             </div>
@@ -2704,11 +2702,12 @@
                                             <th style="padding: 10px; text-align: left;">Horse</th>
                                             <th style="padding: 10px; text-align: left;">Owner</th>
                                             <th style="padding: 10px; text-align: left;">Country</th>
+                                            <th style="padding: 10px; text-align: center;">Status</th>
                                             <th style="padding: 10px; width: 60px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="horseMappingTableBody">
-                                        <tr><td colspan="4" style="padding: 20px; text-align: center; color: #666;">Loading...</td></tr>
+                                        <tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">Loading...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2740,21 +2739,32 @@
                 if (!tbody) return;
 
                 if (!data.horses || data.horses.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #666;">No horses mapped yet</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">No horses mapped yet</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = data.horses.map(h => `
+                tbody.innerHTML = data.horses.map(h => {
+                    const isHistoric = h.isHistoric || false;
+                    const statusColor = isHistoric ? '#e74c3c' : '#27ae60';
+                    const statusText = isHistoric ? 'Historic' : 'Active';
+                    const toggleText = isHistoric ? 'Make Active' : 'Make Historic';
+                    const displayName = h.displayName || h.name;
+
+                    return `
                     <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${displayName}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.owner || '-'}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.country || '-'}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
-                            <button onclick="editHorseMapping('${h.name}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
-                            <button onclick="deleteHorseMapping('${h.name}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
+                            <span style="color: ${statusColor}; font-weight: bold; margin-right: 8px;">${statusText}</span>
+                            <button onclick="toggleHorseStatus('${h.name.replace(/'/g, "\\'")}', ${!isHistoric})" style="padding: 2px 6px; cursor: pointer; font-size: 11px;">${toggleText}</button>
                         </td>
-                    </tr>
-                `).join('');
+                        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
+                            <button onclick="editHorseMapping('${h.name.replace(/'/g, "\\'")}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
+                            <button onclick="deleteHorseMapping('${h.name.replace(/'/g, "\\'")}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
+                        </td>
+                    </tr>`;
+                }).join('');
 
             } catch (error) {
                 console.error('Error loading horse mappings:', error);
@@ -2765,6 +2775,8 @@
             const name = document.getElementById('horseNameInput').value.trim();
             const owner = document.getElementById('horseOwnerInput').value.trim();
             const country = document.getElementById('horseCountryInput').value.trim();
+            const status = document.getElementById('horseStatusInput')?.value || 'active';
+            const isHistoric = status === 'historic';
 
             if (!name) {
                 alert('Horse name is required');
@@ -2775,7 +2787,7 @@
                 const response = await fetch('/api/horses', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, owner, country })
+                    body: JSON.stringify({ name, owner, country, isHistoric })
                 });
 
                 const data = await response.json();
@@ -2784,6 +2796,7 @@
                     document.getElementById('horseNameInput').value = '';
                     document.getElementById('horseOwnerInput').value = '';
                     document.getElementById('horseCountryInput').value = '';
+                    document.getElementById('horseStatusInput').value = 'active';
 
                     // Refresh list and filters
                     loadHorseMappingList();
@@ -2800,6 +2813,44 @@
             }
         }
 
+        // Toggle horse between active and historic
+        async function toggleHorseStatus(name, makeHistoric) {
+            try {
+                // First get the current horse data
+                const response = await fetch('/api/horses');
+                const data = await response.json();
+                const horse = data.horses.find(h => h.name === name);
+
+                if (!horse) {
+                    alert('Horse not found');
+                    return;
+                }
+
+                // Update with new status
+                const updateResponse = await fetch('/api/horses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: horse.name,
+                        owner: horse.owner,
+                        country: horse.country,
+                        isHistoric: makeHistoric
+                    })
+                });
+
+                const updateData = await updateResponse.json();
+                if (updateData.success) {
+                    loadHorseMappingList();
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + updateData.error);
+                }
+            } catch (error) {
+                console.error('Error toggling horse status:', error);
+                alert('Error updating horse status');
+            }
+        }
+
         function editHorseMapping(name) {
             // Pre-fill the form with existing data
             fetch('/api/horses')
@@ -2810,6 +2861,7 @@
                         document.getElementById('horseNameInput').value = horse.name;
                         document.getElementById('horseOwnerInput').value = horse.owner || '';
                         document.getElementById('horseCountryInput').value = horse.country || '';
+                        document.getElementById('horseStatusInput').value = horse.isHistoric ? 'historic' : 'active';
                     }
                 });
         }
@@ -3229,7 +3281,18 @@
             const countryFilter = document.getElementById('countryFilter')?.value || '';
 
             filteredData = horseData.filter(horse => {
-                if (horseFilter && !horse.name.toLowerCase().includes(horseFilter)) {
+                // Filter by active/historic view
+                const isHistoric = horse.isHistoric || false;
+                if (currentView === 'active' && isHistoric) {
+                    return false;
+                }
+                if (currentView === 'historic' && !isHistoric) {
+                    return false;
+                }
+
+                // Search by both name and displayName
+                const searchName = (horse.displayName || horse.name).toLowerCase();
+                if (horseFilter && !searchName.includes(horseFilter) && !horse.name.toLowerCase().includes(horseFilter)) {
                     return false;
                 }
                 if (ageFilter && horse.age !== parseInt(ageFilter)) {
@@ -3245,6 +3308,12 @@
             });
 
             sortData();
+        }
+
+        function switchView() {
+            const viewSelector = document.getElementById('viewSelector');
+            currentView = viewSelector.value;
+            filterData();
         }
 
         function updateSort() {
@@ -3306,7 +3375,8 @@
             const tbody = document.getElementById('horseTableBody');
 
             if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="no-data">No horses match the current filters.</td></tr>';
+                const viewType = currentView === 'historic' ? 'historic' : 'active';
+                tbody.innerHTML = `<tr><td colspan="11" class="no-data">No ${viewType} horses match the current filters.</td></tr>`;
                 return;
             }
 
@@ -3314,10 +3384,12 @@
                 const best5fStyle = horse.best5fColor ? `style="background-color: ${horse.best5fColor}; color: #000;"` : '';
                 const fastRecoveryStyle = horse.fastRecoveryColor ? `style="background-color: ${horse.fastRecoveryColor}; color: #000;"` : '';
                 const recovery15Style = horse.recovery15Color ? `style="background-color: ${horse.recovery15Color}; color: #000;"` : '';
+                // Use displayName for display, but keep name for data lookup
+                const displayName = horse.displayName || horse.name;
 
                 return `
                     <tr class="clickable-row" onclick="showHorseDetail('${horse.name}')">
-                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${horse.name}</span></td>
+                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${displayName}</span></td>
                         <td>${horse.owner || '-'}</td>
                         <td>${horse.country || '-'}</td>
                         <td class="last-work-cell">${horse.lastWorkDate || '-'}</td>
@@ -4402,46 +4474,6 @@
         
     </script>
     
-    <!-- Add New Sheet Modal -->
-    <div id="addNewModal" class="modal" style="display: none;" onclick="closeModalOnOutsideClick(event)">
-        <div class="modal-content">
-            <h2>Add New Training Sheet</h2>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="sheetTitle">Sheet Title:</label>
-                    <input type="text" id="sheetTitle" placeholder="e.g., Repole, Solis/Litt" maxlength="30">
-                </div>
-                <div class="form-group">
-                    <label for="newSheetFile">Select File:</label>
-                    <input type="file" id="newSheetFile" accept=".xlsx,.xls,.xlsm,.csv">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeAddNewModal()" class="cancel-btn">Cancel</button>
-                <button onclick="uploadNewSheet()" class="upload-btn">Upload</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Delete Sheet Confirmation Modal -->
-    <div id="deleteSheetModal" class="modal" style="display: none;" onclick="closeModalOnOutsideClick(event, 'deleteSheetModal')">
-        <div class="modal-content">
-            <h2>Delete Training Sheet</h2>
-            <div class="modal-body">
-                <p>Are you sure you want to delete the training sheet "<span id="deleteSheetName"></span>"?</p>
-                <p style="color: #e74c3c; font-weight: bold;">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeDeleteSheetModal()" class="cancel-btn">Cancel</button>
-                <button onclick="confirmDeleteSheet()" class="delete-confirm-btn">Delete</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="lost-numbers">4 8 15 16 23 42</div></function_results>
-
-<function_calls>
-<invoke name="TodoWrite">
-<parameter name="todos">[{"content": "Add delete button next to sheet selector", "status": "completed", "activeForm": "Adding delete button"}, {"content": "Create delete confirmation modal", "status": "in_progress", "activeForm": "Creating delete confirmation"}, {"content": "Implement sheet deletion logic with localStorage update", "status": "pending", "activeForm": "Implementing deletion logic"}, {"content": "Handle edge cases like deleting current sheet", "status": "pending", "activeForm": "Handling edge cases"}]
+    <div class="lost-numbers">4 8 15 16 23 42</div>
 </body>
 </html>

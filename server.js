@@ -598,6 +598,53 @@ function transformDate(dateValue) {
   return `${month}/${day}/${year}`;
 }
 
+// Format horse name for display: "HORSENAME YY"
+// Handles: "2022 Stoweshoe" -> "STOWESHOE 22", "23' GINGER PUNCH" -> "GINGER PUNCH 23"
+function formatHorseNameForDisplay(name) {
+  if (!name) return '';
+
+  let horseName = name.toString().trim();
+  let year = null;
+
+  // Pattern 1: 4-digit year at start (2021-2099)
+  // "2022 Stoweshoe" or "2022Stoweshoe"
+  const fourDigitYearStart = horseName.match(/^(20[2-9]\d)\s*(.+)$/);
+  if (fourDigitYearStart) {
+    year = fourDigitYearStart[1].slice(-2); // Get last 2 digits
+    horseName = fourDigitYearStart[2].trim();
+  }
+
+  // Pattern 2: 2-digit year at start with optional apostrophe (21-99)
+  // "22 Stoweshoe" or "23' GINGER PUNCH" or "22'Stoweshoe"
+  if (!year) {
+    const twoDigitYearStart = horseName.match(/^([2-9]\d)'?\s*(.+)$/);
+    if (twoDigitYearStart) {
+      year = twoDigitYearStart[1];
+      horseName = twoDigitYearStart[2].trim();
+    }
+  }
+
+  // Pattern 3: Year at end with apostrophe
+  // "GINGER PUNCH '23" or "GINGER PUNCH 23'"
+  if (!year) {
+    const yearAtEnd = horseName.match(/^(.+?)\s*'?([2-9]\d)'?$/);
+    if (yearAtEnd && yearAtEnd[1].length > 2) {
+      horseName = yearAtEnd[1].trim();
+      year = yearAtEnd[2];
+    }
+  }
+
+  // Uppercase the horse name
+  horseName = horseName.toUpperCase();
+
+  // Combine: NAME YY
+  if (year) {
+    return `${horseName} ${year}`;
+  }
+
+  return horseName;
+}
+
 // Process raw Arioneo CSV data
 function processArioneoCSV(csvData) {
   const rows = [];
@@ -967,13 +1014,14 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       maxSpeed = Math.max(...speeds);
     }
 
-    // Get owner/country from mapping (case-insensitive lookup)
+    // Get owner/country/historic from mapping (case-insensitive lookup)
     const horseNameLower = horseName.toLowerCase();
     const mappingKey = Object.keys(horseMapping).find(k => k.toLowerCase() === horseNameLower);
     const mapping = mappingKey ? horseMapping[mappingKey] : {};
 
     horseData.push({
       name: horseName,
+      displayName: formatHorseNameForDisplay(horseName),
       age: age,
       lastWork: lastWork,
       best1f: best1f,
@@ -986,12 +1034,13 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       fastRecoveryColor: getFastRecoveryColor(fastRecovery),
       recovery15Color: getRecovery15Color(recovery15min),
       owner: mapping.owner || '',
-      country: mapping.country || ''
+      country: mapping.country || '',
+      isHistoric: mapping.isHistoric || false
     });
   });
 
-  // Sort by name
-  horseData.sort((a, b) => a.name.localeCompare(b.name));
+  // Sort by display name
+  horseData.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return horseData;
 }
@@ -1395,8 +1444,10 @@ app.get('/api/horses', async (req, res) => {
     const mapping = await getHorseMapping();
     const horses = Object.entries(mapping).map(([name, data]) => ({
       name,
+      displayName: formatHorseNameForDisplay(name),
       owner: data.owner || '',
       country: data.country || '',
+      isHistoric: data.isHistoric || false,
       addedAt: data.addedAt || ''
     }));
 
@@ -1418,7 +1469,7 @@ app.get('/api/horses', async (req, res) => {
 // Add or update a single horse mapping
 app.post('/api/horses', async (req, res) => {
   try {
-    const { name, owner, country } = req.body;
+    const { name, owner, country, isHistoric } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Horse name is required' });
@@ -1429,6 +1480,7 @@ app.post('/api/horses', async (req, res) => {
     mapping[name] = {
       owner: owner || '',
       country: country || '',
+      isHistoric: isHistoric || false,
       addedAt: mapping[name]?.addedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1446,7 +1498,7 @@ app.post('/api/horses', async (req, res) => {
     res.json({
       success: true,
       message: `Horse "${name}" mapping saved`,
-      horse: { name, owner, country }
+      horse: { name, owner, country, isHistoric }
     });
 
   } catch (error) {
