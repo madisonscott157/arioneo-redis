@@ -3412,11 +3412,9 @@
                 const best5fStyle = horse.best5fColor ? `style="background-color: ${horse.best5fColor}; color: #000;"` : '';
                 const fastRecoveryStyle = horse.fastRecoveryColor ? `style="background-color: ${horse.fastRecoveryColor}; color: #000;"` : '';
                 const recovery15Style = horse.recovery15Color ? `style="background-color: ${horse.recovery15Color}; color: #000;"` : '';
-                // Use displayName for display, but keep name for data lookup
                 const displayName = horse.displayName || horse.name;
-                // Use index to avoid issues with special characters in names
                 return `
-                    <tr class="clickable-row" onclick="showHorseDetailByIndex(${index})">
+                    <tr class="clickable-row" data-index="${index}">
                         <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${displayName}</span></td>
                         <td>${horse.owner || '-'}</td>
                         <td>${horse.country || '-'}</td>
@@ -3431,6 +3429,20 @@
                     </tr>
                 `;
             }).join('');
+
+            // Add click handlers using event delegation - use index to get horse directly
+            tbody.querySelectorAll('.clickable-row').forEach(row => {
+                row.onclick = function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const horse = filteredData[index];
+                    if (horse) {
+                        console.log('Clicked row - index:', index, 'horse.name:', horse.name, 'displayName:', horse.displayName);
+                        showHorseDetail(horse.name, horse.displayName);
+                    } else {
+                        console.error('No horse found at index:', index, 'filteredData length:', filteredData.length);
+                    }
+                };
+            });
         }
 
         function exportToCsv() {
