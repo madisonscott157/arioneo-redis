@@ -909,9 +909,15 @@ function processArioneoCSV(csvData) {
 function mergeTrainingData(existingData, newData) {
   const merged = { ...existingData };
 
+  // Invalid horse names to filter out
+  const invalidNames = ['worksheet', 'sheet', 'sheet1', 'sheet2', 'sheet3', 'data', 'horse', 'horse name', 'name'];
+
   newData.forEach(row => {
     const horseName = row.horse;
     if (!horseName) return;
+
+    // Skip invalid/placeholder horse names
+    if (invalidNames.includes(horseName.toLowerCase().trim())) return;
 
     if (!merged[horseName]) {
       merged[horseName] = [];
@@ -943,9 +949,15 @@ function mergeTrainingData(existingData, newData) {
 function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
   const horseData = [];
 
+  // Invalid horse names to filter out
+  const invalidNames = ['worksheet', 'sheet', 'sheet1', 'sheet2', 'sheet3', 'data', 'horse', 'horse name', 'name'];
+
   Object.keys(allHorseDetailData).forEach(horseName => {
     const entries = allHorseDetailData[horseName];
     if (!entries || entries.length === 0) return;
+
+    // Skip invalid/placeholder horse names
+    if (invalidNames.includes(horseName.toLowerCase().trim())) return;
 
     // Get non-race entries for stats
     const workEntries = entries.filter(e => !e.isRace);
