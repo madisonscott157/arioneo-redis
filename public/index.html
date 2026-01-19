@@ -1487,6 +1487,7 @@
                         <th onclick="sortHorseTable('distanceCol')">Distance <span class="sort-indicator">↕</span></th>
                         <th onclick="sortHorseTable('trotHR')">Trot HR <span class="sort-indicator">↕</span></th>
                         <th onclick="sortHorseTable('walkHR')">Walk HR <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortHorseTable('notes')">Notes <span class="sort-indicator">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="horseDetailTableBody">
@@ -3758,29 +3759,29 @@
             
             // Create CSV header with all English columns
             const headers = [
-                'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed', 
-                'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F', 
-                'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality', 
-                'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min', 
-                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp', 
-                'Distance', 'Trot HR', 'Walk HR'
+                'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
+                'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
+                'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
+                'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
+                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp',
+                'Distance', 'Trot HR', 'Walk HR', 'Notes'
             ];
             let csvContent = headers.join(',') + '\n';
 
             // Add data rows
             currentHorseDetailData.forEach(row => {
                 const csvRow = [
-                    `"${row.date || ''}"`, `"${row.horse || ''}"`, `"${row.type || ''}"`, 
+                    `"${row.date || ''}"`, `"${row.horse || ''}"`, `"${row.type || ''}"`,
                     `"${row.track || ''}"`, `"${row.surface || ''}"`, row.distance || '',
                     row.avgSpeed || '', row.maxSpeed || '', row.best1f || '', row.best2f || '',
                     row.best3f || '', row.best4f || '', row.best5f || '', row.best6f || '',
                     row.best7f || '', row.maxHR || '', row.fastRecovery || '', row.fastQuality || '',
-                    row.fastPercent || '', row.recovery15 || '', row.quality15 || '', 
+                    row.fastPercent || '', row.recovery15 || '', row.quality15 || '',
                     row.hr15Percent || '', row.maxSL || '', row.slGallop || '', row.sfGallop || '',
                     row.slWork || '', row.sfWork || '', row.hr2min || '', row.hr5min || '',
                     row.symmetry || '', row.regularity || '', row.bpm120 || '', row.zone5 || '',
                     row.age || '', row.sex || '', row.temp || '', row.distanceCol || '',
-                    row.trotHR || '', row.walkHR || ''
+                    row.trotHR || '', row.walkHR || '', `"${(row.notes || '').replace(/"/g, '""')}"`
                 ];
                 csvContent += csvRow.join(',') + '\n';
             });
