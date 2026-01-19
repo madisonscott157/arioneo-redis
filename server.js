@@ -606,6 +606,9 @@ function formatHorseNameForDisplay(name) {
   let horseName = name.toString().trim();
   let year = null;
 
+  // Normalize all types of quotes/apostrophes to standard apostrophe
+  horseName = horseName.replace(/[''`ʻ]/g, "'");
+
   // Pattern 1: 4-digit year at start (2021-2099)
   // "2022 Stoweshoe" or "2022Stoweshoe"
   const fourDigitYearStart = horseName.match(/^(20[2-9]\d)\s*(.+)$/);
@@ -614,10 +617,10 @@ function formatHorseNameForDisplay(name) {
     horseName = fourDigitYearStart[2].trim();
   }
 
-  // Pattern 2: 2-digit year at start with optional apostrophe before or after (21-99)
-  // "22 Stoweshoe" or "23' GINGER PUNCH" or "'23 GINGER PUNCH" or "22'Stoweshoe"
+  // Pattern 2: 2-digit year at start with optional apostrophe and/or space before or after (21-99)
+  // "22 Stoweshoe" or "23' GINGER PUNCH" or "'23 GINGER PUNCH" or "' 23 NAME"
   if (!year) {
-    const twoDigitYearStart = horseName.match(/^'?([2-9]\d)'?\s*(.+)$/);
+    const twoDigitYearStart = horseName.match(/^['\s]*([2-9]\d)['\s]*(.+)$/);
     if (twoDigitYearStart) {
       year = twoDigitYearStart[1];
       horseName = twoDigitYearStart[2].trim();
@@ -627,15 +630,15 @@ function formatHorseNameForDisplay(name) {
   // Pattern 3: Year at end with apostrophe
   // "GINGER PUNCH '23" or "GINGER PUNCH 23'" or "GINGER PUNCH '23'"
   if (!year) {
-    const yearAtEnd = horseName.match(/^(.+?)\s*'?([2-9]\d)'?$/);
+    const yearAtEnd = horseName.match(/^(.+?)['\s]*([2-9]\d)['\s]*$/);
     if (yearAtEnd && yearAtEnd[1].length > 2) {
       horseName = yearAtEnd[1].trim();
       year = yearAtEnd[2];
     }
   }
 
-  // Clean up any remaining apostrophes and extra spaces
-  horseName = horseName.replace(/^['\s]+|['\s]+$/g, '').trim();
+  // Clean up any remaining apostrophes, quotes, and extra spaces from start and end
+  horseName = horseName.replace(/^['\s`''ʻ]+|['\s`''ʻ]+$/g, '').trim();
 
   // Uppercase the horse name
   horseName = horseName.toUpperCase();
