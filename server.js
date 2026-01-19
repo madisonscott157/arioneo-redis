@@ -967,8 +967,10 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       maxSpeed = Math.max(...speeds);
     }
 
-    // Get owner/country from mapping
-    const mapping = horseMapping[horseName] || {};
+    // Get owner/country from mapping (case-insensitive lookup)
+    const horseNameLower = horseName.toLowerCase();
+    const mappingKey = Object.keys(horseMapping).find(k => k.toLowerCase() === horseNameLower);
+    const mapping = mappingKey ? horseMapping[mappingKey] : {};
 
     horseData.push({
       name: horseName,
