@@ -67,26 +67,19 @@
 
         .controls {
             padding: 12px 20px;
-            background: #2c3e50;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
-        }
-
-        .controls-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            width: 100%;
         }
 
         .controls-divider {
             width: 1px;
-            height: 28px;
-            background: rgba(255,255,255,0.2);
-            margin: 0 8px;
+            height: 24px;
+            background: #ccc;
+            margin: 0 6px;
         }
 
         .control-group {
@@ -97,38 +90,37 @@
 
         .control-group label {
             font-weight: 500;
-            color: rgba(255,255,255,0.8);
-            font-size: 12px;
+            color: #555;
+            font-size: 13px;
             white-space: nowrap;
         }
 
         select, input[type="text"] {
-            padding: 6px 10px;
-            border: 1px solid rgba(255,255,255,0.2);
+            padding: 7px 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 13px;
-            background: rgba(255,255,255,0.95);
-            color: #2c3e50;
+            background: white;
+            color: #333;
             transition: all 0.2s;
         }
 
         select:focus, input[type="text"]:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52,152,219,0.3);
+            border-color: #1a3a5c;
+            box-shadow: 0 0 0 2px rgba(26,58,92,0.15);
         }
 
         select {
             cursor: pointer;
-            min-width: 100px;
         }
 
         input[type="text"] {
-            min-width: 140px;
+            width: 140px;
         }
 
         .btn {
-            padding: 6px 14px;
+            padding: 7px 14px;
             border: none;
             border-radius: 4px;
             font-size: 13px;
@@ -136,34 +128,12 @@
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: #3498db;
+            background: #1a3a5c;
             color: white;
         }
 
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.25);
-        }
-
-        .btn-danger {
-            background: rgba(231,76,60,0.8);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #e74c3c;
+        .btn:hover {
+            background: #0d2137;
         }
 
         .btn:disabled {
@@ -173,18 +143,18 @@
 
         .file-label {
             display: inline-block;
-            padding: 6px 14px;
+            padding: 7px 14px;
             border-radius: 4px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
-            background: #3498db;
+            background: #1a3a5c;
             color: white;
         }
 
         .file-label:hover {
-            background: #2980b9;
+            background: #0d2137;
         }
 
         #fileInput {
@@ -1328,8 +1298,8 @@
             <label for="arioneoFileInput" class="file-label">Upload CSV</label>
             <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
-            <button onclick="showHorseManagement()" class="btn btn-secondary">Manage Horses</button>
-            <button onclick="clearAllData()" class="btn btn-danger">Clear</button>
+            <button onclick="showHorseManagement()" class="btn">Manage Horses</button>
+            <button onclick="clearAllData()" class="btn">Clear</button>
 
             <div class="controls-divider"></div>
 
@@ -1366,7 +1336,7 @@
                 </select>
             </div>
 
-            <button id="exportCsv" class="btn btn-secondary" disabled>Export</button>
+            <button id="exportCsv" class="btn" disabled>Export</button>
         </div>
 
         <div class="table-container">
