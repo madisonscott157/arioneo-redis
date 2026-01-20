@@ -3398,8 +3398,8 @@
                     aVal = aVal ? timeToSeconds(aVal) : Infinity;
                     bVal = bVal ? timeToSeconds(bVal) : Infinity;
                 } else if (currentSort.column === 'lastTrainingDate') {
-                    aVal = a.lastTrainingDate ? new Date(a.lastTrainingDate) : new Date(0);
-                    bVal = b.lastTrainingDate ? new Date(b.lastTrainingDate) : new Date(0);
+                    aVal = (a.lastTrainingDate || a.lastWorkDate) ? new Date(a.lastTrainingDate || a.lastWorkDate) : new Date(0);
+                    bVal = (b.lastTrainingDate || b.lastWorkDate) ? new Date(b.lastTrainingDate || b.lastWorkDate) : new Date(0);
                 } else if (currentSort.column === 'age' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
@@ -3437,7 +3437,7 @@
                         <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${displayName}</span></td>
                         <td>${horse.owner || '-'}</td>
                         <td>${horse.country || '-'}</td>
-                        <td class="last-work-cell">${horse.lastTrainingDate || '-'}</td>
+                        <td class="last-work-cell">${horse.lastTrainingDate || horse.lastWorkDate || '-'}</td>
                         <td class="age-cell age-col">${horse.age || '-'}</td>
                         <td class="time-cell">${horse.best1f || '-'}</td>
                         <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
@@ -3474,7 +3474,7 @@
             filteredData.forEach(horse => {
                 const row = [
                     `"${horse.name}"`,
-                    horse.lastTrainingDate || '',
+                    horse.lastTrainingDate || horse.lastWorkDate || '',
                     horse.age || '',
                     horse.best1f || '',
                     horse.best5f || '',
