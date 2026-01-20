@@ -2689,6 +2689,26 @@
                             </div>
                         </div>
 
+                        <div style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px; border: 1px solid #3498db;">
+                            <h4 style="margin-top: 0;">Rename Horse</h4>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                Change a horse's name (e.g., when an unnamed horse gets named). Training data will transfer to the new name.
+                            </p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Current Name</label>
+                                    <select id="renameOldName" style="width: 100%; padding: 8px;">
+                                        <option value="">-- Select horse --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">New Name</label>
+                                    <input type="text" id="renameNewName" placeholder="Enter new name..." style="width: 100%; padding: 8px;">
+                                </div>
+                                <button onclick="renameHorse()" class="upload-btn" style="height: 38px;">Rename</button>
+                            </div>
+                        </div>
+
                         <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <h4 style="margin-top: 0;">Bulk Import</h4>
                             <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
@@ -2809,8 +2829,64 @@
                     </tr>`;
                 }).join('');
 
+                // Populate the rename dropdown
+                const renameSelect = document.getElementById('renameOldName');
+                if (renameSelect) {
+                    renameSelect.innerHTML = '<option value="">-- Select horse --</option>' +
+                        data.horses.map(h => {
+                            const encodedName = btoa(encodeURIComponent(h.name));
+                            const displayName = h.displayName || h.name;
+                            return `<option value="${encodedName}">${displayName}</option>`;
+                        }).join('');
+                }
+
             } catch (error) {
                 console.error('Error loading horse mappings:', error);
+            }
+        }
+
+        async function renameHorse() {
+            const oldNameSelect = document.getElementById('renameOldName');
+            const newNameInput = document.getElementById('renameNewName');
+
+            if (!oldNameSelect.value) {
+                alert('Please select a horse to rename');
+                return;
+            }
+
+            const oldName = decodeURIComponent(atob(oldNameSelect.value));
+            const newName = newNameInput.value.trim();
+
+            if (!newName) {
+                alert('Please enter a new name');
+                return;
+            }
+
+            if (oldName.toLowerCase() === newName.toLowerCase()) {
+                alert('New name must be different from the current name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/horses/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldName, newName })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Renamed "${oldName}" to "${newName}"`);
+                    newNameInput.value = '';
+                    oldNameSelect.value = '';
+                    loadHorseMappingList();
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error renaming horse:', error);
+                alert('Error renaming horse');
             }
         }
 

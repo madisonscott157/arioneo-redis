@@ -1875,6 +1875,86 @@ app.post('/api/horses/unmerge', async (req, res) => {
   }
 });
 
+// Rename a horse (change display name, keep old name as alias for training data)
+app.post('/api/horses/rename', async (req, res) => {
+  try {
+    const { oldName, newName } = req.body;
+
+    if (!oldName || !newName) {
+      return res.status(400).json({ error: 'Old name and new name are required' });
+    }
+
+    if (oldName.toLowerCase() === newName.toLowerCase()) {
+      return res.status(400).json({ error: 'New name must be different from the current name' });
+    }
+
+    const mapping = await getHorseMapping();
+
+    // Find the old horse entry (might be exact or fuzzy match)
+    const oldNameLower = oldName.toLowerCase();
+    const oldNameStripped = oldName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    let oldKey = Object.keys(mapping).find(k =>
+      k.toLowerCase() === oldNameLower ||
+      k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === oldNameStripped
+    );
+
+    // Get old horse data (or create empty if doesn't exist)
+    const oldData = oldKey ? mapping[oldKey] : {
+      owner: '',
+      country: '',
+      isHistoric: false,
+      aliases: []
+    };
+
+    // Check if new name already exists
+    const newNameLower = newName.toLowerCase();
+    const existingNew = Object.keys(mapping).find(k => k.toLowerCase() === newNameLower);
+    if (existingNew) {
+      return res.status(400).json({ error: `A horse named "${existingNew}" already exists. Use Merge instead.` });
+    }
+
+    // Create new entry with the new name
+    mapping[newName] = {
+      owner: oldData.owner || '',
+      country: oldData.country || '',
+      isHistoric: oldData.isHistoric || false,
+      aliases: oldData.aliases || [],
+      addedAt: oldData.addedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      renamedFrom: oldKey || oldName
+    };
+
+    // Add old name(s) as aliases so training data resolves
+    if (oldKey && !mapping[newName].aliases.includes(oldKey)) {
+      mapping[newName].aliases.push(oldKey);
+    }
+    if (oldName !== oldKey && !mapping[newName].aliases.includes(oldName)) {
+      mapping[newName].aliases.push(oldName);
+    }
+
+    // Delete old entry if it existed
+    if (oldKey) {
+      delete mapping[oldKey];
+    }
+
+    await saveHorseMapping(mapping);
+
+    console.log(`Renamed horse: "${oldKey || oldName}" -> "${newName}" (aliases: ${mapping[newName].aliases.join(', ')})`);
+
+    res.json({
+      success: true,
+      message: `Renamed "${oldKey || oldName}" to "${newName}"`,
+      oldName: oldKey || oldName,
+      newName,
+      aliases: mapping[newName].aliases
+    });
+
+  } catch (error) {
+    console.error('Error renaming horse:', error);
+    res.status(500).json({ error: 'Failed to rename horse' });
+  }
+});
+
 // Regenerate all display names (apply formatting fixes without re-uploading)
 app.post('/api/regenerate', async (req, res) => {
   try {
