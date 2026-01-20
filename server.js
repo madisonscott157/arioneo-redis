@@ -1051,6 +1051,64 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
   return horseData;
 }
 
+// Ensure all horses from training data exist in the mapping
+async function ensureHorsesInMapping(allHorseDetailData) {
+  const mapping = await getHorseMapping();
+  let addedCount = 0;
+
+  // Invalid horse names to skip
+  const invalidNames = ['worksheet', 'sheet', 'sheet1', 'sheet2', 'sheet3', 'data', 'horse', 'horse name', 'name'];
+
+  for (const horseName of Object.keys(allHorseDetailData)) {
+    // Skip invalid names
+    if (invalidNames.includes(horseName.toLowerCase().trim())) continue;
+
+    // Check if horse exists in mapping (exact or fuzzy match)
+    const nameLower = horseName.toLowerCase();
+    const nameStripped = horseName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const nameNormalized = normalizeHorseNameForMatch(horseName);
+
+    const existingKey = Object.keys(mapping).find(k =>
+      k.toLowerCase() === nameLower ||
+      k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped ||
+      normalizeHorseNameForMatch(k) === nameNormalized
+    );
+
+    // Also check if it's an alias
+    let isAlias = false;
+    for (const [primaryName, data] of Object.entries(mapping)) {
+      if (data.aliases && data.aliases.some(alias =>
+        alias.toLowerCase() === nameLower ||
+        alias.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped ||
+        normalizeHorseNameForMatch(alias) === nameNormalized
+      )) {
+        isAlias = true;
+        break;
+      }
+    }
+
+    // If not found, add to mapping
+    if (!existingKey && !isAlias) {
+      mapping[horseName] = {
+        owner: '',
+        country: '',
+        isHistoric: false,
+        aliases: [],
+        addedAt: new Date().toISOString(),
+        autoAdded: true
+      };
+      addedCount++;
+    }
+  }
+
+  if (addedCount > 0) {
+    await saveHorseMapping(mapping);
+    console.log(`Auto-added ${addedCount} new horses to mapping`);
+  }
+
+  return mapping;
+}
+
 // ============================================
 // HORSE-OWNER-COUNTRY MAPPING STORAGE
 // ============================================
@@ -1277,6 +1335,9 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
     const sessionId = 'arioneo-main-session';
     console.log('Using fixed session ID:', sessionId);
 
+    // Ensure all horses from the upload are in the mapping
+    await ensureHorsesInMapping(processedData.allHorseDetailData);
+
     // Save using KV storage
     try {
       await saveSession(sessionId, req.file.originalname, processedData.horseData, processedData.allHorseDetailData);
@@ -1444,7 +1505,10 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     // Apply any manual edits
     const finalDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
 
-    // Get horse mapping for owner/country info
+    // Ensure all horses from the data are in the mapping
+    await ensureHorsesInMapping(finalDetailData);
+
+    // Get horse mapping for owner/country info (refresh after ensuring horses)
     const horseMapping = await getHorseMapping();
 
     // Generate summary data
