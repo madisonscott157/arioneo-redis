@@ -959,70 +959,55 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
     // Skip invalid/placeholder horse names
     if (invalidNames.includes(horseName.toLowerCase().trim())) return;
 
-    // Get non-race entries for stats
-    const workEntries = entries.filter(e => !e.isRace);
+    // Sort entries by date (most recent first) - entries should already be sorted but ensure it
+    const sortedEntries = [...entries].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA;
+    });
+
+    // Get the most recent training entry (any type)
+    const lastTraining = sortedEntries[0];
 
     let age = null;
+    let lastTrainingDate = null;
     let best1f = null;
     let best5f = null;
-    let dateOfBest5f = null;
-    let maxSpeed = null;
     let fastRecovery = null;
     let recovery15min = null;
-    let lastWork = null;
 
-    // Find last work date
-    if (workEntries.length > 0) {
-      lastWork = workEntries[0].date;
-    }
+    // Get data from most recent training
+    if (lastTraining) {
+      lastTrainingDate = lastTraining.date;
 
-    // Collect times and speeds
-    const times1f = [];
-    const times5f = [];
-    const speeds = [];
-
-    workEntries.forEach(entry => {
-      if (!age && entry.age) {
-        const parsedAge = parseInt(entry.age);
+      if (lastTraining.age) {
+        const parsedAge = parseInt(lastTraining.age);
         if (!isNaN(parsedAge)) age = parsedAge;
       }
 
-      if (entry.best1f && isValidTime(entry.best1f)) {
-        times1f.push({ time: entry.best1f, seconds: timeToSeconds(entry.best1f) });
+      if (lastTraining.best1f && isValidTime(lastTraining.best1f)) {
+        best1f = lastTraining.best1f;
       }
 
-      if (entry.best5f && isValidTime(entry.best5f)) {
-        times5f.push({
-          time: entry.best5f,
-          seconds: timeToSeconds(entry.best5f),
-          date: entry.date,
-          fastRecovery: entry.fastRecovery,
-          recovery15min: entry.recovery15
-        });
+      if (lastTraining.best5f && isValidTime(lastTraining.best5f)) {
+        best5f = lastTraining.best5f;
       }
 
-      if (entry.maxSpeed) {
-        const speed = parseFloat(entry.maxSpeed);
-        if (!isNaN(speed)) speeds.push(speed);
-      }
-    });
-
-    // Find best times
-    if (times1f.length > 0) {
-      const fastest1f = times1f.reduce((min, curr) => curr.seconds < min.seconds ? curr : min);
-      best1f = fastest1f.time;
+      fastRecovery = lastTraining.fastRecovery || null;
+      recovery15min = lastTraining.recovery15 || null;
     }
 
-    if (times5f.length > 0) {
-      const fastest5f = times5f.reduce((min, curr) => curr.seconds < min.seconds ? curr : min);
-      best5f = fastest5f.time;
-      dateOfBest5f = fastest5f.date;
-      fastRecovery = fastest5f.fastRecovery;
-      recovery15min = fastest5f.recovery15min;
-    }
-
-    if (speeds.length > 0) {
-      maxSpeed = Math.max(...speeds);
+    // If no age from last training, search through other entries
+    if (!age) {
+      for (const entry of sortedEntries) {
+        if (entry.age) {
+          const parsedAge = parseInt(entry.age);
+          if (!isNaN(parsedAge)) {
+            age = parsedAge;
+            break;
+          }
+        }
+      }
     }
 
     // Get owner/country/historic from mapping (case-insensitive + fuzzy lookup)
@@ -1041,13 +1026,11 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       name: horseName,
       displayName: formatHorseNameForDisplay(horseName),
       age: age,
-      lastWork: lastWork,
+      lastTrainingDate: lastTrainingDate,
       best1f: best1f,
       best5f: best5f,
-      dateOfBest5f: dateOfBest5f,
       fastRecovery: fastRecovery,
       recovery15min: recovery15min,
-      maxSpeed: maxSpeed,
       best5fColor: getBest5FColor(best5f),
       fastRecoveryColor: getFastRecoveryColor(fastRecovery),
       recovery15Color: getRecovery15Color(recovery15min),

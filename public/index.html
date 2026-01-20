@@ -1345,18 +1345,17 @@
                         <th onclick="sortTable('name')" class="horse-name-col">Horse <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('owner')">Owner <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('country')">Country <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('lastWork')" class="last-work-col">Last Work <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('lastTrainingDate')" class="last-work-col">Last Training <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('age')" class="age-col">Age <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('best1f')">Best 1F <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('best5f')">Best 5F <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('dateOfBest5f')" class="date-col">Date <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best1f')">1F <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('best5f')">5F <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast Recovery <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('recovery15min')" class="recovery15-col">15 Recovery <span class="sort-indicator">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="horseTableBody">
                     <tr>
-                        <td colspan="10" class="no-data">No data loaded. Please upload Arioneo CSV to get started.</td>
+                        <td colspan="9" class="no-data">No data loaded. Please upload Arioneo CSV to get started.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2492,35 +2491,8 @@
         }
 
         function calculateLastWorkDates() {
-            if (!horseData || !allHorseDetailData) return;
-
-            // Process each horse to find their last work date
-            horseData.forEach(horse => {
-                const horseDetailData = allHorseDetailData[horse.name];
-                if (!horseDetailData || !Array.isArray(horseDetailData)) return;
-
-                let lastWorkDate = null;
-
-                // Look through each detail row to find work entries
-                horseDetailData.forEach(row => {
-                    // Check if column C (type) contains "work" (case insensitive)
-                    const typeValue = row.type || '';
-                    const isWork = typeValue.toString().toLowerCase().includes('work');
-
-                    if (isWork && row.date && row.date !== '-') {
-                        // This is a work entry with a valid date
-                        const workDate = new Date(row.date);
-                        if (!lastWorkDate || workDate > new Date(lastWorkDate)) {
-                            lastWorkDate = row.date;
-                        }
-                    }
-                });
-
-                // Add the last work date to the horse object
-                horse.lastWorkDate = lastWorkDate;
-            });
-
-            console.log('Last Work dates calculated for', horseData.length, 'horses');
+            // No longer needed - server now provides lastTrainingDate directly
+            // Kept as empty function to avoid breaking existing calls
         }
 
         // ============================================
@@ -3266,26 +3238,34 @@
                 maxSpeed = Math.max(...speeds);
             }
             
-            // Calculate last work date
-            let lastWorkDate = null;
-            const workDates = detailData.filter(row => row.isWork && row.date && row.date !== '-').map(row => row.date);
-            if (workDates.length > 0) {
-                const mostRecent = workDates.sort((a, b) => new Date(b) - new Date(a))[0];
-                lastWorkDate = mostRecent;
+            // Get most recent training date
+            let lastTrainingDate = null;
+            const allDates = detailData.filter(row => row.date && row.date !== '-').map(row => row.date);
+            if (allDates.length > 0) {
+                const mostRecent = allDates.sort((a, b) => new Date(b) - new Date(a))[0];
+                lastTrainingDate = mostRecent;
             }
-            
+
+            // Get data from most recent training
+            const sortedData = [...detailData].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastTraining = sortedData[0];
+            if (lastTraining) {
+                best1f = lastTraining.best1f || best1f;
+                best5f = lastTraining.best5f || best5f;
+                fastRecovery = lastTraining.fastRecovery || fastRecovery;
+                recovery15min = lastTraining.recovery15min || recovery15min;
+            }
+
             allHorseDetailData[horseName] = detailData;
-            
+
             return {
                 name: horseName,
                 age: age,
-                lastWorkDate: lastWorkDate,
+                lastTrainingDate: lastTrainingDate,
                 best1f: best1f,
                 best5f: best5f,
-                dateOfBest5f: dateOfBest5f,
                 fastRecovery: fastRecovery,
                 recovery15min: recovery15min,
-                maxSpeed: maxSpeed,
                 best5fColor: getBest5FColor(best5f),
                 fastRecoveryColor: getFastRecoveryColor(fastRecovery),
                 recovery15Color: getRecovery15Color(recovery15min)
@@ -3398,8 +3378,8 @@
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSort.column = column;
-                // Default to 'desc' for lastWork column (most recent first), 'asc' for others
-                currentSort.order = column === 'lastWork' ? 'desc' : 'asc';
+                // Default to 'desc' for lastTrainingDate column (most recent first), 'asc' for others
+                currentSort.order = column === 'lastTrainingDate' ? 'desc' : 'asc';
             }
             
             document.getElementById('sortBy').value = column;
@@ -3417,10 +3397,10 @@
                 if (currentSort.column === 'best1f' || currentSort.column === 'best5f') {
                     aVal = aVal ? timeToSeconds(aVal) : Infinity;
                     bVal = bVal ? timeToSeconds(bVal) : Infinity;
-                } else if (currentSort.column === 'lastWork') {
-                    aVal = a.lastWorkDate ? new Date(a.lastWorkDate) : new Date(0);
-                    bVal = b.lastWorkDate ? new Date(b.lastWorkDate) : new Date(0);
-                } else if (currentSort.column === 'age' || currentSort.column === 'maxSpeed' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
+                } else if (currentSort.column === 'lastTrainingDate') {
+                    aVal = a.lastTrainingDate ? new Date(a.lastTrainingDate) : new Date(0);
+                    bVal = b.lastTrainingDate ? new Date(b.lastTrainingDate) : new Date(0);
+                } else if (currentSort.column === 'age' || currentSort.column === 'fastRecovery' || currentSort.column === 'recovery15min') {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
                 } else {
@@ -3443,7 +3423,7 @@
 
             if (filteredData.length === 0) {
                 const viewType = currentView === 'historic' ? 'historic' : 'active';
-                tbody.innerHTML = `<tr><td colspan="10" class="no-data">No ${viewType} horses match the current filters.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">No ${viewType} horses match the current filters.</td></tr>`;
                 return;
             }
 
@@ -3457,11 +3437,10 @@
                         <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${displayName}</span></td>
                         <td>${horse.owner || '-'}</td>
                         <td>${horse.country || '-'}</td>
-                        <td class="last-work-cell">${horse.lastWorkDate || '-'}</td>
+                        <td class="last-work-cell">${horse.lastTrainingDate || '-'}</td>
                         <td class="age-cell age-col">${horse.age || '-'}</td>
                         <td class="time-cell">${horse.best1f || '-'}</td>
                         <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
-                        <td class="date-col">${horse.dateOfBest5f || '-'}</td>
                         <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${horse.fastRecovery || '-'}</td>
                         <td class="recovery15-cell" ${recovery15Style}>${horse.recovery15min || '-'}</td>
                     </tr>
@@ -3489,17 +3468,16 @@
                 return;
             }
 
-            const headers = ['Horse Name', 'Last Work', 'Age', 'Best 1F', 'Best 5F', 'Date of Best 5F', 'Fast Recovery', '15 Recovery'];
+            const headers = ['Horse Name', 'Last Training', 'Age', '1F', '5F', 'Fast Recovery', '15 Recovery'];
             let csvContent = headers.join(',') + '\n';
 
             filteredData.forEach(horse => {
                 const row = [
                     `"${horse.name}"`,
-                    horse.lastWorkDate || '',
+                    horse.lastTrainingDate || '',
                     horse.age || '',
                     horse.best1f || '',
                     horse.best5f || '',
-                    horse.dateOfBest5f || '',
                     horse.fastRecovery || '',
                     horse.recovery15min || ''
                 ];
@@ -4385,31 +4363,27 @@
         // Helper function to generate horse summary (reused from existing logic)
         function generateHorseSummary(horseName, horseRows) {
             if (!horseRows || horseRows.length === 0) return null;
-            
-            // Find the most recent work
-            const workRows = horseRows.filter(row => row.type === 'Work');
-            const lastWork = workRows.length > 0 ? workRows[0] : null;
-            const lastWorkDate = lastWork ? lastWork.date : 'N/A';
-            
-            // Get best times and other metrics from the most recent or best entries
-            const best1f = findBestTime(horseRows, 'best1f');
-            const best5f = findBestTime(horseRows, 'best5f');
-            const dateOfBest5f = findDateOfBestTime(horseRows, 'best5f');
-            const fastRecovery = findLatestValue(horseRows, 'fastRecovery');
-            const recovery15min = findLatestValue(horseRows, 'recovery15');
-            const maxSpeed = findHighestValue(horseRows, 'maxSpeed');
-            const age = horseRows[0].age || 'N/A';
-            
+
+            // Get the most recent training entry (sorted by date, most recent first)
+            const sortedRows = [...horseRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const lastTraining = sortedRows[0];
+
+            // Get data from most recent training
+            const lastTrainingDate = lastTraining ? lastTraining.date : 'N/A';
+            const best1f = lastTraining ? lastTraining.best1f : '-';
+            const best5f = lastTraining ? lastTraining.best5f : '-';
+            const fastRecovery = lastTraining ? lastTraining.fastRecovery : '-';
+            const recovery15min = lastTraining ? lastTraining.recovery15 : '-';
+            const age = lastTraining ? lastTraining.age : 'N/A';
+
             return {
                 name: horseName,
                 age: age,
-                lastWorkDate: lastWorkDate,
+                lastTrainingDate: lastTrainingDate,
                 best1f: best1f,
                 best5f: best5f,
-                dateOfBest5f: dateOfBest5f,
                 fastRecovery: fastRecovery,
                 recovery15min: recovery15min,
-                maxSpeed: maxSpeed,
                 best5fColor: getBest5FColor(best5f),
                 fastRecoveryColor: getFastRecoveryColor(fastRecovery),
                 recovery15Color: getRecovery15Color(recovery15min)
