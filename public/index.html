@@ -4015,12 +4015,31 @@
                             }
                             updateSheetDropdown();
 
-                            // Load the correct sheet data instead of using session data directly
+                            // Update allSheets with fresh server data (which has edits applied)
+                            // This ensures loadCurrentSheet uses the updated data with notes
+                            if (currentSheetName) {
+                                allSheets[currentSheetName] = {
+                                    horseData: data.horseData,
+                                    allHorseDetailData: data.allHorseDetailData
+                                };
+                            }
+
+                            // Load the correct sheet data
                             loadCurrentSheet();
                             console.log('Loaded sheet-specific data from Redis for sheet:', currentSheetName, 'horses:', horseData.length);
                         } else {
-                            // Fallback to localStorage for backwards compatibility
-                            loadAllSheets();
+                            // No sheet data from server - create sheet entry with fresh data
+                            if (!currentSheetName) {
+                                currentSheetName = 'Default';
+                                sheetNames = ['Default'];
+                            }
+                            allSheets[currentSheetName] = {
+                                horseData: data.horseData,
+                                allHorseDetailData: data.allHorseDetailData
+                            };
+                            updateSheetDropdown();
+                            filteredData = [...horseData];
+                            console.log('Loaded data directly from server, created sheet:', currentSheetName);
                         }
 
                         // Calculate Last Work dates for loaded session
@@ -4036,6 +4055,13 @@
                         updateTableColumnVisibility();
 
                         document.getElementById('exportCsv').disabled = false;
+
+                        // Refresh horse detail view if it's currently visible
+                        const horseDetailView = document.getElementById('horseDetailView');
+                        if (horseDetailView && horseDetailView.style.display !== 'none' && currentHorseRawName) {
+                            console.log('Refreshing horse detail view for:', currentHorseRawName);
+                            sortHorseDetailData();
+                        }
                     }
                 })
                 .catch(error => {

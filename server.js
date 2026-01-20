@@ -1414,7 +1414,12 @@ app.put('/api/training/edit', async (req, res) => {
       const updatedDetailData = applyTrainingEdits(session.allHorseDetailData, edits);
       const horseMapping = await getHorseMapping();
       const horseData = generateHorseSummary(updatedDetailData, horseMapping);
-      await saveSession(sessionId, session.fileName, horseData, updatedDetailData);
+      // Preserve existing sheet data when saving
+      await saveSession(sessionId, session.fileName, horseData, updatedDetailData, {
+        allSheets: session.allSheets,
+        sheetNames: session.sheetNames,
+        currentSheetName: session.currentSheetName
+      });
     }
 
     res.json({
