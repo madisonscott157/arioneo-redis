@@ -3024,6 +3024,13 @@
             if (modal) modal.style.display = 'none';
         }
 
+        // Wrapper to decode base64-encoded horse name and date
+        function showEditTrainingModalEncoded(encodedHorse, encodedDate, currentData) {
+            const horse = decodeURIComponent(atob(encodedHorse));
+            const date = decodeURIComponent(atob(encodedDate));
+            showEditTrainingModal(horse, date, currentData);
+        }
+
         async function saveTrainingEdit() {
             const horse = document.getElementById('editHorse').value;
             const date = document.getElementById('editDate').value;
@@ -3811,8 +3818,10 @@
                     return `<td class="${cellClass}" ${cellStyle}>${cellData[col] || '-'}</td>`;
                 }).join('');
 
-                // Add Edit button at the end
-                const editBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModal('${row.horse}', '${row.date}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
+                // Add Edit button at the end - use base64 encoding for horse name to handle special characters
+                const encodedHorse = btoa(encodeURIComponent(row.horse || ''));
+                const encodedDate = btoa(encodeURIComponent(row.date || ''));
+                const editBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModalEncoded('${encodedHorse}', '${encodedDate}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
 
                 return `<tr class="${rowClass}">${rowHTML}${editBtn}</tr>`;
             }).join('');
