@@ -7,6 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const compression = require('compression');
 const helmet = require('helmet');
+const pdfParse = require('pdf-parse');
+const Fuse = require('fuse.js');
 
 // Import Upstash Redis for persistent storage
 let redis = null;
@@ -56,7 +58,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
@@ -68,6 +70,22 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only Excel and CSV files are allowed'));
+    }
+  }
+});
+
+// Configure multer for PDF uploads (race charts)
+const pdfUpload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
     }
   }
 });
@@ -1335,13 +1353,51 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
     const sessionId = 'arioneo-main-session';
     console.log('Using fixed session ID:', sessionId);
 
+    // IMPORTANT: Preserve existing race data before overwriting
+    // Get existing session to extract race entries
+    const existingSession = await getSession(sessionId);
+    if (existingSession && existingSession.allHorseDetailData) {
+      console.log('Preserving existing race data during CSV upload');
+
+      // Extract race entries from existing data and merge into new data
+      for (const [existingHorseName, entries] of Object.entries(existingSession.allHorseDetailData)) {
+        if (!entries || !Array.isArray(entries)) continue;
+
+        // Filter for race entries only
+        const raceEntries = entries.filter(e => e.isRace === true);
+        if (raceEntries.length === 0) continue;
+
+        console.log(`Found ${raceEntries.length} race(s) for horse: ${existingHorseName}`);
+
+        // Find matching horse in new data (case-insensitive)
+        const newHorseKeys = Object.keys(processedData.allHorseDetailData);
+        const matchingKey = newHorseKeys.find(k => k.toLowerCase() === existingHorseName.toLowerCase());
+
+        if (matchingKey) {
+          // Merge race entries into existing horse data
+          processedData.allHorseDetailData[matchingKey].push(...raceEntries);
+          // Sort by date (newest first)
+          processedData.allHorseDetailData[matchingKey].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB - dateA;
+          });
+          console.log(`Merged races into existing horse: ${matchingKey}`);
+        } else {
+          // Horse not in new CSV - preserve their race data under original name
+          processedData.allHorseDetailData[existingHorseName] = raceEntries;
+          console.log(`Preserved races for horse not in CSV: ${existingHorseName}`);
+        }
+      }
+    }
+
     // Ensure all horses from the upload are in the mapping
     await ensureHorsesInMapping(processedData.allHorseDetailData);
 
     // Save using KV storage
     try {
       await saveSession(sessionId, req.file.originalname, processedData.horseData, processedData.allHorseDetailData);
-      
+
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
 
@@ -2268,6 +2324,1241 @@ app.get('/api/redis-test', async (req, res) => {
     res.json({ error: error.message });
   }
 });
+
+// ============================================
+// RACE CHART UPLOAD AND PARSING
+// ============================================
+
+// Track name to abbreviation mapping
+const trackAbbreviations = {
+  'churchill downs': 'CD',
+  'churchill': 'CD',
+  'woodbine': 'WO',
+  'santa anita': 'SA',
+  'belmont': 'BEL',
+  'belmont park': 'BEL',
+  'saratoga': 'SAR',
+  'keeneland': 'KEE',
+  'gulfstream': 'GP',
+  'gulfstream park': 'GP',
+  'del mar': 'DMR',
+  'arlington': 'AP',
+  'oaklawn': 'OP',
+  'oaklawn park': 'OP',
+  'aqueduct': 'AQU',
+  'laurel': 'LRL',
+  'laurel park': 'LRL',
+  'pimlico': 'PIM',
+  'monmouth': 'MTH',
+  'monmouth park': 'MTH',
+  'tampa bay': 'TAM',
+  'tampa bay downs': 'TAM',
+  'fair grounds': 'FG',
+  'los alamitos': 'LA',
+  'golden gate': 'GG',
+  'golden gate fields': 'GG',
+  'turfway': 'TP',
+  'turfway park': 'TP',
+  'parx': 'PRX',
+  'penn national': 'PEN',
+  'charles town': 'CT',
+  'remington': 'RP',
+  'remington park': 'RP',
+  'lone star': 'LS',
+  'lone star park': 'LS',
+  'indiana grand': 'IND',
+  'canterbury': 'CBY',
+  'ellis park': 'ELP',
+  'colonial downs': 'CNL',
+  'horseshoe indianapolis': 'IND'
+};
+
+// Get track abbreviation from full name
+function getTrackAbbreviation(trackName) {
+  if (!trackName) return 'UNK';
+  const lower = trackName.toLowerCase().trim();
+
+  // Check exact matches first
+  if (trackAbbreviations[lower]) {
+    return trackAbbreviations[lower];
+  }
+
+  // Check partial matches
+  for (const [name, abbrev] of Object.entries(trackAbbreviations)) {
+    if (lower.includes(name) || name.includes(lower)) {
+      return abbrev;
+    }
+  }
+
+  // If no match, create abbreviation from first letters
+  const words = trackName.split(' ').filter(w => w.length > 0);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return trackName.substring(0, 3).toUpperCase();
+}
+
+// Race chart parsing class - rewritten for Equibase PDF format
+class RaceChartParser {
+
+  extractRaceMetadata(text) {
+    let distanceInFurlongs = 0;
+    let distanceText = 'Unknown';
+    let raceDate = 'Unknown Date';
+    let track = 'UNK';
+    let surface = 'D'; // Default to Dirt
+    let raceType = 'UNK';
+
+    // Extract surface FIRST - check the distance/surface line at the top
+    // Format: "6 Furlongs Dirt" or "1 1/16 Miles Inner Turf" or "7 Furlongs Turf"
+    if (text.match(/inner\s+turf/i) || text.match(/turf/i)) {
+      surface = 'T';
+    } else if (text.match(/synthetic/i) || text.match(/all[\s-]?weather/i)) {
+      surface = 'AWT';
+    } else if (text.match(/dirt/i)) {
+      surface = 'D';
+    }
+
+    // Extract distance - Miles format (e.g., "1 1/16 Miles")
+    let milesMatch = text.match(/(\d+)\s+(\d+)\/(\d+)\s*Miles?/i);
+    if (milesMatch) {
+      const wholeMiles = parseInt(milesMatch[1]);
+      const numerator = parseInt(milesMatch[2]);
+      const denominator = parseInt(milesMatch[3]);
+      const miles = wholeMiles + (numerator / denominator);
+      distanceInFurlongs = Math.round(miles * 8 * 10) / 10; // Round to 1 decimal
+      distanceText = `${distanceInFurlongs}F`;
+    } else {
+      // Try simple miles format (e.g., "1 Mile")
+      milesMatch = text.match(/(\d+)\s*Miles?(?:\s|$)/i);
+      if (milesMatch) {
+        const miles = parseInt(milesMatch[1]);
+        distanceInFurlongs = miles * 8;
+        distanceText = `${distanceInFurlongs}F`;
+      } else {
+        // Furlongs format - fractional (e.g., "5 1/2 Furlongs")
+        let furlongMatch = text.match(/(\d+)\s+(\d+)\/(\d+)\s*Furlong/i);
+
+        if (furlongMatch) {
+          const wholeFurlongs = parseInt(furlongMatch[1]);
+          const numerator = parseInt(furlongMatch[2]);
+          const denominator = parseInt(furlongMatch[3]);
+          distanceInFurlongs = wholeFurlongs + (numerator / denominator);
+          distanceText = `${distanceInFurlongs}F`;
+        } else {
+          // Decimal format
+          furlongMatch = text.match(/(\d+(?:\.\d+)?)\s*Furlong/i);
+          if (furlongMatch) {
+            distanceInFurlongs = parseFloat(furlongMatch[1]);
+            distanceText = `${distanceInFurlongs}F`;
+          } else {
+            // Word numbers
+            furlongMatch = text.match(/(\d+|Seven|Six|Five|Eight|Nine)\s*Furlong/i);
+            if (furlongMatch) {
+              const wordToNumber = { 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9 };
+              const furlongStr = furlongMatch[1].toLowerCase();
+              distanceInFurlongs = wordToNumber[furlongStr] || parseInt(furlongMatch[1]);
+              if (distanceInFurlongs && !isNaN(distanceInFurlongs)) {
+                distanceText = `${distanceInFurlongs}F`;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Extract track name
+    const trackNames = [
+      'Churchill Downs', 'Woodbine', 'Santa Anita', 'Belmont', 'Saratoga',
+      'Keeneland', 'Gulfstream', 'Del Mar', 'Arlington', 'Oaklawn',
+      'Aqueduct', 'Laurel', 'Pimlico', 'Monmouth', 'Tampa Bay', 'Fair Grounds',
+      'Los Alamitos', 'Golden Gate', 'Turfway', 'Parx', 'Penn National',
+      'Charles Town', 'Remington', 'Lone Star', 'Indiana Grand', 'Canterbury',
+      'Ellis Park', 'Colonial Downs', 'Horseshoe Indianapolis'
+    ];
+
+    for (const trackName of trackNames) {
+      if (text.match(new RegExp(trackName.replace(' ', '\\s+'), 'i'))) {
+        track = getTrackAbbreviation(trackName);
+        break;
+      }
+    }
+
+    // Extract race date
+    let dateMatch = text.match(/(\w+,\s+\w+\s+\d{1,2},\s+\d{4})\s+(?:Saratoga|Churchill|Woodbine|Belmont|Keeneland)/i);
+    if (!dateMatch) {
+      dateMatch = text.match(/(\w+,\s+\w+\s+\d{1,2},\s+\d{4})\s+[A-Z][a-zA-Z]+/);
+    }
+    if (!dateMatch) {
+      const allDates = text.match(/(\w+,\s+\w+\s+\d{1,2},\s+\d{4})/g);
+      if (allDates && allDates.length > 0) {
+        dateMatch = [null, allDates[allDates.length - 1]];
+      }
+    }
+    raceDate = dateMatch ? dateMatch[1] : 'Unknown Date';
+
+    // Extract race type - ORDER MATTERS! Check specific patterns first
+    if (text.match(/Allowance\s+Optional\s+Claiming/i) || text.match(/Optional\s+Claiming/i)) {
+      raceType = 'AOC';
+    } else if (text.match(/Maiden\s+Special\s+Weight/i)) {
+      raceType = 'MSW';
+    } else if (text.match(/Grade\s*([I1]{1,3}|\d+)/i)) {
+      const gradeMatch = text.match(/Grade\s*([I1]{1,3}|\d+)/i);
+      if (gradeMatch) {
+        let grade = gradeMatch[1];
+        if (grade === 'I') grade = '1';
+        else if (grade === 'II') grade = '2';
+        else if (grade === 'III') grade = '3';
+        raceType = `G${grade}`;
+      }
+    } else if (text.match(/\b(Stakes|Stake)\b/i) && !text.match(/Claiming/i)) {
+      raceType = 'STK';
+    } else if (text.match(/Maiden\s+Claiming/i)) {
+      raceType = 'MCL';
+    } else if (text.match(/Starter\s+Allowance/i)) {
+      raceType = 'STR';
+    } else if (text.match(/\bAllowance\b/i) && !text.match(/Claiming/i)) {
+      raceType = 'ALW';
+    } else if (text.match(/\bClaiming\b/i)) {
+      raceType = 'CLM';
+    } else if (text.match(/\bHandicap\b/i)) {
+      raceType = 'HCP';
+    }
+
+    return {
+      raceDate,
+      track,
+      surface,
+      raceType,
+      distance: distanceText,
+      distanceInFurlongs
+    };
+  }
+
+  parseTime(timeString) {
+    if (!timeString) return null;
+
+    const timeRegex = /(?:(\d{1,2}):)?(\d{1,2})\.(\d{2})/;
+    const match = timeString.match(timeRegex);
+
+    if (!match) return null;
+
+    const minutes = match[1] ? parseInt(match[1]) : 0;
+    const seconds = parseInt(match[2]);
+    const hundredths = parseInt(match[3]);
+
+    const totalSeconds = minutes * 60 + seconds + hundredths / 100;
+
+    const display = minutes > 0 ?
+      `${minutes}:${seconds.toString().padStart(2, '0')}.${hundredths.toString().padStart(2, '0')}` :
+      `${seconds}.${hundredths.toString().padStart(2, '0')}`;
+
+    return { display, seconds: totalSeconds };
+  }
+
+  parsePosition(posString) {
+    if (!posString) return '-';
+
+    const posMatch = posString.match(/(\d+)([½¼¾])?/);
+    if (!posMatch) return posString;
+
+    const position = parseInt(posMatch[1]);
+    const fraction = posMatch[2];
+
+    let suffix;
+    if (position % 100 >= 11 && position % 100 <= 13) {
+      suffix = 'th';
+    } else {
+      switch (position % 10) {
+        case 1: suffix = 'st'; break;
+        case 2: suffix = 'nd'; break;
+        case 3: suffix = 'rd'; break;
+        default: suffix = 'th'; break;
+      }
+    }
+
+    return `${position}${suffix}`;
+  }
+
+  calculateAvgSpeed(finalTimeSeconds, distanceInFurlongs) {
+    const distanceInMiles = distanceInFurlongs / 8;
+    const timeInHours = finalTimeSeconds / 3600;
+    return distanceInMiles / timeInHours;
+  }
+
+  calculateFiveFReduction(finalTimeSeconds, distanceInFurlongs) {
+    // Calculate time for 5 furlongs at same pace
+    const pacePerFurlong = finalTimeSeconds / distanceInFurlongs;
+    const fiveFTime = pacePerFurlong * 5;
+
+    const mins = Math.floor(fiveFTime / 60);
+    const secs = Math.floor(fiveFTime % 60);
+    const hundr = Math.round((fiveFTime % 1) * 100);
+
+    return mins > 0 ?
+      `${mins}:${secs.toString().padStart(2, '0')}.${hundr.toString().padStart(2, '0')}` :
+      `${secs}.${hundr.toString().padStart(2, '0')}`;
+  }
+
+  extractFinishPositionFromRow(horseLine, finalTime) {
+    if (!finalTime) {
+      return { pos1_4: '-', pos1_2: '-', pos3_4: '-', posFin: '-' };
+    }
+
+    const finalTimeStr = finalTime.display;
+    const finalTimeIndex = horseLine.indexOf(finalTimeStr);
+    if (finalTimeIndex === -1) {
+      return { pos1_4: '-', pos1_2: '-', pos3_4: '-', posFin: '-' };
+    }
+
+    const afterFinalTime = horseLine.substring(finalTimeIndex + finalTimeStr.length);
+    const positionMatch = afterFinalTime.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+
+    if (positionMatch) {
+      return {
+        pos1_4: this.parsePosition(positionMatch[1]),
+        pos1_2: this.parsePosition(positionMatch[2]),
+        pos3_4: this.parsePosition(positionMatch[3]),
+        posFin: this.parsePosition(positionMatch[4])
+      };
+    }
+
+    return { pos1_4: '-', pos1_2: '-', pos3_4: '-', posFin: '-' };
+  }
+
+  parseHorseData(text, horseName, format, metadata) {
+    if (format === 'column_format') {
+      return this.parseColumnFormat(text, horseName, metadata);
+    } else if (format === 'earnings_split_format') {
+      return this.parseEarningsSplitFormat(text, horseName, metadata);
+    } else {
+      let result = this.parseColumnFormat(text, horseName, metadata);
+      if (!result) {
+        result = this.parseEarningsSplitFormat(text, horseName, metadata);
+      }
+      return result;
+    }
+  }
+
+  parseColumnFormat(text, horseName, metadata) {
+    const raceResultsSection = text.split('H Wt')[1];
+    if (!raceResultsSection) return null;
+
+    const horseIndex = raceResultsSection.toLowerCase().indexOf(horseName.toLowerCase());
+    if (horseIndex === -1) return null;
+
+    let endIndex = raceResultsSection.length;
+    const afterHorse = raceResultsSection.substring(horseIndex + horseName.length);
+    const nextHorseMatch = afterHorse.match(/\s+\d+\s+[A-Z][a-zA-Z\s()]+\s+\d+\.\d+/);
+    if (nextHorseMatch) {
+      endIndex = horseIndex + horseName.length + nextHorseMatch.index;
+    }
+
+    const horseFullLine = raceResultsSection.substring(horseIndex, endIndex);
+    return this.parseHorseLineFromResults(horseFullLine, metadata);
+  }
+
+  parseEarningsSplitFormat(text, horseName, metadata) {
+    const raceDataSection = text.split('H Wt')[1];
+    if (!raceDataSection) return null;
+
+    const horseIndex = raceDataSection.toLowerCase().indexOf(horseName.toLowerCase());
+    if (horseIndex === -1) return null;
+
+    let endIndex = raceDataSection.length;
+    const afterHorse = raceDataSection.substring(horseIndex + horseName.length);
+    const nextHorseMatch = afterHorse.match(/\s+\d+\s+[A-Z][a-zA-Z\s()]+\s+\d+\.\d+/);
+    if (nextHorseMatch) {
+      endIndex = horseIndex + horseName.length + nextHorseMatch.index;
+    }
+
+    const horseFullLine = raceDataSection.substring(horseIndex, endIndex);
+    return this.parseWoodbineHorseLine(horseFullLine, metadata);
+  }
+
+  parseHorseLineFromResults(horseLine, metadata) {
+    const timeRegex = /(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})/g;
+    const allTimes = [];
+    let match;
+    while ((match = timeRegex.exec(horseLine)) !== null) {
+      allTimes.push(match[1]);
+    }
+
+    const raceTimes = allTimes.filter((time) => {
+      const parsed = this.parseTime(time);
+      if (!parsed) return false;
+      return parsed.seconds >= 20;
+    });
+
+    let f1Time = null, f2Time = null, f3Time = null, finalTime = null;
+
+    if (raceTimes.length >= 3) {
+      f1Time = this.parseTime(raceTimes[0]);
+      f2Time = this.parseTime(raceTimes[1]);
+
+      const finalTimes = raceTimes.filter(time => time.includes(':'));
+      if (finalTimes.length >= 1) {
+        finalTime = this.parseTime(finalTimes[0]);
+        if (finalTimes.length >= 2) {
+          f3Time = this.parseTime(finalTimes[1]);
+        }
+      }
+    }
+
+    // Try to find F3 if not found
+    if (!f3Time && raceTimes.length > 3) {
+      for (let i = 2; i < raceTimes.length; i++) {
+        const time = this.parseTime(raceTimes[i]);
+        if (time && time.seconds >= 45 && time.seconds <= 90 && !raceTimes[i].includes(':')) {
+          f3Time = time;
+          break;
+        }
+      }
+    }
+
+    const positions = this.extractFinishPositionFromRow(horseLine, finalTime);
+
+    // Extract comment
+    const commentMatch = horseLine.match(/(\d+\.\d+)\s+([a-zA-Z0-9][a-zA-Z0-9\s,\-\'\(\)\/\\]+?)\s+(\d{2}\.\d{2})/);
+    let comment = '';
+    if (commentMatch) {
+      comment = commentMatch[2].trim();
+    }
+
+    return this.buildHorseDataResult(f1Time, f2Time, f3Time, finalTime, positions, comment, metadata.distanceInFurlongs);
+  }
+
+  parseWoodbineHorseLine(horseLine, metadata) {
+    const earningsIndex = horseLine.indexOf('$');
+    if (earningsIndex === -1) return null;
+
+    const beforeEarnings = horseLine.substring(0, earningsIndex);
+    const afterEarnings = horseLine.substring(earningsIndex);
+
+    const timeRegex = /(\d{1,2}:\d{2}\.\d{2}|\d{2}\.\d{2})/g;
+
+    const beforeTimes = [];
+    let match;
+    while ((match = timeRegex.exec(beforeEarnings)) !== null) {
+      beforeTimes.push(match[1]);
+    }
+
+    timeRegex.lastIndex = 0;
+    const afterTimes = [];
+    while ((match = timeRegex.exec(afterEarnings)) !== null) {
+      afterTimes.push(match[1]);
+    }
+
+    let f1Time = null, f2Time = null;
+    if (beforeTimes.length >= 2) {
+      const raceTimes = beforeTimes.filter(time => {
+        const seconds = parseFloat(time);
+        return seconds >= 20 && seconds <= 60;
+      });
+
+      if (raceTimes.length >= 2) {
+        f1Time = this.parseTime(raceTimes[0]);
+        f2Time = this.parseTime(raceTimes[1]);
+      }
+    }
+
+    let finalTime = null, f3Time = null;
+    if (afterTimes.length >= 1) {
+      finalTime = this.parseTime(afterTimes[0]);
+
+      for (let i = 1; i < afterTimes.length; i++) {
+        const timeStr = afterTimes[i];
+        const timeSeconds = this.parseTime(timeStr)?.seconds;
+
+        if (timeStr && !timeStr.includes(':') && timeSeconds &&
+            timeSeconds >= 45 && timeSeconds <= 90) {
+          f3Time = this.parseTime(timeStr);
+          break;
+        }
+      }
+    }
+
+    const positions = this.extractFinishPositionFromRow(horseLine, finalTime);
+
+    const commentMatch = horseLine.match(/\d+\.\d+\s+([a-zA-Z].*?)\s+\d+\.\d+/);
+    const comment = commentMatch ? commentMatch[1].trim() : '';
+
+    return this.buildHorseDataResult(f1Time, f2Time, f3Time, finalTime, positions, comment, metadata.distanceInFurlongs);
+  }
+
+  buildHorseDataResult(f1Time, f2Time, f3Time, finalTime, positions, comment, distanceInFurlongs) {
+    const avgSpeedMph = finalTime && finalTime.seconds > 0 && distanceInFurlongs > 0 ?
+      this.calculateAvgSpeed(finalTime.seconds, distanceInFurlongs) : 0;
+    const fiveFReductionTime = finalTime && finalTime.seconds > 0 && distanceInFurlongs > 0 ?
+      this.calculateFiveFReduction(finalTime.seconds, distanceInFurlongs) : '';
+
+    return {
+      finalTime: finalTime ? finalTime.display : '-',
+      avgSpeedMph,
+      fiveFReductionTime,
+      f1Time: f1Time ? f1Time.display : '-',
+      f2Time: f2Time ? f2Time.display : '-',
+      f3Time: f3Time ? f3Time.display : '-',
+      pos1_4: positions.pos1_4,
+      pos1_2: positions.pos1_2,
+      pos3_4: positions.pos3_4,
+      posFin: positions.posFin,
+      comment
+    };
+  }
+
+  parseRaceChart(text, horseName) {
+    const metadata = this.extractRaceMetadata(text);
+
+    // Use the new parser
+    const horseData = this.parseHorseFromChart(text, horseName);
+
+    if (!horseData) return null;
+
+    // Calculate avg speed and 5F reduction
+    let avgSpeedMph = 0;
+    let fiveFReductionTime = '-';
+
+    if (horseData.finalTime && horseData.finalTime !== '-' && metadata.distanceInFurlongs > 0) {
+      const finalSeconds = this.timeToSeconds(horseData.finalTime);
+      if (finalSeconds > 0) {
+        avgSpeedMph = this.calculateAvgSpeed(finalSeconds, metadata.distanceInFurlongs);
+        fiveFReductionTime = this.calculateFiveFReduction(finalSeconds, metadata.distanceInFurlongs);
+      }
+    }
+
+    return {
+      ...metadata,
+      finalTime: horseData.finalTime,
+      avgSpeedMph,
+      fiveFReductionTime,
+      f1Time: horseData.f1Time,
+      f2Time: horseData.f2Time,
+      f3Time: horseData.f3Time,
+      pos1_4: horseData.pos1_4,
+      pos1_2: horseData.pos1_2,
+      pos3_4: horseData.pos3_4,
+      posFin: horseData.posFin,
+      comment: horseData.comment,
+      horseName
+    };
+  }
+
+  timeToSeconds(timeStr) {
+    if (!timeStr || timeStr === '-') return 0;
+    if (timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+    }
+    return parseFloat(timeStr);
+  }
+
+  // Find all horses mentioned in the race chart
+  findAllHorsesInChart(text) {
+    const horses = [];
+
+    // Split by 'H Wt' which appears before the results table
+    const parts = text.split(/H\s*Wt/i);
+    if (parts.length < 2) return horses;
+
+    const raceDataSection = parts[1];
+
+    // Pattern: Horse name followed directly by odds (e.g., "Paradise3.80" or "Ontario6.15")
+    // Horse names are capitalized words, may include spaces, may have country code like (IRE)
+    // The pattern looks for: CapitalizedName + optional(MoreWords) + optional(CountryCode) + Odds
+    const horsePattern = /\n([A-Z][a-zA-Z']+(?:\s+[A-Z][a-zA-Z']+)*(?:\s*\([A-Z]{2,3}\))?)\s*(\d+\.\d+)/g;
+
+    let match;
+    while ((match = horsePattern.exec(raceDataSection)) !== null) {
+      let name = match[1].trim();
+      // Skip common non-horse-name patterns
+      if (name.length > 2 &&
+          !name.match(/^(Scratches|Horse|Jockey|Trainer|Owner|Pool|Exacta|Trifecta|Super|Daily|Pick|WPS|Omni)/i) &&
+          !horses.some(h => h.toLowerCase() === name.toLowerCase())) {
+        horses.push(name);
+      }
+    }
+
+    // Also try to find horses in the jockey/trainer section format:
+    // "HorseName\nJockeyName\n" pattern
+    const altPattern = /\n([A-Z][a-zA-Z']+(?:\s+[A-Z][a-zA-Z']+)*(?:\s*\([A-Z]{2,3}\))?)\n[A-Z][a-z]+\s+[A-Z]/g;
+    while ((match = altPattern.exec(text)) !== null) {
+      let name = match[1].trim();
+      if (name.length > 2 &&
+          !name.match(/^(Scratches|Horse|Jockey|Trainer|Owner|Last|Raced|Fin)/i) &&
+          !horses.some(h => h.toLowerCase() === name.toLowerCase())) {
+        horses.push(name);
+      }
+    }
+
+    return horses;
+  }
+
+  // Parse a specific horse's data from the race chart
+  parseHorseFromChart(text, horseName) {
+    // Split by 'H Wt' to get results section only
+    const parts = text.split(/H\s*Wt/i);
+    if (parts.length < 2) return null;
+
+    const resultsSection = parts[1];
+
+    // Find the line with this horse's data in the results section
+    // Format: HorseName + Odds + Comment + F1Time + F2Time + Earnings + FinalTime + Positions
+    // Example: "Paradise3.80brkout,3-5p,kpt at bay23.1246.19$24,0001011:11.077422"
+    const lines = resultsSection.split('\n');
+    let horseLine = '';
+    let horseLineIndex = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      // Match horse name followed immediately by odds (e.g., "Paradise3.80")
+      const pattern = new RegExp(horseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\d+\\.\\d+');
+      if (pattern.test(lines[i])) {
+        horseLine = lines[i];
+        horseLineIndex = i;
+        break;
+      }
+    }
+
+    if (!horseLine) return null;
+
+    // Look at subsequent lines (up to 3) for the 6F time
+    // Format: {weight}L{num}/{letter}{time}{state} e.g., "117L4/f1:13.91ON" or "115L3/m1:11.83KY"
+    // The letter can be 'f', 'm', or others - so match any letter before the time
+    let sixFurlongTime = null;
+    for (let j = 1; j <= 3 && horseLineIndex + j < lines.length; j++) {
+      const nextLine = lines[horseLineIndex + j];
+      // Look for /{letter} followed by M:SS.SS time (6F time pattern)
+      const sixFMatch = nextLine.match(/\/[a-z]([12]:\d{2}\.\d{2})/i);
+      if (sixFMatch) {
+        sixFurlongTime = sixFMatch[1];
+        break;
+      }
+    }
+
+    // Extract after horse name
+    const horseIndex = horseLine.indexOf(horseName);
+    const afterHorse = horseLine.substring(horseIndex + horseName.length);
+
+    // Extract odds and comment
+    // Pattern: odds + comment + first time
+    const oddsCommentMatch = afterHorse.match(/^(\d+\.\d+)([a-zA-Z][a-zA-Z0-9,\s\-'\/\\]+?)(\d{2}\.\d{2})/);
+    const comment = oddsCommentMatch ? oddsCommentMatch[2].trim() : '';
+
+    // Extract all times from the line
+    // Fractional times: SS.SS format (20-95 seconds range)
+    const allFractionalMatches = afterHorse.match(/\d{2}\.\d{2}/g) || [];
+    const fractionalTimes = allFractionalMatches.filter(t => {
+      const secs = parseFloat(t);
+      return secs >= 20 && secs <= 95;
+    });
+
+    // M:SS.SS format times (6F time and final time are in this format)
+    // 6F time is typically 1:07.00 - 1:20.00
+    // Final time is typically 1:07.00 - 2:30.00
+    const allMinutesTimes = afterHorse.match(/[12]:\d{2}\.\d{2}/g) || [];
+
+    // Last M:SS.SS time is the final time
+    const finalTime = allMinutesTimes.length > 0 ? allMinutesTimes[allMinutesTimes.length - 1] : '-';
+
+    // 6F time (3/4 time): Priority order:
+    // 1. sixFurlongTime from subsequent line (/f pattern)
+    // 2. M:SS.SS time in 1:07-1:20 range from horse line
+    // 3. SS.SS fractional time in 55-95 second range
+    let f3Time = '-';
+
+    // First priority: sixFurlongTime from /f pattern in subsequent lines
+    if (sixFurlongTime) {
+      f3Time = sixFurlongTime;
+    }
+
+    // Second priority: M:SS.SS time from horse line in 6F range
+    if (f3Time === '-') {
+      for (const time of allMinutesTimes) {
+        // Skip the final time
+        if (time === finalTime && allMinutesTimes.length > 1) continue;
+        // Check if it's in the 6F range (1:07.00 - 1:20.00)
+        const [mins, secs] = time.split(':');
+        const totalSecs = parseInt(mins) * 60 + parseFloat(secs);
+        if (totalSecs >= 67 && totalSecs <= 80) { // 1:07 to 1:20
+          f3Time = time;
+          break;
+        }
+      }
+    }
+
+    // Third priority: fractional times in SS.SS format
+    if (f3Time === '-') {
+      for (let i = 2; i < fractionalTimes.length; i++) {
+        const secs = parseFloat(fractionalTimes[i]);
+        if (secs >= 55 && secs <= 95) {
+          f3Time = fractionalTimes[i];
+          break;
+        }
+      }
+    }
+
+    // Parse times: F1 (1/4 time), F2 (1/2 time)
+    let f1Time = fractionalTimes[0] || '-';
+    let f2Time = fractionalTimes[1] || '-';
+
+    // Extract positions from end of line after final time
+    // Positions are typically single digits (1-9) or occasionally 10-12
+    // Format varies: could be "7422" (4 positions) or "31112" (5 positions with start)
+    let pos1_4 = '-', pos1_2 = '-', pos3_4 = '-', posFin = '-';
+
+    if (finalTime !== '-') {
+      const afterFinalTime = afterHorse.substring(afterHorse.lastIndexOf(finalTime) + finalTime.length);
+
+      // Extract all digits as a string
+      const digitsOnly = afterFinalTime.replace(/\D/g, '');
+
+      if (digitsOnly.length >= 4) {
+        // Take the last 4 digits as positions (1/4, 1/2, 3/4, finish)
+        // Most charts have 4 or 5 call positions; we take the last 4
+        const posDigits = digitsOnly.slice(-4);
+        pos1_4 = this.formatPosition(posDigits[0]);
+        pos1_2 = this.formatPosition(posDigits[1]);
+        pos3_4 = this.formatPosition(posDigits[2]);
+        posFin = this.formatPosition(posDigits[3]);
+      } else if (digitsOnly.length >= 2) {
+        // If fewer positions, just get finish
+        posFin = this.formatPosition(digitsOnly[digitsOnly.length - 1]);
+      }
+    }
+
+    return {
+      f1Time,
+      f2Time,
+      f3Time,
+      finalTime,
+      pos1_4,
+      pos1_2,
+      pos3_4,
+      posFin,
+      comment
+    };
+  }
+
+  formatPosition(pos) {
+    const p = parseInt(pos);
+    if (isNaN(p)) return pos;
+    if (p === 1) return '1st';
+    if (p === 2) return '2nd';
+    if (p === 3) return '3rd';
+    return `${p}th`;
+  }
+}
+
+const raceChartParser = new RaceChartParser();
+
+// Fuzzy matching for horse names
+function fuzzyMatchHorse(chartHorseName, existingHorses) {
+  if (!existingHorses || existingHorses.length === 0) {
+    return { match: null, confidence: 0 };
+  }
+
+  // Normalize the chart horse name
+  const normalizedChartName = chartHorseName
+    .replace(/\s*\([A-Z]{2,3}\)$/g, '') // Remove country codes like (GB), (IRE)
+    .trim()
+    .toUpperCase();
+
+  // First check for exact match (case-insensitive)
+  const exactMatch = existingHorses.find(h =>
+    h.name.toUpperCase() === normalizedChartName ||
+    h.displayName?.toUpperCase() === normalizedChartName
+  );
+
+  if (exactMatch) {
+    return { match: exactMatch, confidence: 1.0 };
+  }
+
+  // Check aliases
+  for (const horse of existingHorses) {
+    if (horse.aliases && horse.aliases.length > 0) {
+      const aliasMatch = horse.aliases.find(alias =>
+        alias.toUpperCase() === normalizedChartName
+      );
+      if (aliasMatch) {
+        return { match: horse, confidence: 1.0 };
+      }
+    }
+  }
+
+  // Use Fuse.js for fuzzy matching
+  const fuse = new Fuse(existingHorses, {
+    keys: ['name', 'displayName', 'aliases'],
+    threshold: 0.4, // Lower = stricter matching
+    includeScore: true
+  });
+
+  const results = fuse.search(normalizedChartName);
+
+  if (results.length > 0) {
+    const bestMatch = results[0];
+    const confidence = 1 - bestMatch.score; // Fuse score is 0 (perfect) to 1 (no match)
+    return { match: bestMatch.item, confidence };
+  }
+
+  return { match: null, confidence: 0 };
+}
+
+// Check for duplicate race entries
+async function checkDuplicateRace(horseName, raceDate, track) {
+  try {
+    const sessionData = await getSession('arioneo-main-session');
+    if (!sessionData || !sessionData.allHorseDetailData) {
+      return false;
+    }
+
+    // Normalize horse name for lookup
+    const normalizedName = horseName.toUpperCase().replace(/\s*\([A-Z]{2,3}\)$/g, '').trim();
+
+    // Check all variations of the horse name
+    for (const [key, entries] of Object.entries(sessionData.allHorseDetailData)) {
+      const keyNormalized = key.toUpperCase();
+      if (keyNormalized === normalizedName || keyNormalized.includes(normalizedName) || normalizedName.includes(keyNormalized)) {
+        // Found horse, check for duplicate race
+        for (const entry of entries) {
+          if (entry.isRace && entry.date === raceDate && entry.track === track) {
+            return true; // Duplicate found
+          }
+        }
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error checking duplicate race:', error);
+    return false;
+  }
+}
+
+// Upload and parse multiple race chart PDFs
+app.post('/api/upload/race-charts', pdfUpload.array('pdfs', 50), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No PDF files uploaded' });
+    }
+
+    console.log(`Processing ${req.files.length} race chart PDFs`);
+
+    // Get existing horses for fuzzy matching from BOTH horse mapping AND session training data
+    const horseMapping = await getHorseMapping();
+    const sessionData = await getSession('arioneo-main-session');
+
+    // Combine horses from mapping and training data
+    const existingHorsesMap = new Map();
+
+    // Add horses from mapping
+    for (const horse of Object.values(horseMapping)) {
+      if (horse && horse.name) {
+        existingHorsesMap.set(horse.name.toLowerCase(), horse);
+      }
+    }
+
+    // Add horses from training data (session) - these may not be in the mapping yet
+    if (sessionData && sessionData.allHorseDetailData) {
+      for (const horseName of Object.keys(sessionData.allHorseDetailData)) {
+        if (!existingHorsesMap.has(horseName.toLowerCase())) {
+          existingHorsesMap.set(horseName.toLowerCase(), {
+            name: horseName,
+            displayName: horseName,
+            owner: '-',
+            country: '-'
+          });
+        }
+      }
+    }
+
+    const existingHorses = Array.from(existingHorsesMap.values());
+    console.log(`Found ${existingHorses.length} existing horses for fuzzy matching`);
+    if (existingHorses.length > 0) {
+      console.log('Training data horse names:', existingHorses.slice(0, 10).map(h => h.name).join(', ') + '...');
+    }
+
+    const results = [];
+
+    for (const file of req.files) {
+      const result = {
+        fileName: file.originalname,
+        success: false,
+        data: null,
+        error: null,
+        horsesFound: [],
+        needsVerification: false,
+        matchedHorse: null,
+        matchConfidence: 0,
+        isDuplicate: false
+      };
+
+      try {
+        // Read and parse PDF
+        const pdfBuffer = fs.readFileSync(file.path);
+        const pdfData = await pdfParse(pdfBuffer);
+        const text = pdfData.text;
+
+        // Find all horses in the chart
+        const horsesInChart = raceChartParser.findAllHorsesInChart(text);
+        // Filter to clean horse names (no newlines, reasonable length)
+        // Filter to clean horse names (no newlines, reasonable length, no jockey/trainer concatenations)
+        const cleanHorses = horsesInChart.filter(h => {
+          if (!h || h.includes('\n') || h.length < 2 || h.length > 25) return false;
+          // Filter out jockey/trainer name concatenations (lowercase followed immediately by uppercase)
+          if (/[a-z][A-Z]/.test(h)) return false;
+          // Filter out common non-horse patterns
+          if (/^(Scratches|Horse|Jockey|Trainer|Owner|Calumet|Douglas)/i.test(h)) return false;
+          return true;
+        });
+        result.horsesFound = cleanHorses;
+
+        // Parse data for ALL horses in the chart
+        const allHorseData = {};
+        for (const chartHorse of cleanHorses) {
+          const horseRaceData = raceChartParser.parseRaceChart(text, chartHorse);
+          if (horseRaceData) {
+            allHorseData[chartHorse] = horseRaceData;
+          }
+        }
+        result.allHorseData = allHorseData;
+
+        // Try to match each horse found with existing horses
+        let bestMatch = null;
+        let bestConfidence = 0;
+        let bestChartHorse = null;
+
+        for (const chartHorse of cleanHorses) {
+          const { match, confidence } = fuzzyMatchHorse(chartHorse, existingHorses);
+          if (confidence > bestConfidence) {
+            bestMatch = match;
+            bestConfidence = confidence;
+            bestChartHorse = chartHorse;
+          }
+        }
+
+        if (bestMatch && bestConfidence >= 0.6) {
+          // Use the matched horse's data
+          const raceData = allHorseData[bestChartHorse];
+
+          if (raceData) {
+            // Check for duplicate
+            const isDuplicate = await checkDuplicateRace(
+              bestMatch.name,
+              formatRaceDate(raceData.raceDate),
+              raceData.track
+            );
+
+            result.success = true;
+            result.data = raceData;
+            result.matchedHorse = bestMatch;
+            result.matchConfidence = bestConfidence;
+            result.needsVerification = bestConfidence < 0.9;
+            result.isDuplicate = isDuplicate;
+            result.selectedHorse = bestChartHorse;
+          } else {
+            result.error = `Could not parse race data for ${bestChartHorse}`;
+          }
+        } else if (cleanHorses.length > 0) {
+          // Found horses but no good match - use first horse's data as default
+          result.error = 'No matching horse found in your system';
+          result.needsVerification = true;
+
+          const firstHorse = cleanHorses[0];
+          result.data = allHorseData[firstHorse] || null;
+          result.selectedHorse = firstHorse;
+        } else {
+          result.error = 'No horses found in race chart';
+        }
+
+      } catch (parseError) {
+        console.error(`Error parsing ${file.originalname}:`, parseError);
+        result.error = `Parse error: ${parseError.message}`;
+        result.needsVerification = true;
+      } finally {
+        // Clean up uploaded file
+        try {
+          fs.unlinkSync(file.path);
+        } catch (e) {
+          console.error('Error deleting temp file:', e);
+        }
+      }
+
+      results.push(result);
+    }
+
+    // Return existing horses for manual selection if needed
+    const horsesForSelection = existingHorses.map(h => ({
+      name: h.name,
+      displayName: h.displayName || h.name,
+      owner: h.owner,
+      country: h.country
+    }));
+
+    res.json({
+      success: true,
+      results,
+      existingHorses: horsesForSelection,
+      totalProcessed: results.length,
+      successfulMatches: results.filter(r => r.success && !r.needsVerification).length,
+      needsVerification: results.filter(r => r.needsVerification).length,
+      duplicates: results.filter(r => r.isDuplicate).length
+    });
+
+  } catch (error) {
+    console.error('Error processing race chart uploads:', error);
+    res.status(500).json({ error: 'Failed to process race charts: ' + error.message });
+  }
+});
+
+// Helper to format race date to MM/DD/YYYY
+function formatRaceDate(dateStr) {
+  if (!dateStr || dateStr === 'Unknown Date') return dateStr;
+
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+
+    return `${month}/${day}/${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// Save reviewed race data
+app.post('/api/race-charts/save', async (req, res) => {
+  try {
+    const { races } = req.body;
+
+    if (!races || !Array.isArray(races) || races.length === 0) {
+      return res.status(400).json({ error: 'No race data provided' });
+    }
+
+    // Get current session data
+    let sessionData = await getSession('arioneo-main-session');
+    if (!sessionData) {
+      sessionData = {
+        id: 'arioneo-main-session',
+        fileName: 'race-charts',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        horseData: [],
+        allHorseDetailData: {}
+      };
+    }
+
+    const savedRaces = [];
+    const skippedRaces = [];
+
+    for (const race of races) {
+      // Find existing horse key (case-insensitive) FIRST before creating entry
+      let horseKey = race.horseName;
+      const existingKeys = Object.keys(sessionData.allHorseDetailData);
+      const matchingKey = existingKeys.find(k => k.toLowerCase() === race.horseName.toLowerCase());
+      if (matchingKey) {
+        horseKey = matchingKey; // Use existing case (e.g., "Blanco" instead of "BLANCO")
+      }
+
+      // Skip duplicates (check with the normalized horse key)
+      const isDuplicate = await checkDuplicateRace(horseKey, race.date, race.track);
+      if (isDuplicate) {
+        skippedRaces.push({ horseName: horseKey, date: race.date, reason: 'Duplicate entry' });
+        continue;
+      }
+
+      // Create training entry from race data (use horseKey, not race.horseName)
+      const raceEntry = {
+        date: race.date,
+        horse: horseKey,
+        type: 'Race',
+        track: race.track,
+        surface: race.surface,
+        distance: race.distance,
+        avgSpeed: race.avgSpeed ? parseFloat(race.avgSpeed).toFixed(1) : '-',
+        maxSpeed: race.raceType, // Race type in max speed column
+        best1f: race.pos1_4 || '-', // 1/4 position
+        best2f: race.f1Time || '-', // 1/4 time
+        best3f: race.pos1_2 || '-', // 1/2 position
+        best4f: race.f2Time || '-', // 1/2 time
+        best5f: race.fiveFReduction || '-', // 5F reduction time
+        best6f: race.pos3_4 || '-', // 3/4 position
+        best7f: race.f3Time || '-', // 3/4 time
+        maxHR: race.finalTime || '-', // Final time
+        fastRecovery: race.finishPosition || '-', // Finish position
+        fastQuality: '-',
+        fastPercent: '-',
+        recovery15: '-',
+        quality15: '-',
+        hr15Percent: '-',
+        maxSL: '-',
+        slGallop: '-',
+        sfGallop: '-',
+        slWork: '-',
+        sfWork: '-',
+        hr2min: '-',
+        hr5min: '-',
+        symmetry: '-',
+        regularity: '-',
+        bpm120: '-',
+        zone5: '-',
+        age: '-',
+        sex: '-',
+        temp: '-',
+        distanceCol: '-',
+        trotHR: '-',
+        walkHR: '-',
+        isRace: true,
+        isWork: false,
+        notes: race.comments || ''
+      };
+
+      // Create array for horse if doesn't exist
+      if (!sessionData.allHorseDetailData[horseKey]) {
+        sessionData.allHorseDetailData[horseKey] = [];
+      }
+
+      // Add race entry
+      sessionData.allHorseDetailData[horseKey].push(raceEntry);
+
+      // Sort by date (newest first)
+      sessionData.allHorseDetailData[horseKey].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+      });
+
+      savedRaces.push({ horseName: horseKey, date: race.date });
+
+      // Ensure horse is in horse mapping
+      const horseMapping = await getHorseMapping();
+      if (!horseMapping[horseKey.toLowerCase()]) {
+        // Add to mapping if new horse was manually created
+        if (race.isNewHorse) {
+          horseMapping[horseKey.toLowerCase()] = {
+            name: horseKey,
+            displayName: horseKey,
+            owner: race.owner || '-',
+            country: race.country || '-',
+            isHistoric: false
+          };
+          await saveHorseMapping(horseMapping);
+        }
+      }
+    }
+
+    // Update summary horse data - only for horses that had races added
+    // Preserve all existing horse data, just update the ones we touched
+    const horsesWithNewRaces = new Set(savedRaces.map(r => r.horseName.toLowerCase()));
+    const updatedSummaries = buildHorseSummaryFromDetailData(sessionData.allHorseDetailData);
+
+    // Create a map of existing horses by name (case-insensitive)
+    // Note: CSV data uses 'name' property, race summaries use 'horse' property
+    const existingHorseMap = new Map();
+    for (const horse of sessionData.horseData || []) {
+      const horseName = horse?.horse || horse?.name;
+      if (horseName) {
+        existingHorseMap.set(horseName.toLowerCase(), horse);
+      }
+    }
+
+    // Update only the horses that had races added
+    for (const summary of updatedSummaries) {
+      if (summary && summary.horse) {
+        const horseKey = summary.horse.toLowerCase();
+        if (horsesWithNewRaces.has(horseKey)) {
+          existingHorseMap.set(horseKey, summary);
+        }
+      }
+    }
+
+    // Also add any new horses that weren't in the original data
+    for (const summary of updatedSummaries) {
+      if (summary && summary.horse) {
+        const horseKey = summary.horse.toLowerCase();
+        if (!existingHorseMap.has(horseKey)) {
+          existingHorseMap.set(horseKey, summary);
+        }
+      }
+    }
+
+    sessionData.horseData = Array.from(existingHorseMap.values());
+    sessionData.updatedAt = new Date().toISOString();
+
+    // Save session
+    await saveSession(
+      sessionData.id,
+      sessionData.fileName,
+      sessionData.horseData,
+      sessionData.allHorseDetailData
+    );
+
+    res.json({
+      success: true,
+      savedCount: savedRaces.length,
+      skippedCount: skippedRaces.length,
+      savedRaces,
+      skippedRaces
+    });
+
+  } catch (error) {
+    console.error('Error saving race data:', error);
+    res.status(500).json({ error: 'Failed to save race data: ' + error.message });
+  }
+});
+
+// Helper to rebuild horse summary from detail data
+function buildHorseSummaryFromDetailData(allHorseDetailData) {
+  const summaryData = [];
+
+  for (const [horseName, entries] of Object.entries(allHorseDetailData)) {
+    if (!entries || entries.length === 0) continue;
+
+    // Get the most recent entry
+    const sortedEntries = [...entries].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA;
+    });
+
+    const latestEntry = sortedEntries[0];
+
+    // Find best times (excluding races for some metrics)
+    const workEntries = entries.filter(e => !e.isRace);
+
+    let best1f = '-', best5f = '-', fastRecovery = '-', recovery15 = '-';
+
+    for (const entry of workEntries) {
+      if (entry.best1f && entry.best1f !== '-') {
+        if (best1f === '-' || parseFloat(entry.best1f) < parseFloat(best1f)) {
+          best1f = entry.best1f;
+        }
+      }
+      if (entry.best5f && entry.best5f !== '-') {
+        if (best5f === '-' || parseFloat(entry.best5f) < parseFloat(best5f)) {
+          best5f = entry.best5f;
+        }
+      }
+    }
+
+    summaryData.push({
+      horse: horseName,
+      displayName: horseName,
+      owner: '-',
+      country: '-',
+      lastTrainingDate: latestEntry.date,
+      age: latestEntry.age || '-',
+      best1f,
+      best5f,
+      fastRecovery,
+      recovery15min: recovery15
+    });
+  }
+
+  return summaryData;
+}
 
 // Export for Vercel
 module.exports = app;
