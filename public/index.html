@@ -1660,10 +1660,8 @@
                 if (saved) {
                     const parsedVisibility = JSON.parse(saved);
                     columnVisibility = {...columnVisibility, ...parsedVisibility};
-                    // Ensure notes column is visible (may be missing from old preferences)
-                    if (columnVisibility.notes === undefined) {
-                        columnVisibility.notes = true;
-                    }
+                    // Ensure notes column is always visible (new feature)
+                    columnVisibility.notes = true;
                     console.log('Loaded column visibility preferences:', Object.keys(parsedVisibility).length, 'columns');
                 }
                 
@@ -1720,11 +1718,17 @@
                     const preferences = JSON.parse(saved);
                     if (preferences.columnVisibility) {
                         columnVisibility = {...columnVisibility, ...preferences.columnVisibility};
+                        // Ensure notes column is always visible (new feature)
+                        columnVisibility.notes = true;
                         // Update the UI to reflect loaded preferences
                         updateColumnVisibilityUI();
                     }
                     if (preferences.columnOrder && Array.isArray(preferences.columnOrder)) {
                         columnOrder = preferences.columnOrder;
+                        // Ensure notes column is in the order
+                        if (!columnOrder.includes('notes')) {
+                            columnOrder.push('notes');
+                        }
                         // Update column order UI if it exists
                         if (typeof populateColumnOrderList === 'function') {
                             populateColumnOrderList();
