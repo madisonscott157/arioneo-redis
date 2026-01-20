@@ -1082,17 +1082,41 @@ async function saveHorseMapping(mapping) {
   }
 }
 
+// Normalize horse name for comparison (handles year format differences)
+// "2022 Ginger Punch" and "GINGER PUNCH 22" should both normalize similarly
+function normalizeHorseNameForMatch(name) {
+  if (!name) return '';
+
+  // Extract letters and numbers separately
+  const letters = name.replace(/[^a-zA-Z]/g, '').toLowerCase();
+
+  // Extract year - could be 4-digit (2022) or 2-digit (22)
+  const fourDigitYear = name.match(/\b(19|20)\d{2}\b/);
+  const twoDigitYear = name.match(/\b(\d{2})\b/);
+
+  let year = '';
+  if (fourDigitYear) {
+    year = fourDigitYear[0].slice(-2); // Get last 2 digits
+  } else if (twoDigitYear) {
+    year = twoDigitYear[1];
+  }
+
+  return letters + year;
+}
+
 // Resolve a horse name to its primary name (if it's an alias)
 function resolveHorseAlias(horseName, horseMapping) {
   if (!horseName || !horseMapping) return horseName;
 
   const nameLower = horseName.toLowerCase().trim();
   const nameStripped = horseName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const nameNormalized = normalizeHorseNameForMatch(horseName);
 
-  // Check if this name is a primary name
+  // Check if this name is a primary name (exact or fuzzy match)
   const directMatch = Object.keys(horseMapping).find(k =>
     k.toLowerCase() === nameLower ||
-    k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped
+    k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped ||
+    normalizeHorseNameForMatch(k) === nameNormalized
   );
   if (directMatch) return directMatch;
 
@@ -1101,10 +1125,11 @@ function resolveHorseAlias(horseName, horseMapping) {
     if (data.aliases && Array.isArray(data.aliases)) {
       const aliasMatch = data.aliases.find(alias =>
         alias.toLowerCase() === nameLower ||
-        alias.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped
+        alias.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped ||
+        normalizeHorseNameForMatch(alias) === nameNormalized
       );
       if (aliasMatch) {
-        console.log(`Resolved alias: "${horseName}" -> "${primaryName}"`);
+        console.log(`Resolved alias: "${horseName}" -> "${primaryName}" (matched: "${aliasMatch}")`);
         return primaryName;
       }
     }
@@ -1117,8 +1142,26 @@ function resolveHorseAlias(horseName, horseMapping) {
 function mergeAliasedHorseData(allHorseDetailData, horseMapping) {
   const merged = {};
 
+  // Log what aliases we have
+  const allAliases = [];
+  Object.entries(horseMapping).forEach(([name, data]) => {
+    if (data.aliases && data.aliases.length > 0) {
+      allAliases.push({ primary: name, aliases: data.aliases });
+    }
+  });
+  if (allAliases.length > 0) {
+    console.log('Horse aliases configured:', JSON.stringify(allAliases));
+  }
+
+  const dataKeys = Object.keys(allHorseDetailData);
+  console.log('Training data horse names:', dataKeys.slice(0, 10).join(', ') + (dataKeys.length > 10 ? '...' : ''));
+
   Object.keys(allHorseDetailData).forEach(horseName => {
     const primaryName = resolveHorseAlias(horseName, horseMapping);
+
+    if (primaryName !== horseName) {
+      console.log(`Merging: "${horseName}" -> "${primaryName}"`);
+    }
 
     if (!merged[primaryName]) {
       merged[primaryName] = [];
@@ -1142,6 +1185,8 @@ function mergeAliasedHorseData(allHorseDetailData, horseMapping) {
       return dateB - dateA;
     });
   });
+
+  console.log(`Merge complete: ${dataKeys.length} raw names -> ${Object.keys(merged).length} merged names`);
 
   return merged;
 }
