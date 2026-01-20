@@ -1349,8 +1349,8 @@
                         <th onclick="sortTable('age')" class="age-col">Age <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('best1f')">1F <span class="sort-indicator">↕</span></th>
                         <th onclick="sortTable('best5f')">5F <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast Recovery <span class="sort-indicator">↕</span></th>
-                        <th onclick="sortTable('recovery15min')" class="recovery15-col">15 Recovery <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('fastRecovery')" class="fast-recovery-col">Fast <span class="sort-indicator">↕</span></th>
+                        <th onclick="sortTable('recovery15min')" class="recovery15-col">15 min <span class="sort-indicator">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="horseTableBody">
@@ -3468,7 +3468,7 @@
                 return;
             }
 
-            const headers = ['Horse Name', 'Last Training', 'Age', '1F', '5F', 'Fast Recovery', '15 Recovery'];
+            const headers = ['Horse Name', 'Last Training', 'Age', '1F', '5F', 'Fast', '15 min'];
             let csvContent = headers.join(',') + '\n';
 
             filteredData.forEach(horse => {

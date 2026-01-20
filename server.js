@@ -969,6 +969,11 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
     // Get the most recent training entry (any type)
     const lastTraining = sortedEntries[0];
 
+    // Debug: log first horse's date info
+    if (sortedEntries.length > 0 && Object.keys(allHorseDetailData).indexOf(horseName) < 3) {
+      console.log(`Horse ${horseName}: first entry date = "${lastTraining?.date}", entries count = ${sortedEntries.length}`);
+    }
+
     let age = null;
     let lastTrainingDate = null;
     let best1f = null;
