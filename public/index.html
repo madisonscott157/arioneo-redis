@@ -4020,37 +4020,12 @@
                             }
                             updateSheetDropdown();
 
-                            // Update allSheets with fresh server data (which has edits applied)
-                            // This ensures loadCurrentSheet uses the updated data with notes
-                            if (currentSheetName) {
-                                allSheets[currentSheetName] = {
-                                    horseData: data.horseData,
-                                    allHorseDetailData: data.allHorseDetailData
-                                };
-                            }
-
-                            // Load the correct sheet data
+                            // Load the correct sheet data instead of using session data directly
                             loadCurrentSheet();
                             console.log('Loaded sheet-specific data from Redis for sheet:', currentSheetName, 'horses:', horseData.length);
                         } else {
-                            // No sheet data from server - use server data directly
-                            // Initialize sheet tracking with server data
-                            if (!sheetNames || sheetNames.length === 0) {
-                                sheetNames = ['Default'];
-                            }
-                            if (!currentSheetName) {
-                                currentSheetName = sheetNames[0] || 'Default';
-                            }
-                            if (!allSheets) {
-                                allSheets = {};
-                            }
-                            allSheets[currentSheetName] = {
-                                horseData: data.horseData,
-                                allHorseDetailData: data.allHorseDetailData
-                            };
-                            updateSheetDropdown();
-                            filteredData = [...horseData];
-                            console.log('Loaded data directly from server, sheet:', currentSheetName);
+                            // Fallback to localStorage for backwards compatibility
+                            loadAllSheets();
                         }
 
                         // Calculate Last Work dates for loaded session
@@ -4066,13 +4041,6 @@
                         updateTableColumnVisibility();
 
                         document.getElementById('exportCsv').disabled = false;
-
-                        // Refresh horse detail view if it's currently visible
-                        const horseDetailView = document.getElementById('horseDetailView');
-                        if (horseDetailView && horseDetailView.style.display !== 'none' && currentHorseRawName) {
-                            console.log('Refreshing horse detail view for:', currentHorseRawName);
-                            sortHorseDetailData();
-                        }
                     }
                 })
                 .catch(error => {
