@@ -1498,6 +1498,11 @@
 
         // View: 'active' or 'historic'
         let currentView = 'active';
+
+        // Multi-sheet variables
+        let allSheets = {};
+        let sheetNames = [];
+        let currentSheetName = 'Default';
         
         // Column visibility settings
         let columnVisibility = {
@@ -4028,10 +4033,16 @@
                             loadCurrentSheet();
                             console.log('Loaded sheet-specific data from Redis for sheet:', currentSheetName, 'horses:', horseData.length);
                         } else {
-                            // No sheet data from server - create sheet entry with fresh data
-                            if (!currentSheetName) {
-                                currentSheetName = 'Default';
+                            // No sheet data from server - use server data directly
+                            // Initialize sheet tracking with server data
+                            if (!sheetNames || sheetNames.length === 0) {
                                 sheetNames = ['Default'];
+                            }
+                            if (!currentSheetName) {
+                                currentSheetName = sheetNames[0] || 'Default';
+                            }
+                            if (!allSheets) {
+                                allSheets = {};
                             }
                             allSheets[currentSheetName] = {
                                 horseData: data.horseData,
@@ -4039,7 +4050,7 @@
                             };
                             updateSheetDropdown();
                             filteredData = [...horseData];
-                            console.log('Loaded data directly from server, created sheet:', currentSheetName);
+                            console.log('Loaded data directly from server, sheet:', currentSheetName);
                         }
 
                         // Calculate Last Work dates for loaded session
