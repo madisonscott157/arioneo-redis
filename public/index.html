@@ -1660,6 +1660,10 @@
                 if (saved) {
                     const parsedVisibility = JSON.parse(saved);
                     columnVisibility = {...columnVisibility, ...parsedVisibility};
+                    // Ensure notes column is visible (may be missing from old preferences)
+                    if (columnVisibility.notes === undefined) {
+                        columnVisibility.notes = true;
+                    }
                     console.log('Loaded column visibility preferences:', Object.keys(parsedVisibility).length, 'columns');
                 }
                 
@@ -1668,6 +1672,10 @@
                     const parsedOrder = JSON.parse(savedOrder);
                     if (Array.isArray(parsedOrder) && parsedOrder.length > 0) {
                         columnOrder = parsedOrder;
+                        // Ensure notes column is in the order (may be missing from old preferences)
+                        if (!columnOrder.includes('notes')) {
+                            columnOrder.push('notes');
+                        }
                         console.log('Loaded column order preferences:', parsedOrder.length, 'columns');
                     }
                 }
