@@ -2658,6 +2658,7 @@
                 const countrySelect = document.getElementById('countryFilter');
                 if (countrySelect && data.countries) {
                     countrySelect.innerHTML = '<option value="">All Countries</option>' +
+                        '<option value="-">- (No Country)</option>' +
                         data.countries.map(c => `<option value="${c}">${c}</option>`).join('');
                 }
 
@@ -3328,8 +3329,15 @@
                 if (ownerFilter && horse.owner !== ownerFilter) {
                     return false;
                 }
-                if (countryFilter && horse.country !== countryFilter) {
-                    return false;
+                if (countryFilter) {
+                    if (countryFilter === '-') {
+                        // Filter for horses with no country
+                        if (horse.country && horse.country.trim() !== '') {
+                            return false;
+                        }
+                    } else if (horse.country !== countryFilter) {
+                        return false;
+                    }
                 }
                 return true;
             });
