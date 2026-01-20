@@ -1185,93 +1185,81 @@
             }
         }
 
-        /* Mobile-specific button layout - FORCE button grouping with CSS */
+        /* Mobile-specific layout */
         @media (max-width: 767px) {
             .controls {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr !important;
-                gap: 8px !important;
-                padding: 8px !important;
-                grid-template-areas:
-                    "upload export"
-                    "sheet addnew"
-                    "horse horse"
-                    "sort age" !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                padding: 10px !important;
+                justify-content: center !important;
             }
 
-            /* Force specific positioning for each control group */
-            .controls .control-group:has(.file-label) {
-                grid-area: upload !important;
-            }
-
-            .controls .control-group:has(#exportCsv) {
-                grid-area: export !important;
-            }
-
-            .controls .control-group:has(#sheetSelector) {
-                grid-area: sheet !important;
-            }
-
-            .controls .control-group:has(.add-new-btn) {
-                grid-area: addnew !important;
-            }
-
-            .controls .control-group:has(#horseFilter) {
-                grid-area: horse !important;
-                grid-column: 1 / -1 !important; /* Full width */
-            }
-
-            .controls .control-group:has(#sortBy) {
-                grid-area: sort !important;
-            }
-
-            .controls .control-group:has(#ageFilter) {
-                grid-area: age !important;
-            }
-
-            /* Style all control group contents for consistent sizing */
-            .control-group button,
-            .control-group .file-label,
-            .control-group select,
-            .control-group input {
-                width: 100% !important;
-                text-align: center !important;
-                padding: 8px 6px !important;
-                font-size: 14px !important;
-                margin: 0 !important;
-                box-sizing: border-box !important;
-            }
-
-            /* Hide trash/delete icon on mobile */
-            .delete-sheet-btn {
+            /* Hide dividers on mobile */
+            .controls-divider {
                 display: none !important;
             }
 
-            /* Control group styling for grid layout */
+            /* Make buttons and selects compact */
+            .controls .btn,
+            .controls .file-label {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+                flex: 0 0 auto !important;
+            }
+
+            .controls select,
+            .controls input[type="text"] {
+                padding: 8px !important;
+                font-size: 12px !important;
+                min-width: 100px !important;
+            }
+
+            /* Search input spans more width */
+            .controls #horseFilter {
+                flex: 1 1 150px !important;
+                min-width: 150px !important;
+            }
+
+            /* Control groups inline */
             .control-group {
                 margin: 0 !important;
                 padding: 0 !important;
-                gap: 2px !important;
-                display: flex !important;
-                flex-direction: column !important;
             }
 
-            /* Consistent label styling */
-            .control-group label {
-                margin-bottom: 2px !important;
-                line-height: 1.1 !important;
+            /* Header adjustments */
+            .header h1 {
+                font-size: 1.5em !important;
+            }
+
+            .header p {
+                font-size: 0.85em !important;
+            }
+        }
+
+        /* Even smaller screens */
+        @media (max-width: 480px) {
+            .controls {
+                gap: 5px !important;
+                padding: 8px !important;
+            }
+
+            .controls .btn,
+            .controls .file-label {
+                padding: 6px 10px !important;
                 font-size: 11px !important;
-                text-align: center !important;
             }
 
-            /* Override any browser defaults that might add spacing */
-            .controls > * {
-                margin-top: 0 !important;
-                margin-bottom: 2px !important;
+            .controls select,
+            .controls input[type="text"] {
+                padding: 6px !important;
+                font-size: 11px !important;
+                min-width: 80px !important;
             }
 
-            .controls > *:last-child {
-                margin-bottom: 0 !important;
+            .controls #horseFilter {
+                width: 100% !important;
+                flex: 1 1 100% !important;
             }
         }
     </style>
@@ -2980,6 +2968,8 @@
                                 <option value="D">Dirt</option>
                                 <option value="T">Turf</option>
                                 <option value="AWT">All Weather</option>
+                                <option value="Sand">Sand</option>
+                                <option value="N/A">N/A</option>
                             </select>
                         </div>
 
