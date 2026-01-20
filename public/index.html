@@ -2751,6 +2751,13 @@
 
             modal.style.display = 'flex';
             loadHorseMappingList();
+
+            // Close modal when clicking on background
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeHorseManagement();
+                }
+            };
         }
 
         function closeHorseManagement() {
@@ -3031,6 +3038,13 @@
             document.getElementById('editNotes').value = currentData.notes || '';
 
             modal.style.display = 'flex';
+
+            // Close modal when clicking on background
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeEditTrainingModal();
+                }
+            };
         }
 
         function closeEditTrainingModal() {
