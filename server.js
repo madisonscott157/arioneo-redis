@@ -1025,9 +1025,16 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       maxSpeed = Math.max(...speeds);
     }
 
-    // Get owner/country/historic from mapping (case-insensitive lookup)
+    // Get owner/country/historic from mapping (case-insensitive + fuzzy lookup)
     const horseNameLower = horseName.toLowerCase();
-    const mappingKey = Object.keys(horseMapping).find(k => k.toLowerCase() === horseNameLower);
+    const horseNameStripped = horseName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    let mappingKey = Object.keys(horseMapping).find(k => k.toLowerCase() === horseNameLower);
+    // If no exact match, try matching after stripping special characters
+    if (!mappingKey) {
+      mappingKey = Object.keys(horseMapping).find(k =>
+        k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === horseNameStripped
+      );
+    }
     const mapping = mappingKey ? horseMapping[mappingKey] : {};
 
     horseData.push({
@@ -1491,11 +1498,24 @@ app.post('/api/horses', async (req, res) => {
 
     const mapping = await getHorseMapping();
 
-    mapping[name] = {
+    // Check if there's an existing mapping with similar name (handles special char variations)
+    const nameLower = name.toLowerCase();
+    const nameStripped = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    let existingKey = Object.keys(mapping).find(k => k.toLowerCase() === nameLower);
+    if (!existingKey) {
+      existingKey = Object.keys(mapping).find(k =>
+        k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped
+      );
+    }
+
+    // Use existing key if found, otherwise use the provided name
+    const keyToUse = existingKey || name;
+
+    mapping[keyToUse] = {
       owner: owner || '',
       country: country || '',
       isHistoric: isHistoric || false,
-      addedAt: mapping[name]?.addedAt || new Date().toISOString(),
+      addedAt: mapping[keyToUse]?.addedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
