@@ -2699,7 +2699,23 @@
                         </div>
 
                         <div>
-                            <h4>Current Mappings</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0;">Current Mappings</h4>
+                                <button onclick="showMergeHorsesUI()" class="upload-btn" style="padding: 6px 12px;">Merge Horses</button>
+                            </div>
+                            <div id="mergeHorsesPanel" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #3498db;">
+                                <h5 style="margin: 0 0 10px 0;">Merge Horses (combine names for the same horse)</h5>
+                                <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Select the horses to merge, then choose which name to use as the primary display name.</p>
+                                <div id="mergeHorsesList" style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px;"></div>
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-weight: bold;">Primary Name (display name):</label>
+                                    <select id="primaryHorseSelect" style="width: 100%; padding: 8px; margin-top: 5px;"></select>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button onclick="executeMerge()" class="upload-btn">Merge Selected</button>
+                                    <button onclick="hideMergeHorsesUI()" class="cancel-btn">Cancel</button>
+                                </div>
+                            </div>
                             <div id="horseMappingList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
@@ -2708,7 +2724,7 @@
                                             <th style="padding: 10px; text-align: left;">Owner</th>
                                             <th style="padding: 10px; text-align: left;">Country</th>
                                             <th style="padding: 10px; text-align: center;">Status</th>
-                                            <th style="padding: 10px; width: 60px;">Actions</th>
+                                            <th style="padding: 10px; width: 80px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="horseMappingTableBody">
@@ -2755,6 +2771,9 @@
                     return;
                 }
 
+                // Store horses data for merge UI
+                window.horseMappingData = data.horses;
+
                 tbody.innerHTML = data.horses.map(h => {
                     const isHistoric = h.isHistoric || false;
                     const statusColor = isHistoric ? '#e74c3c' : '#27ae60';
@@ -2764,9 +2783,18 @@
                     // Use base64 encoding to safely pass horse names with special characters
                     const encodedName = btoa(encodeURIComponent(h.name));
 
+                    // Show aliases if any
+                    const aliases = h.aliases || [];
+                    const aliasDisplay = aliases.length > 0
+                        ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">Also: ${aliases.join(', ')}</div>`
+                        : '';
+
                     return `
                     <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${displayName}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                            ${displayName}
+                            ${aliasDisplay}
+                        </td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.owner || '-'}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.country || '-'}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
@@ -2775,6 +2803,7 @@
                         </td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
                             <button onclick="editHorseMappingEncoded('${encodedName}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
+                            ${aliases.length > 0 ? `<button onclick="showUnmergeUI('${encodedName}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer; color: #e67e22;" title="Unmerge aliases">⇔</button>` : ''}
                             <button onclick="deleteHorseMappingEncoded('${encodedName}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
                         </td>
                     </tr>`;
@@ -2914,6 +2943,151 @@
         function deleteHorseMappingEncoded(encodedName) {
             const name = decodeURIComponent(atob(encodedName));
             deleteHorseMapping(name);
+        }
+
+        // ============================================
+        // HORSE MERGE FUNCTIONS
+        // ============================================
+
+        function showMergeHorsesUI() {
+            const panel = document.getElementById('mergeHorsesPanel');
+            const list = document.getElementById('mergeHorsesList');
+            const select = document.getElementById('primaryHorseSelect');
+
+            if (!window.horseMappingData || window.horseMappingData.length === 0) {
+                alert('No horses available to merge');
+                return;
+            }
+
+            // Build checkboxes for each horse
+            list.innerHTML = window.horseMappingData.map(h => {
+                const encodedName = btoa(encodeURIComponent(h.name));
+                const displayName = h.displayName || h.name;
+                const aliasInfo = h.aliases && h.aliases.length > 0
+                    ? ` <span style="color: #666; font-size: 11px;">(has ${h.aliases.length} alias${h.aliases.length > 1 ? 'es' : ''})</span>`
+                    : '';
+                return `
+                    <label style="display: block; padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;">
+                        <input type="checkbox" class="merge-horse-checkbox" value="${encodedName}" onchange="updatePrimarySelect()">
+                        ${displayName}${aliasInfo}
+                    </label>
+                `;
+            }).join('');
+
+            select.innerHTML = '<option value="">-- Select horses first --</option>';
+            panel.style.display = 'block';
+        }
+
+        function hideMergeHorsesUI() {
+            document.getElementById('mergeHorsesPanel').style.display = 'none';
+        }
+
+        function updatePrimarySelect() {
+            const checkboxes = document.querySelectorAll('.merge-horse-checkbox:checked');
+            const select = document.getElementById('primaryHorseSelect');
+
+            if (checkboxes.length < 2) {
+                select.innerHTML = '<option value="">-- Select at least 2 horses --</option>';
+                return;
+            }
+
+            select.innerHTML = Array.from(checkboxes).map(cb => {
+                const name = decodeURIComponent(atob(cb.value));
+                const horse = window.horseMappingData.find(h => h.name === name);
+                const displayName = horse ? (horse.displayName || horse.name) : name;
+                return `<option value="${cb.value}">${displayName}</option>`;
+            }).join('');
+        }
+
+        async function executeMerge() {
+            const checkboxes = document.querySelectorAll('.merge-horse-checkbox:checked');
+            const primarySelect = document.getElementById('primaryHorseSelect');
+
+            if (checkboxes.length < 2) {
+                alert('Please select at least 2 horses to merge');
+                return;
+            }
+
+            if (!primarySelect.value) {
+                alert('Please select a primary name');
+                return;
+            }
+
+            const primaryName = decodeURIComponent(atob(primarySelect.value));
+            const aliasNames = Array.from(checkboxes)
+                .map(cb => decodeURIComponent(atob(cb.value)))
+                .filter(name => name !== primaryName);
+
+            if (aliasNames.length === 0) {
+                alert('No aliases to merge');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/horses/merge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ primaryName, aliasNames })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Merged successfully! "${primaryName}" now includes: ${aliasNames.join(', ')}`);
+                    hideMergeHorsesUI();
+                    loadHorseMappingList();
+                    loadLatestSession(); // Refresh data to apply merge
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error merging horses:', error);
+                alert('Error merging horses');
+            }
+        }
+
+        function showUnmergeUI(encodedName) {
+            const name = decodeURIComponent(atob(encodedName));
+            const horse = window.horseMappingData.find(h => h.name === name);
+
+            if (!horse || !horse.aliases || horse.aliases.length === 0) {
+                alert('This horse has no aliases to unmerge');
+                return;
+            }
+
+            const aliasToRemove = prompt(
+                `"${horse.displayName || horse.name}" has these aliases:\n\n${horse.aliases.join('\n')}\n\nEnter the alias name to remove:`
+            );
+
+            if (!aliasToRemove) return;
+
+            if (!horse.aliases.includes(aliasToRemove)) {
+                alert('Alias not found. Please enter the exact alias name.');
+                return;
+            }
+
+            executeUnmerge(name, aliasToRemove);
+        }
+
+        async function executeUnmerge(primaryName, aliasName) {
+            try {
+                const response = await fetch('/api/horses/unmerge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ primaryName, aliasName })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Removed "${aliasName}" from "${primaryName}"`);
+                    loadHorseMappingList();
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error unmerging horse:', error);
+                alert('Error unmerging horse');
+            }
         }
 
         async function importHorseMappings() {

@@ -1082,6 +1082,70 @@ async function saveHorseMapping(mapping) {
   }
 }
 
+// Resolve a horse name to its primary name (if it's an alias)
+function resolveHorseAlias(horseName, horseMapping) {
+  if (!horseName || !horseMapping) return horseName;
+
+  const nameLower = horseName.toLowerCase().trim();
+  const nameStripped = horseName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+  // Check if this name is a primary name
+  const directMatch = Object.keys(horseMapping).find(k =>
+    k.toLowerCase() === nameLower ||
+    k.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped
+  );
+  if (directMatch) return directMatch;
+
+  // Check if this name is an alias of another horse
+  for (const [primaryName, data] of Object.entries(horseMapping)) {
+    if (data.aliases && Array.isArray(data.aliases)) {
+      const aliasMatch = data.aliases.find(alias =>
+        alias.toLowerCase() === nameLower ||
+        alias.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === nameStripped
+      );
+      if (aliasMatch) {
+        console.log(`Resolved alias: "${horseName}" -> "${primaryName}"`);
+        return primaryName;
+      }
+    }
+  }
+
+  return horseName;
+}
+
+// Merge training data for horses with aliases
+function mergeAliasedHorseData(allHorseDetailData, horseMapping) {
+  const merged = {};
+
+  Object.keys(allHorseDetailData).forEach(horseName => {
+    const primaryName = resolveHorseAlias(horseName, horseMapping);
+
+    if (!merged[primaryName]) {
+      merged[primaryName] = [];
+    }
+
+    // Add all entries, updating the horse name to primary
+    const entries = allHorseDetailData[horseName].map(entry => ({
+      ...entry,
+      horse: primaryName,
+      originalName: horseName !== primaryName ? horseName : undefined
+    }));
+
+    merged[primaryName].push(...entries);
+  });
+
+  // Sort each horse's entries by date (most recent first)
+  Object.keys(merged).forEach(horseName => {
+    merged[horseName].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA;
+    });
+  });
+
+  return merged;
+}
+
 // ============================================
 // TRAINING ENTRY EDITS STORAGE
 // ============================================
@@ -1195,24 +1259,29 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
 app.get('/api/session/:sessionId', async (req, res) => {
   const sessionId = req.params.sessionId;
   console.log('Session data requested for:', sessionId);
-  
+
   try {
     const sessionData = await getSession(sessionId);
-    
+
     if (!sessionData) {
       console.log('Session not found:', sessionId);
       return res.status(404).json({ error: 'Session not found' });
     }
-    
-    console.log('Session found:', sessionId, 'with', sessionData.horseData.length, 'horses');
-    
+
+    // Apply alias merging to combine data for horses with aliases
+    const horseMapping = await getHorseMapping();
+    const mergedDetailData = mergeAliasedHorseData(sessionData.allHorseDetailData, horseMapping);
+    const mergedHorseData = generateHorseSummary(mergedDetailData, horseMapping);
+
+    console.log('Session found:', sessionId, 'with', mergedHorseData.length, 'horses (after alias merge)');
+
     res.json({
       sessionId: sessionData.id,
       fileName: sessionData.fileName,
       uploadedAt: sessionData.createdAt,
       updatedAt: sessionData.updatedAt,
-      horseData: sessionData.horseData,
-      allHorseDetailData: sessionData.allHorseDetailData,
+      horseData: mergedHorseData,
+      allHorseDetailData: mergedDetailData,
       // Include sheet data if available
       allSheets: sessionData.allSheets,
       sheetNames: sessionData.sheetNames,
@@ -1459,6 +1528,7 @@ app.get('/api/horses', async (req, res) => {
       owner: data.owner || '',
       country: data.country || '',
       isHistoric: data.isHistoric || false,
+      aliases: data.aliases || [],
       addedAt: data.addedAt || ''
     }));
 
@@ -1626,6 +1696,137 @@ app.delete('/api/horses/:name', async (req, res) => {
   } catch (error) {
     console.error('Error deleting horse mapping:', error);
     res.status(500).json({ error: 'Failed to delete horse mapping' });
+  }
+});
+
+// Merge horses - combine multiple horse names into one with aliases
+app.post('/api/horses/merge', async (req, res) => {
+  try {
+    const { primaryName, aliasNames } = req.body;
+
+    if (!primaryName || !aliasNames || !Array.isArray(aliasNames) || aliasNames.length === 0) {
+      return res.status(400).json({ error: 'Primary name and alias names are required' });
+    }
+
+    const mapping = await getHorseMapping();
+
+    // Ensure primary horse exists in mapping
+    if (!mapping[primaryName]) {
+      mapping[primaryName] = {
+        owner: '',
+        country: '',
+        isHistoric: false,
+        aliases: [],
+        addedAt: new Date().toISOString()
+      };
+    }
+
+    // Initialize aliases array if not exists
+    if (!mapping[primaryName].aliases) {
+      mapping[primaryName].aliases = [];
+    }
+
+    // Add each alias
+    const addedAliases = [];
+    for (const aliasName of aliasNames) {
+      if (aliasName === primaryName) continue; // Skip if same as primary
+
+      // Check if alias is already used
+      const existingPrimary = Object.entries(mapping).find(([name, data]) =>
+        name !== primaryName && data.aliases && data.aliases.includes(aliasName)
+      );
+      if (existingPrimary) {
+        console.log(`Alias "${aliasName}" already belongs to "${existingPrimary[0]}"`);
+        continue;
+      }
+
+      // If alias was a primary horse, copy its data and remove it
+      if (mapping[aliasName]) {
+        // Copy owner/country if primary doesn't have them
+        if (!mapping[primaryName].owner && mapping[aliasName].owner) {
+          mapping[primaryName].owner = mapping[aliasName].owner;
+        }
+        if (!mapping[primaryName].country && mapping[aliasName].country) {
+          mapping[primaryName].country = mapping[aliasName].country;
+        }
+        // Copy any existing aliases from the merged horse
+        if (mapping[aliasName].aliases) {
+          mapping[primaryName].aliases.push(...mapping[aliasName].aliases);
+        }
+        delete mapping[aliasName];
+      }
+
+      // Add to aliases if not already there
+      if (!mapping[primaryName].aliases.includes(aliasName)) {
+        mapping[primaryName].aliases.push(aliasName);
+        addedAliases.push(aliasName);
+      }
+    }
+
+    mapping[primaryName].updatedAt = new Date().toISOString();
+    await saveHorseMapping(mapping);
+
+    console.log(`Merged horses: "${primaryName}" now includes aliases: ${addedAliases.join(', ')}`);
+
+    res.json({
+      success: true,
+      message: `Merged ${addedAliases.length} horse(s) into "${primaryName}"`,
+      primaryName,
+      aliases: mapping[primaryName].aliases
+    });
+
+  } catch (error) {
+    console.error('Error merging horses:', error);
+    res.status(500).json({ error: 'Failed to merge horses' });
+  }
+});
+
+// Remove an alias from a horse
+app.post('/api/horses/unmerge', async (req, res) => {
+  try {
+    const { primaryName, aliasName } = req.body;
+
+    if (!primaryName || !aliasName) {
+      return res.status(400).json({ error: 'Primary name and alias name are required' });
+    }
+
+    const mapping = await getHorseMapping();
+
+    if (!mapping[primaryName]) {
+      return res.status(404).json({ error: 'Primary horse not found' });
+    }
+
+    if (!mapping[primaryName].aliases || !mapping[primaryName].aliases.includes(aliasName)) {
+      return res.status(404).json({ error: 'Alias not found for this horse' });
+    }
+
+    // Remove the alias
+    mapping[primaryName].aliases = mapping[primaryName].aliases.filter(a => a !== aliasName);
+    mapping[primaryName].updatedAt = new Date().toISOString();
+
+    // Optionally: create a new mapping entry for the unmerged horse
+    mapping[aliasName] = {
+      owner: '',
+      country: '',
+      isHistoric: false,
+      aliases: [],
+      addedAt: new Date().toISOString()
+    };
+
+    await saveHorseMapping(mapping);
+
+    console.log(`Unmerged: removed "${aliasName}" from "${primaryName}"`);
+
+    res.json({
+      success: true,
+      message: `Removed "${aliasName}" from "${primaryName}"`,
+      primaryName,
+      aliases: mapping[primaryName].aliases
+    });
+
+  } catch (error) {
+    console.error('Error unmerging horses:', error);
+    res.status(500).json({ error: 'Failed to unmerge horses' });
   }
 });
 
