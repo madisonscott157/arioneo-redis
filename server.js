@@ -1462,6 +1462,9 @@ app.get('/api/horses', async (req, res) => {
       addedAt: data.addedAt || ''
     }));
 
+    // Sort horses alphabetically by display name
+    horses.sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name));
+
     // Get unique owners and countries for filter dropdowns
     const owners = [...new Set(horses.map(h => h.owner).filter(Boolean))].sort();
     const countries = [...new Set(horses.map(h => h.country).filter(Boolean))].sort();

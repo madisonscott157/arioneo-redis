@@ -2777,6 +2777,8 @@
                     const statusText = isHistoric ? 'Historic' : 'Active';
                     const toggleText = isHistoric ? 'Make Active' : 'Make Historic';
                     const displayName = h.displayName || h.name;
+                    // Use base64 encoding to safely pass horse names with special characters
+                    const encodedName = btoa(encodeURIComponent(h.name));
 
                     return `
                     <tr>
@@ -2785,11 +2787,11 @@
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.country || '-'}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
                             <span style="color: ${statusColor}; font-weight: bold; margin-right: 8px;">${statusText}</span>
-                            <button onclick="toggleHorseStatus('${h.name.replace(/'/g, "\\'")}', ${!isHistoric})" style="padding: 2px 6px; cursor: pointer; font-size: 11px;">${toggleText}</button>
+                            <button onclick="toggleHorseStatusEncoded('${encodedName}', ${!isHistoric})" style="padding: 2px 6px; cursor: pointer; font-size: 11px;">${toggleText}</button>
                         </td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
-                            <button onclick="editHorseMapping('${h.name.replace(/'/g, "\\'")}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
-                            <button onclick="deleteHorseMapping('${h.name.replace(/'/g, "\\'")}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
+                            <button onclick="editHorseMappingEncoded('${encodedName}')" style="padding: 4px 8px; margin-right: 4px; cursor: pointer;">Edit</button>
+                            <button onclick="deleteHorseMappingEncoded('${encodedName}')" style="padding: 4px 8px; cursor: pointer; color: red;">X</button>
                         </td>
                     </tr>`;
                 }).join('');
@@ -2912,6 +2914,22 @@
             } catch (error) {
                 console.error('Error deleting horse mapping:', error);
             }
+        }
+
+        // Wrapper functions that decode base64-encoded horse names
+        function toggleHorseStatusEncoded(encodedName, makeHistoric) {
+            const name = decodeURIComponent(atob(encodedName));
+            toggleHorseStatus(name, makeHistoric);
+        }
+
+        function editHorseMappingEncoded(encodedName) {
+            const name = decodeURIComponent(atob(encodedName));
+            editHorseMapping(name);
+        }
+
+        function deleteHorseMappingEncoded(encodedName) {
+            const name = decodeURIComponent(atob(encodedName));
+            deleteHorseMapping(name);
         }
 
         async function importHorseMappings() {
