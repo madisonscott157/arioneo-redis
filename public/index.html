@@ -3773,7 +3773,7 @@
                     distanceCol: row.distanceCol || '-',
                     trotHR: row.trotHR || '-',
                     walkHR: row.walkHR || '-',
-                    notes: row.notes ? `<span title="${row.notes}" style="cursor: help;">📝</span>` : '-'
+                    notes: row.notes ? `<span title="${row.notes}" style="cursor: help; max-width: 150px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${row.notes.length > 20 ? row.notes.substring(0, 20) + '...' : row.notes}</span>` : '-'
                 };
 
                 const rowHTML = columnOrder.map(col => {
@@ -4011,7 +4011,7 @@
                         horseData = data.horseData;
                         allHorseDetailData = data.allHorseDetailData;
 
-                        // Load sheet data from Redis if available
+                        // Load sheet metadata from Redis if available, else from localStorage
                         if (data.allSheets && data.sheetNames) {
                             allSheets = data.allSheets;
                             sheetNames = data.sheetNames;
@@ -4019,14 +4019,23 @@
                                 currentSheetName = data.currentSheetName;
                             }
                             updateSheetDropdown();
-
-                            // Load the correct sheet data instead of using session data directly
-                            loadCurrentSheet();
-                            console.log('Loaded sheet-specific data from Redis for sheet:', currentSheetName, 'horses:', horseData.length);
                         } else {
                             // Fallback to localStorage for backwards compatibility
                             loadAllSheets();
                         }
+
+                        // Update allSheets with server data (which has edits/notes applied)
+                        // This ensures loadCurrentSheet uses the correct data
+                        if (currentSheetName && allSheets) {
+                            allSheets[currentSheetName] = {
+                                horseData: data.horseData,
+                                allHorseDetailData: data.allHorseDetailData
+                            };
+                        }
+
+                        // Load the sheet data (now uses server data with edits)
+                        loadCurrentSheet();
+                        console.log('Loaded data for sheet:', currentSheetName, 'horses:', horseData.length);
 
                         // Calculate Last Work dates for loaded session
                         calculateLastWorkDates();
@@ -4041,6 +4050,12 @@
                         updateTableColumnVisibility();
 
                         document.getElementById('exportCsv').disabled = false;
+
+                        // Refresh horse detail view if it's currently visible
+                        const horseDetailView = document.getElementById('horseDetailView');
+                        if (horseDetailView && horseDetailView.style.display !== 'none' && currentHorseRawName) {
+                            sortHorseDetailData();
+                        }
                     }
                 })
                 .catch(error => {
