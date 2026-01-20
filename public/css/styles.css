@@ -914,14 +914,16 @@
             }
 
             .container .controls {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 10px !important; /* Reduced from 15px */
-                gap: 8px !important; /* Reduced from 10px */
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 10px !important;
+                gap: 6px !important;
             }
-            
+
             .container .control-group {
-                width: 100%;
+                width: auto;
             }
             
             .container .control-group label {
@@ -1182,8 +1184,8 @@
                 display: flex !important;
                 flex-wrap: wrap !important;
                 gap: 6px !important;
-                padding: 10px !important;
-                justify-content: center !important;
+                padding: 8px !important;
+                justify-content: flex-start !important;
             }
 
             /* Hide dividers on mobile */
@@ -1193,38 +1195,43 @@
 
             /* Make buttons and selects compact */
             .controls .btn,
-            .controls .file-label {
-                padding: 8px 12px !important;
-                font-size: 12px !important;
+            .controls .file-label,
+            .controls .race-upload-btn {
+                padding: 6px 10px !important;
+                font-size: 11px !important;
                 flex: 0 0 auto !important;
+                width: auto !important;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 8px !important;
-                font-size: 12px !important;
-                min-width: 100px !important;
+                padding: 6px !important;
+                font-size: 11px !important;
+                min-width: 80px !important;
+                width: auto !important;
             }
 
-            /* Search input spans more width */
+            /* Search input slightly wider */
             .controls #horseFilter {
-                flex: 1 1 150px !important;
-                min-width: 150px !important;
+                flex: 1 1 100px !important;
+                min-width: 100px !important;
+                max-width: 150px !important;
             }
 
             /* Control groups inline */
             .control-group {
                 margin: 0 !important;
                 padding: 0 !important;
+                width: auto !important;
             }
 
             /* Header adjustments */
             .header h1 {
-                font-size: 1.5em !important;
+                font-size: 1.3em !important;
             }
 
             .header p {
-                font-size: 0.85em !important;
+                font-size: 0.8em !important;
             }
         }
 
@@ -1249,8 +1256,9 @@
             }
 
             .controls #horseFilter {
-                width: 100% !important;
-                flex: 1 1 100% !important;
+                width: auto !important;
+                flex: 1 1 120px !important;
+                min-width: 120px !important;
             }
         }
 
