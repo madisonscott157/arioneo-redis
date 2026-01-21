@@ -3081,12 +3081,16 @@ class RaceChartParser {
         const nextLine = lines[i + 1];
         if (/^\d+\.\d+/.test(nextLine.trim())) {
           // Combine this line with subsequent lines to form the full horse data
-          // But STOP before the 6F time line (which has pattern like "118L3/m1:12.24KY")
+          // But STOP before the margins line or 6F time line
           horseLine = lines[i] + nextLine;
           for (let j = 2; j <= 5 && i + j < lines.length; j++) {
             const checkLine = lines[i + j];
             // Stop if we hit the 6F time line (contains /m or /f followed by time and state)
             if (/\d+L\d+\/[a-z][12]:\d{2}\.\d{2}[A-Z]{2}/i.test(checkLine)) {
+              break;
+            }
+            // Stop if we hit the margins line (contains ½, ¼, ¾ or starts with position margins like "hd", "nk")
+            if (/[½¼¾]/.test(checkLine) || /^(hd|nk|nse|\d+[½¼¾])/i.test(checkLine.trim())) {
               break;
             }
             horseLine += checkLine;
@@ -3187,8 +3191,10 @@ class RaceChartParser {
     if (finalTime !== '-') {
       const afterFinalTime = afterHorse.substring(afterHorse.lastIndexOf(finalTime) + finalTime.length);
 
-      // Extract all digits as a string
-      const digitsOnly = afterFinalTime.replace(/\D/g, '');
+      // Extract only the FIRST consecutive run of digits after final time
+      // This avoids picking up digits from margin fractions like "1½1½3¼"
+      const positionMatch = afterFinalTime.match(/^(\d+)/);
+      const digitsOnly = positionMatch ? positionMatch[1] : '';
 
       if (digitsOnly.length >= 5) {
         // 5 positions: 1/4, 1/2, 3/4, Str, Fin - take indices 0,1,2,4 (skip Str)
@@ -3197,10 +3203,10 @@ class RaceChartParser {
         pos3_4 = this.formatPosition(digitsOnly[2]);
         posFin = this.formatPosition(digitsOnly[4]);
       } else if (digitsOnly.length === 4) {
-        // 4 positions: 1/4, 1/2, 3/4, Fin
+        // 4 positions: 1/4, 1/2, Str, Fin (for sprints without 3/4 call)
         pos1_4 = this.formatPosition(digitsOnly[0]);
         pos1_2 = this.formatPosition(digitsOnly[1]);
-        pos3_4 = this.formatPosition(digitsOnly[2]);
+        pos3_4 = this.formatPosition(digitsOnly[2]); // Actually Str position for sprints
         posFin = this.formatPosition(digitsOnly[3]);
       } else if (digitsOnly.length >= 2) {
         // If fewer positions, just get finish
