@@ -1255,12 +1255,16 @@
             #mainView .table-container {
                 overflow-x: auto !important;
                 position: relative;
+                padding: 0 !important;
+                margin: 0;
             }
 
             #mainView table {
                 border-collapse: separate !important;
                 border-spacing: 0;
                 overflow: visible !important;
+                border-radius: 0 !important;
+                margin: 0;
             }
 
             #mainView table th:first-child,
@@ -1269,7 +1273,8 @@
                 left: 0;
                 z-index: 2;
                 background: white;
-                box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+                box-shadow: 3px 0 6px rgba(0,0,0,0.15);
+                min-width: 130px;
             }
 
             #mainView table th:first-child {
