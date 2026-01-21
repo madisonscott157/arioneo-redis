@@ -7,8 +7,13 @@ const path = require('path');
 const fs = require('fs');
 const compression = require('compression');
 const helmet = require('helmet');
+const session = require('express-session');
 const pdfParse = require('pdf-parse');
 const Fuse = require('fuse.js');
+
+// Auth credentials from environment variables
+const AUTH_USERNAME = process.env.AUTH_USERNAME || 'admin';
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD || 'password';
 
 // Import Upstash Redis for persistent storage
 let redis = null;
@@ -37,6 +42,65 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'horse-training-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
+
+// Auth middleware - protect all routes except login
+function requireAuth(req, res, next) {
+  // Allow access to login page and login POST
+  if (req.path === '/login' || req.path === '/login.html') {
+    return next();
+  }
+
+  // Check if user is authenticated
+  if (req.session && req.session.authenticated) {
+    return next();
+  }
+
+  // Redirect to login for HTML requests, return 401 for API requests
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return res.redirect('/login.html');
+}
+
+// Login route
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+    req.session.authenticated = true;
+    return res.redirect('/');
+  }
+
+  return res.redirect('/login.html?error=1');
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    res.redirect('/login.html');
+  });
+});
+
+// Auth status endpoint
+app.get('/api/auth/status', (req, res) => {
+  res.json({ authenticated: !!(req.session && req.session.authenticated) });
+});
+
+// Apply auth middleware to all routes
+app.use(requireAuth);
 
 // Serve static files (use absolute path for Vercel compatibility)
 app.use(express.static(path.join(__dirname, 'public')));
