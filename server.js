@@ -3196,21 +3196,27 @@ class RaceChartParser {
       const positionMatch = afterFinalTime.match(/^(\d+)/);
       const digitsOnly = positionMatch ? positionMatch[1] : '';
 
-      if (digitsOnly.length >= 5) {
+      // Parse positions intelligently - handles double-digit positions (10, 11, 12)
+      const positions = this.parsePositions(digitsOnly);
+
+      console.log(`[DEBUG] Horse: ${horseName}, digitsOnly: "${digitsOnly}", parsed positions: [${positions.join(', ')}]`);
+
+      if (positions.length >= 5) {
         // 5 positions: 1/4, 1/2, 3/4, Str, Fin - take indices 0,1,2,4 (skip Str)
-        pos1_4 = this.formatPosition(digitsOnly[0]);
-        pos1_2 = this.formatPosition(digitsOnly[1]);
-        pos3_4 = this.formatPosition(digitsOnly[2]);
-        posFin = this.formatPosition(digitsOnly[4]);
-      } else if (digitsOnly.length === 4) {
+        pos1_4 = this.formatPosition(positions[0]);
+        pos1_2 = this.formatPosition(positions[1]);
+        pos3_4 = this.formatPosition(positions[2]);
+        posFin = this.formatPosition(positions[4]);
+        console.log(`[DEBUG] Final positions - 1/4: ${pos1_4}, 1/2: ${pos1_2}, 3/4: ${pos3_4}, Fin: ${posFin}`);
+      } else if (positions.length === 4) {
         // 4 positions: 1/4, 1/2, Str, Fin (for sprints without 3/4 call)
-        pos1_4 = this.formatPosition(digitsOnly[0]);
-        pos1_2 = this.formatPosition(digitsOnly[1]);
-        pos3_4 = this.formatPosition(digitsOnly[2]); // Actually Str position for sprints
-        posFin = this.formatPosition(digitsOnly[3]);
-      } else if (digitsOnly.length >= 2) {
+        pos1_4 = this.formatPosition(positions[0]);
+        pos1_2 = this.formatPosition(positions[1]);
+        pos3_4 = this.formatPosition(positions[2]); // Actually Str position for sprints
+        posFin = this.formatPosition(positions[3]);
+      } else if (positions.length >= 2) {
         // If fewer positions, just get finish
-        posFin = this.formatPosition(digitsOnly[digitsOnly.length - 1]);
+        posFin = this.formatPosition(positions[positions.length - 1]);
       }
     }
 
@@ -3234,6 +3240,29 @@ class RaceChartParser {
     if (p === 2) return '2nd';
     if (p === 3) return '3rd';
     return `${p}th`;
+  }
+
+  // Parse position string into array of positions, handling double-digit positions (10, 11, 12)
+  // Position "0" doesn't exist, so "10" must be position 10, not positions "1" and "0"
+  parsePositions(digitsStr) {
+    const positions = [];
+    let i = 0;
+    while (i < digitsStr.length) {
+      // Check if this could be a double-digit position (10, 11, 12)
+      if (digitsStr[i] === '1' && i + 1 < digitsStr.length) {
+        const nextDigit = digitsStr[i + 1];
+        if (nextDigit === '0' || nextDigit === '1' || nextDigit === '2') {
+          // This is a double-digit position (10, 11, or 12)
+          positions.push(parseInt(digitsStr.substring(i, i + 2)));
+          i += 2;
+          continue;
+        }
+      }
+      // Single digit position
+      positions.push(parseInt(digitsStr[i]));
+      i++;
+    }
+    return positions;
   }
 }
 
