@@ -1250,6 +1250,38 @@
             .header p {
                 font-size: 0.8em;
             }
+
+            /* Freeze first column on main table for mobile */
+            #mainView .table-container {
+                overflow-x: auto !important;
+                position: relative;
+            }
+
+            #mainView table {
+                border-collapse: separate !important;
+                border-spacing: 0;
+                overflow: visible !important;
+            }
+
+            #mainView table th:first-child,
+            #mainView table td:first-child {
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                background: white;
+                box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+            }
+
+            #mainView table th:first-child {
+                background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+                z-index: 3;
+            }
+
+            /* Fix border for separated cells */
+            #mainView table th,
+            #mainView table td {
+                border-bottom: 1px solid #e9ecef;
+            }
         }
 
         /* Even smaller screens */
