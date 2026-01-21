@@ -1668,6 +1668,66 @@ app.put('/api/training/edit', async (req, res) => {
   }
 });
 
+// Delete a training entry
+app.delete('/api/training/delete', async (req, res) => {
+  try {
+    const { horse, date } = req.body;
+
+    if (!horse || !date) {
+      return res.status(400).json({ error: 'Horse and date are required' });
+    }
+
+    console.log(`Deleting training entry: ${horse} on ${date}`);
+
+    const sessionId = 'arioneo-main-session';
+    const session = await getSession(sessionId);
+
+    if (!session || !session.allHorseDetailData) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Find the horse in detail data (case-insensitive)
+    const horseKeys = Object.keys(session.allHorseDetailData);
+    const matchingKey = horseKeys.find(k => k.toLowerCase() === horse.toLowerCase());
+
+    if (!matchingKey || !session.allHorseDetailData[matchingKey]) {
+      return res.status(404).json({ error: 'Horse not found' });
+    }
+
+    // Find and remove the entry with the matching date
+    const entries = session.allHorseDetailData[matchingKey];
+    const originalLength = entries.length;
+    session.allHorseDetailData[matchingKey] = entries.filter(entry => entry.date !== date);
+
+    if (session.allHorseDetailData[matchingKey].length === originalLength) {
+      return res.status(404).json({ error: 'Training entry not found' });
+    }
+
+    // If horse has no more entries, remove the horse key
+    if (session.allHorseDetailData[matchingKey].length === 0) {
+      delete session.allHorseDetailData[matchingKey];
+    }
+
+    // Regenerate summary and save
+    const horseMapping = await getHorseMapping();
+    const horseData = generateHorseSummary(session.allHorseDetailData, horseMapping);
+    await saveSession(sessionId, session.fileName, horseData, session.allHorseDetailData, {
+      allSheets: session.allSheets,
+      sheetNames: session.sheetNames,
+      currentSheetName: session.currentSheetName
+    });
+
+    res.json({
+      success: true,
+      message: 'Training entry deleted'
+    });
+
+  } catch (error) {
+    console.error('Error deleting training entry:', error);
+    res.status(500).json({ error: 'Failed to delete training entry' });
+  }
+});
+
 // Get all edits
 app.get('/api/training/edits', async (req, res) => {
   try {

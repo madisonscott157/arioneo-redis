@@ -1759,9 +1759,12 @@
                         <input type="hidden" id="editHorse">
                         <input type="hidden" id="editDate">
 
-                        <div class="modal-footer">
-                            <button onclick="closeEditTrainingModal()" class="cancel-btn">Cancel</button>
-                            <button onclick="saveTrainingEdit()" class="upload-btn">Save Changes</button>
+                        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                            <button onclick="deleteTrainingEntry()" class="cancel-btn" style="background: #dc3545; color: white;">Delete</button>
+                            <div>
+                                <button onclick="closeEditTrainingModal()" class="cancel-btn">Cancel</button>
+                                <button onclick="saveTrainingEdit()" class="upload-btn">Save Changes</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1828,6 +1831,35 @@
             } catch (error) {
                 console.error('Error saving training edit:', error);
                 alert('Error saving changes');
+            }
+        }
+
+        async function deleteTrainingEntry() {
+            const horse = document.getElementById('editHorse').value;
+            const date = document.getElementById('editDate').value;
+
+            if (!confirm(`Are you sure you want to delete this training entry for ${horse} on ${date}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/training/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horse, date })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    closeEditTrainingModal();
+                    loadLatestSession();
+                    alert('Training entry deleted');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting training entry:', error);
+                alert('Error deleting entry');
             }
         }
 
