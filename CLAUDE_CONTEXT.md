@@ -92,22 +92,44 @@ arioneo-redis-main/
 1. **Export button not working** - Added null check for removed `sortBy` element (line ~507)
 2. **sortBy dropdown removed** - Was causing JS error that blocked other listeners
 
-## CURRENT ISSUE TO FIX
+## Race Chart Position Parsing (RESOLVED)
 
-**Excel export color coding not working for horse detail page.**
+### Issue Summary
+Race chart PDF position parsing had multiple bugs affecting different PDF formats.
 
-The `exportHorseDataToCsv()` function uses ExcelJS to export with cell background colors, but the colors are not appearing in the exported Excel file.
+### Bug 1: Code Not Deployed
+**Problem**: Changes weren't committed to git, so Vercel was running old code.
+**Fix**: Always commit and push before expecting changes on live site.
 
-Current implementation (app.js lines ~2813-2917):
-- Uses `ExcelJS.Workbook()` and `worksheet.addRow()`
-- Attempts to set `cell.fill` with `type: 'pattern'`, `pattern: 'solid'`, `fgColor: { argb: '...' }`
-- Colors are being calculated correctly (using getBest5FColor, etc.)
-- But the exported file has no colors
+### Bug 2: Double-Digit Positions (Florida Derby format)
+**Problem**: Position string "109765" was parsed as [1, 0, 9, 7, 6, 5] instead of [10, 9, 7, 6, 5].
+**Fix**: Added `parsePositions()` method that detects when "1" is followed by "0" (since position 0 doesn't exist, "10" must be 10th place).
 
-Column indices for colored columns (1-based for ExcelJS):
-- BEST5F_COL = 13
-- FAST_RECOVERY_COL = 17
-- RECOVERY15_COL = 20
+### Bug 3: Wrong Final Time Selected (Saratoga format)
+**Problem**: Horse boundary detection included next horse's data, so code found two M:SS.SS times and used the LAST one (wrong horse's time).
+**Fix**: Use FIRST M:SS.SS time as final time, not last.
+
+### Bug 4: Ambiguous "11" Parsing
+**Problem**: "1111" was parsed as [11, 11] instead of [1, 1, 1, 1] (four 1st places).
+**Root Cause**: Only "10" is unambiguous (position 0 invalid). "11" could be position 11 OR positions 1,1.
+**Fix**: Added `expectedCount` parameter to `parsePositions()`:
+- If digit count matches expected positions → parse all as singles
+- If digit count exceeds expected → apply double-digit logic
+
+### Final parsePositions Logic (server.js ~lines 3306-3347)
+```javascript
+parsePositions(digitsStr, expectedCount = 0)
+// - "1111" with expected 4 → [1, 1, 1, 1] ✓
+// - "109765" with expected 5 → [10, 9, 7, 6, 5] ✓
+// - "119765" with expected 5 → [11, 9, 7, 6, 5] ✓
+// - "12865" with expected 5 → [1, 2, 8, 6, 5] ✓ (not 12)
+```
+
+### Two PDF Formats Supported
+1. **Format A (Florida Derby style)**: Positions concatenated as digits after final time
+   - Example: "109765" → [10, 9, 7, 6, 5]
+2. **Format B (Saratoga style)**: Space-separated tokens with margins attached
+   - Example: "11 1hd 1½ 11" → positions 1, 1, 1, 1 (margins on separate line in text extraction)
 
 ## Key Functions Reference
 
