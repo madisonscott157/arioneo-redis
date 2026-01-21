@@ -497,10 +497,6 @@
         loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
-        const sortByEl = document.getElementById('sortBy');
-        if (sortByEl) sortByEl.addEventListener('change', updateSort);
-        const sortOrderEl = document.getElementById('sortOrder');
-        if (sortOrderEl) sortOrderEl.addEventListener('change', updateSort);
         document.getElementById('exportCsv').addEventListener('click', exportToCsv);
         document.getElementById('exportAllTraining').addEventListener('click', exportAllTrainingData);
 
@@ -2044,192 +2040,6 @@
             
             return result;
         }
-        
-        function processSheetData(jsonData, horseName, worksheet, workbook) {
-            if (jsonData.length === 0) return null;
-            
-            const headers = jsonData[0].map(h => h ? h.toString().toLowerCase().trim() : '');
-            console.log(`Processing sheet: ${horseName}`);
-            console.log('Headers found:', headers);
-            
-            let age = null;
-            let best1f = null;
-            let best5f = null;
-            let dateOfBest5f = null;
-            let maxSpeed = null;
-            let fastRecovery = null;
-            let recovery15min = null;
-            
-            const times1f = [];
-            const times5f = [];
-            const speeds = [];
-            const detailData = [];
-            
-            for (let i = 1; i < jsonData.length; i++) {
-                const row = jsonData[i];
-                if (!row || row.length === 0) continue;
-                
-                const rowData = {};
-                headers.forEach((header, index) => {
-                    rowData[header] = row[index] ? row[index].toString().trim() : '';
-                });
-                
-                let dateValue = row[0] || rowData.date || '';
-                if (typeof dateValue === 'number' && dateValue > 40000) {
-                    const excelEpoch = new Date(1899, 11, 30);
-                    const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
-                    dateValue = jsDate.toLocaleDateString();
-                } else if (dateValue instanceof Date) {
-                    dateValue = dateValue.toLocaleDateString();
-                } else if (dateValue.toString().includes('T')) {
-                    const date = new Date(dateValue);
-                    dateValue = date.toLocaleDateString();
-                }
-                
-                // Check if this is a work or race row
-                const typeValue = row[2] || rowData.type || '';
-                const isRace = typeValue.toString().toLowerCase().includes('race');
-                const isWork = typeValue.toString().toLowerCase().includes('work');
-                
-                const detailRow = {
-                    date: dateValue,
-                    horse: rowData.horse || horseName,
-                    type: typeValue,
-                    track: rowData.track || '',
-                    surface: rowData.surface || '',
-                    distance: rowData.distance || '',
-                    avgSpeed: rowData['avg speed'] || '',
-                    maxSpeed: rowData['max speed'] || '',
-                    best1f: rowData['best 1f'] || '',
-                    best2f: rowData['best 2f'] || '',
-                    best3f: rowData['best 3f'] || '',
-                    best4f: rowData['best 4f'] || '',
-                    best5f: rowData['best 5f'] || '',
-                    best6f: rowData['best 6f'] || '',
-                    best7f: rowData['best 7f'] || '',
-                    maxHR: rowData['max hr'] || '',
-                    fastRecovery: rowData['fast recovery'] || '',
-                    fastQuality: rowData['fast quality'] || '',
-                    fastPercent: rowData['fast %'] || '',
-                    recovery15: rowData['15 recovery'] || '',
-                    quality15: rowData['15 quality'] || '',
-                    hr15Percent: rowData['hr 15%'] || '',
-                    maxSL: rowData['max sl'] || '',
-                    slGallop: rowData['sl gallop'] || '',
-                    sfGallop: rowData['sf gallop'] || '',
-                    slWork: rowData['sl work'] || '',
-                    sfWork: rowData['sf work'] || '',
-                    hr2min: rowData['hr 2 min'] || '',
-                    hr5min: rowData['hr 5 min'] || '',
-                    symmetry: rowData.symmetry || '',
-                    regularity: rowData.regularity || '',
-                    bpm120: rowData['120bpm'] || '',
-                    zone5: rowData['zone 5'] || '',
-                    age: rowData.age || '',
-                    sex: rowData.sex || '',
-                    temp: rowData.temp || '',
-                    distanceCol: rowData.distance || '',
-                    trotHR: rowData['trot hr'] || '',
-                    walkHR: rowData['walk hr'] || '',
-                    isRace: isRace,
-                    isWork: isWork
-                };
-                
-                // Add all rows to detail data
-                if (detailRow.date || detailRow.horse || detailRow.type) {
-                    detailData.push(detailRow);
-                }
-                
-                // For main table summary, exclude races
-                if (!isRace) {
-                    // Get age
-                    if (!age && detailRow.age) {
-                        const parsedAge = parseInt(detailRow.age);
-                        if (!isNaN(parsedAge)) {
-                            age = parsedAge;
-                        }
-                    }
-                    
-                    // Check for 1F times
-                    if (detailRow.best1f && isValidTime(detailRow.best1f)) {
-                        times1f.push({ time: detailRow.best1f, seconds: timeToSeconds(detailRow.best1f) });
-                    }
-                    
-                    // Check for 5F times
-                    if (detailRow.best5f && isValidTime(detailRow.best5f)) {
-                        times5f.push({ 
-                            time: detailRow.best5f, 
-                            seconds: timeToSeconds(detailRow.best5f),
-                            date: dateValue.toString(),
-                            fastRecovery: detailRow.fastRecovery,
-                            recovery15min: detailRow.recovery15
-                        });
-                    }
-                    
-                    // Check for max speed
-                    if (detailRow.maxSpeed) {
-                        const speed = parseFloat(detailRow.maxSpeed);
-                        if (!isNaN(speed)) {
-                            speeds.push(speed);
-                        }
-                    }
-                }
-            }
-            
-            if (times1f.length > 0) {
-                const fastest1f = times1f.reduce((min, current) => 
-                    current.seconds < min.seconds ? current : min
-                );
-                best1f = fastest1f.time;
-            }
-            
-            if (times5f.length > 0) {
-                const fastest5f = times5f.reduce((min, current) => 
-                    current.seconds < min.seconds ? current : min
-                );
-                best5f = fastest5f.time;
-                dateOfBest5f = fastest5f.date;
-                fastRecovery = fastest5f.fastRecovery;
-                recovery15min = fastest5f.recovery15min;
-            }
-            
-            if (speeds.length > 0) {
-                maxSpeed = Math.max(...speeds);
-            }
-            
-            // Get most recent training date
-            let lastTrainingDate = null;
-            const allDates = detailData.filter(row => row.date && row.date !== '-').map(row => row.date);
-            if (allDates.length > 0) {
-                const mostRecent = allDates.sort((a, b) => new Date(b) - new Date(a))[0];
-                lastTrainingDate = mostRecent;
-            }
-
-            // Get data from most recent training
-            const sortedData = [...detailData].sort((a, b) => new Date(b.date) - new Date(a.date));
-            const lastTraining = sortedData[0];
-            if (lastTraining) {
-                best1f = lastTraining.best1f || best1f;
-                best5f = lastTraining.best5f || best5f;
-                fastRecovery = lastTraining.fastRecovery || fastRecovery;
-                recovery15min = lastTraining.recovery15min || recovery15min;
-            }
-
-            allHorseDetailData[horseName] = detailData;
-
-            return {
-                name: horseName,
-                age: age,
-                lastTrainingDate: lastTrainingDate,
-                best1f: best1f,
-                best5f: best5f,
-                fastRecovery: fastRecovery,
-                recovery15min: recovery15min,
-                best5fColor: getBest5FColor(best5f),
-                fastRecoveryColor: getFastRecoveryColor(fastRecovery),
-                recovery15Color: getRecovery15Color(recovery15min)
-            };
-        }
 
         function isValidTime(timeStr) {
             if (!timeStr) return false;
@@ -2347,16 +2157,6 @@
             filterData();
         }
 
-        function updateSort() {
-            const sortBy = document.getElementById('sortBy').value;
-            const sortOrderEl = document.getElementById('sortOrder');
-            const sortOrder = sortOrderEl ? sortOrderEl.value : 'asc'; // Default to asc if no order selector
-            
-            currentSort = { column: sortBy, order: sortOrder };
-            saveUserPreferences(); // Save sort preferences
-            sortData();
-        }
-
         function sortTable(column) {
             if (currentSort.column === column) {
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
@@ -2365,12 +2165,6 @@
                 // Default to 'desc' for lastTrainingDate column (most recent first), 'asc' for others
                 currentSort.order = column === 'lastTrainingDate' ? 'desc' : 'asc';
             }
-
-            // Update sortBy dropdown if it exists
-            const sortByEl = document.getElementById('sortBy');
-            if (sortByEl) sortByEl.value = column;
-            const sortOrderEl = document.getElementById('sortOrder');
-            if (sortOrderEl) sortOrderEl.value = currentSort.order;
 
             sortData();
         }
@@ -2535,9 +2329,9 @@
             try {
                 const workbook = new ExcelJS.Workbook();
 
-                // Define headers for training data
+                // Define headers for training data (Owner and Country added after Horse)
                 const headers = [
-                    'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
+                    'Date', 'Horse', 'Owner', 'Country', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
                     'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
                     'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
                     'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
@@ -2545,10 +2339,19 @@
                     'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
                 ];
 
-                // Column indices (1-based for ExcelJS)
-                const BEST5F_COL = 13;
-                const FAST_RECOVERY_COL = 17;
-                const RECOVERY15_COL = 20;
+                // Column indices (1-based for ExcelJS) - adjusted for Owner and Country columns
+                const BEST5F_COL = 15;
+                const FAST_RECOVERY_COL = 19;
+                const RECOVERY15_COL = 22;
+
+                // Build owner/country lookup from horseData
+                const horseLookup = {};
+                horseData.forEach(h => {
+                    horseLookup[h.name] = { owner: h.owner || '', country: h.country || '' };
+                    if (h.displayName && h.displayName !== h.name) {
+                        horseLookup[h.displayName] = { owner: h.owner || '', country: h.country || '' };
+                    }
+                });
 
                 // Helper function to add styled header row
                 function addHeaderRow(worksheet) {
@@ -2589,8 +2392,8 @@
                     const dateValue = parseDate(rowData.date);
 
                     const row = worksheet.addRow([
-                        dateValue || rowData.date || '', rowData.horse || '', rowData.type || '',
-                        rowData.track || '', rowData.surface || '', rowData.distance || '',
+                        dateValue || rowData.date || '', rowData.horse || '', rowData.owner || '', rowData.country || '',
+                        rowData.type || '', rowData.track || '', rowData.surface || '', rowData.distance || '',
                         rowData.avgSpeed || '', rowData.maxSpeed || '', rowData.best1f || '', rowData.best2f || '',
                         rowData.best3f || '', rowData.best4f || '', rowData.best5f || '', rowData.best6f || '',
                         rowData.best7f || '', rowData.maxHR || '', rowData.fastRecovery || '', rowData.fastQuality || '',
@@ -2661,8 +2464,14 @@
                 let allTrainingData = [];
                 allHorses.forEach(horseName => {
                     const horseTraining = allHorseDetailData[horseName] || [];
+                    const horseInfo = horseLookup[horseName] || { owner: '', country: '' };
                     horseTraining.forEach(entry => {
-                        allTrainingData.push({ ...entry, horse: entry.horse || horseName });
+                        allTrainingData.push({
+                            ...entry,
+                            horse: entry.horse || horseName,
+                            owner: horseInfo.owner,
+                            country: horseInfo.country
+                        });
                     });
                 });
 
@@ -2701,6 +2510,7 @@
                     addHeaderRow(horseSheet);
 
                     const horseTraining = allHorseDetailData[horseName] || [];
+                    const horseInfo = horseLookup[horseName] || { owner: '', country: '' };
 
                     // Sort horse training by date descending
                     const sortedTraining = [...horseTraining].sort((a, b) => {
@@ -2710,7 +2520,12 @@
                     });
 
                     sortedTraining.forEach(rowData => {
-                        addDataRow(horseSheet, { ...rowData, horse: rowData.horse || horseName });
+                        addDataRow(horseSheet, {
+                            ...rowData,
+                            horse: rowData.horse || horseName,
+                            owner: horseInfo.owner,
+                            country: horseInfo.country
+                        });
                     });
                     setColumnWidths(horseSheet);
                 });
@@ -3331,13 +3146,27 @@
         }
         
         // Load session data
+        // Filter out invalid horse names (default Excel sheet names)
+        function isValidHorseName(name) {
+            if (!name) return false;
+            const lowerName = name.toLowerCase().trim();
+            const invalidNames = ['worksheet', 'sheet1', 'sheet2', 'sheet3', 'data', 'default'];
+            return lowerName && !invalidNames.includes(lowerName) && !lowerName.startsWith('sheet');
+        }
+
         function loadSessionData(sessionId) {
             fetch(`/api/session/${sessionId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.horseData && data.allHorseDetailData) {
-                        horseData = data.horseData;
-                        allHorseDetailData = data.allHorseDetailData;
+                        // Filter out invalid horse names from existing data
+                        horseData = data.horseData.filter(h => isValidHorseName(h.name));
+                        allHorseDetailData = {};
+                        Object.keys(data.allHorseDetailData).forEach(name => {
+                            if (isValidHorseName(name)) {
+                                allHorseDetailData[name] = data.allHorseDetailData[name];
+                            }
+                        });
 
                         // Load sheet metadata from Redis if available, else from localStorage
                         if (data.allSheets && data.sheetNames) {

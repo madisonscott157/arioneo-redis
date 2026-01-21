@@ -1138,31 +1138,6 @@
             .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
                 background: #c1c1c1;
             }
-            
-            
-            .horse-detail-view .table-container {
-                /* Make the default scrollbar subtle since we have custom one at top */
-                scrollbar-width: thin;
-                scrollbar-color: #e1e3e4 #f8f9fa;
-            }
-            
-            .horse-detail-view .table-container::-webkit-scrollbar {
-                height: 6px;
-            }
-            
-            .horse-detail-view .table-container::-webkit-scrollbar-track {
-                background: #f8f9fa;
-                border-radius: 3px;
-            }
-            
-            .horse-detail-view .table-container::-webkit-scrollbar-thumb {
-                background: #e1e3e4;
-                border-radius: 3px;
-            }
-            
-            .horse-detail-view .table-container::-webkit-scrollbar-thumb:hover {
-                background: #c1c1c1;
-            }
         }
 
         /* Tablet responsive design */

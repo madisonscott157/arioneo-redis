@@ -243,7 +243,9 @@ function processExcelData(filePath) {
 
     workbook.SheetNames.forEach(sheetName => {
       const sheetNameLower = sheetName.toLowerCase();
-      if (sheetNameLower === 'sheet1' || sheetNameLower === 'sheet2' || sheetNameLower === 'buttons') {
+      // Skip default Excel sheet names and other non-horse sheets
+      const invalidSheetNames = ['sheet1', 'sheet2', 'sheet3', 'buttons', 'worksheet', 'data', 'default'];
+      if (invalidSheetNames.includes(sheetNameLower) || sheetNameLower.startsWith('sheet')) {
         return;
       }
 
