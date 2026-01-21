@@ -2810,7 +2810,7 @@
             }).join('');
         }
         
-        function exportHorseDataToCsv() {
+        async function exportHorseDataToCsv() {
             if (currentHorseDetailData.length === 0) {
                 alert('No data to export');
                 return;
@@ -2818,7 +2818,11 @@
 
             const horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
 
-            // Create headers
+            // Use ExcelJS for proper styling support
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Training Data');
+
+            // Define headers
             const headers = [
                 'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
                 'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
@@ -2828,92 +2832,87 @@
                 'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
             ];
 
-            const wsData = [headers];
-
-            // Add data rows
-            currentHorseDetailData.forEach(row => {
-                wsData.push([
-                    row.date || '', row.horse || '', row.type || '',
-                    row.track || '', row.surface || '', row.distance || '',
-                    row.avgSpeed || '', row.maxSpeed || '', row.best1f || '', row.best2f || '',
-                    row.best3f || '', row.best4f || '', row.best5f || '', row.best6f || '',
-                    row.best7f || '', row.maxHR || '', row.fastRecovery || '', row.fastQuality || '',
-                    row.fastPercent || '', row.recovery15 || '', row.quality15 || '',
-                    row.hr15Percent || '', row.maxSL || '', row.slGallop || '', row.sfGallop || '',
-                    row.slWork || '', row.sfWork || '', row.hr2min || '', row.hr5min || '',
-                    row.symmetry || '', row.regularity || '', row.bpm120 || '', row.zone5 || '',
-                    row.age || '', row.sex || '', row.temp || '', row.distanceCol || '',
-                    row.trotHR || '', row.walkHR || '', row.notes || ''
-                ]);
+            // Add header row with bold styling
+            const headerRow = worksheet.addRow(headers);
+            headerRow.font = { bold: true };
+            headerRow.eachCell(cell => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE0E0E0' }
+                };
             });
 
-            // Create workbook and worksheet
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            // Column indices (1-based for ExcelJS)
+            const BEST5F_COL = 13;       // Best 5F
+            const FAST_RECOVERY_COL = 17; // Fast Recovery
+            const RECOVERY15_COL = 20;    // 15 Recovery
 
-            // Helper to convert hex color to ARGB format for Excel
-            function hexToARGB(hex) {
-                if (!hex) return null;
-                return 'FF' + hex.replace('#', '').toUpperCase();
-            }
-
-            // Time columns that need text format (0-indexed):
-            // 8-14 (Best 1F-7F), 15 (Max HR), 16-21 (Fast Recovery through HR 15%)
-            const timeColumns = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-
-            // Column indices for colored columns
-            const BEST5F_COL = 12;      // Best 5F
-            const FAST_RECOVERY_COL = 16; // Fast Recovery
-            const RECOVERY15_COL = 19;   // 15 Recovery
-
-            for (let row = 1; row <= currentHorseDetailData.length; row++) {
-                const rowData = currentHorseDetailData[row - 1];
-
-                // Apply text format to time columns
-                timeColumns.forEach(col => {
-                    const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-                    if (ws[cellRef] && ws[cellRef].v) {
-                        ws[cellRef].t = 's'; // Force text type
-                        ws[cellRef].z = '@'; // Text format
-                    }
-                });
+            // Add data rows with coloring
+            currentHorseDetailData.forEach(rowData => {
+                const row = worksheet.addRow([
+                    rowData.date || '', rowData.horse || '', rowData.type || '',
+                    rowData.track || '', rowData.surface || '', rowData.distance || '',
+                    rowData.avgSpeed || '', rowData.maxSpeed || '', rowData.best1f || '', rowData.best2f || '',
+                    rowData.best3f || '', rowData.best4f || '', rowData.best5f || '', rowData.best6f || '',
+                    rowData.best7f || '', rowData.maxHR || '', rowData.fastRecovery || '', rowData.fastQuality || '',
+                    rowData.fastPercent || '', rowData.recovery15 || '', rowData.quality15 || '',
+                    rowData.hr15Percent || '', rowData.maxSL || '', rowData.slGallop || '', rowData.sfGallop || '',
+                    rowData.slWork || '', rowData.sfWork || '', rowData.hr2min || '', rowData.hr5min || '',
+                    rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '', rowData.zone5 || '',
+                    rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
+                    rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
+                ]);
 
                 // Apply color coding to Best 5F
                 const best5fColor = getBest5FColor(rowData.best5f);
                 if (best5fColor) {
-                    const cellRef = XLSX.utils.encode_cell({ r: row, c: BEST5F_COL });
-                    if (ws[cellRef]) {
-                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(best5fColor) } } };
-                    }
+                    row.getCell(BEST5F_COL).fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF' + best5fColor.replace('#', '') }
+                    };
                 }
 
                 // Apply color coding to Fast Recovery
                 const fastRecoveryColor = getFastRecoveryColor(rowData.fastRecovery);
                 if (fastRecoveryColor) {
-                    const cellRef = XLSX.utils.encode_cell({ r: row, c: FAST_RECOVERY_COL });
-                    if (ws[cellRef]) {
-                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(fastRecoveryColor) } } };
-                    }
+                    row.getCell(FAST_RECOVERY_COL).fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF' + fastRecoveryColor.replace('#', '') }
+                    };
                 }
 
                 // Apply color coding to 15 Recovery
                 const recovery15Color = getRecovery15Color(rowData.recovery15);
                 if (recovery15Color) {
-                    const cellRef = XLSX.utils.encode_cell({ r: row, c: RECOVERY15_COL });
-                    if (ws[cellRef]) {
-                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(recovery15Color) } } };
-                    }
+                    row.getCell(RECOVERY15_COL).fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF' + recovery15Color.replace('#', '') }
+                    };
                 }
-            }
+            });
 
-            XLSX.utils.book_append_sheet(wb, ws, 'Training Data');
+            // Auto-fit columns (approximate widths)
+            worksheet.columns.forEach((column, i) => {
+                column.width = i === 39 ? 30 : 12; // Notes column wider
+            });
 
             // Generate filename
             const date = new Date().toISOString().split('T')[0];
             const filename = `${horseName}_training_data_${date}.xlsx`;
 
-            // Download
-            XLSX.writeFile(wb, filename);
+            // Download using ExcelJS buffer
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
         }
         
         // Load latest session on page load
