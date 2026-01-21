@@ -2489,7 +2489,12 @@
 
         // Export all training data for all horses (active and historic) with multi-sheet Excel
         async function exportAllTrainingData() {
-            const allHorses = Object.keys(allHorseDetailData);
+            // Filter out invalid horse names (like default sheet names)
+            const invalidNames = ['worksheet', 'sheet1', 'sheet2', 'sheet3', 'data', 'default'];
+            const allHorses = Object.keys(allHorseDetailData).filter(name => {
+                const lowerName = name.toLowerCase().trim();
+                return lowerName && !invalidNames.includes(lowerName) && !lowerName.startsWith('sheet');
+            });
 
             if (allHorses.length === 0) {
                 alert('No training data to export');
