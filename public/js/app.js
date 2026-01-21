@@ -502,7 +502,8 @@
         const sortOrderEl = document.getElementById('sortOrder');
         if (sortOrderEl) sortOrderEl.addEventListener('change', updateSort);
         document.getElementById('exportCsv').addEventListener('click', exportToCsv);
-        
+        document.getElementById('exportAllTraining').addEventListener('click', exportAllTrainingData);
+
         // Column visibility event listeners
         document.getElementById('toggleColumnVisibility').addEventListener('click', function() {
             document.getElementById('columnVisibilityPanel').style.display = 'block';
@@ -985,6 +986,7 @@
                     currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
                     document.getElementById('exportCsv').disabled = false;
+                    document.getElementById('exportAllTraining').disabled = false;
 
                     // Show share URL
                     const shareUrl = `${window.location.origin}/share/${data.sessionId}`;
@@ -1069,6 +1071,7 @@
                     currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
                     document.getElementById('exportCsv').disabled = false;
+                    document.getElementById('exportAllTraining').disabled = false;
 
                     // Show success message
                     alert(`Success!\n\n${data.message}\n\nTotal horses: ${data.totalHorses}\nTotal entries: ${data.totalEntries}`);
@@ -2484,6 +2487,206 @@
             XLSX.writeFile(wb, filename);
         }
 
+        // Export all training data for all horses (active and historic) with multi-sheet Excel
+        async function exportAllTrainingData() {
+            const allHorses = Object.keys(allHorseDetailData);
+
+            if (allHorses.length === 0) {
+                alert('No training data to export');
+                return;
+            }
+
+            // Show loading indicator
+            const btn = document.getElementById('exportAllTraining');
+            const originalText = btn.textContent;
+            btn.textContent = 'Exporting...';
+            btn.disabled = true;
+
+            try {
+                const workbook = new ExcelJS.Workbook();
+
+                // Define headers for training data
+                const headers = [
+                    'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
+                    'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
+                    'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
+                    'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
+                    'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp',
+                    'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
+                ];
+
+                // Column indices (1-based for ExcelJS)
+                const BEST5F_COL = 13;
+                const FAST_RECOVERY_COL = 17;
+                const RECOVERY15_COL = 20;
+
+                // Helper function to add styled header row
+                function addHeaderRow(worksheet) {
+                    const headerRow = worksheet.addRow(headers);
+                    headerRow.font = { bold: true };
+                    headerRow.eachCell(cell => {
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFE0E0E0' },
+                            bgColor: { argb: 'FFE0E0E0' }
+                        };
+                    });
+                }
+
+                // Helper function to add a data row with color coding
+                function addDataRow(worksheet, rowData) {
+                    const row = worksheet.addRow([
+                        rowData.date || '', rowData.horse || '', rowData.type || '',
+                        rowData.track || '', rowData.surface || '', rowData.distance || '',
+                        rowData.avgSpeed || '', rowData.maxSpeed || '', rowData.best1f || '', rowData.best2f || '',
+                        rowData.best3f || '', rowData.best4f || '', rowData.best5f || '', rowData.best6f || '',
+                        rowData.best7f || '', rowData.maxHR || '', rowData.fastRecovery || '', rowData.fastQuality || '',
+                        rowData.fastPercent || '', rowData.recovery15 || '', rowData.quality15 || '',
+                        rowData.hr15Percent || '', rowData.maxSL || '', rowData.slGallop || '', rowData.sfGallop || '',
+                        rowData.slWork || '', rowData.sfWork || '', rowData.hr2min || '', rowData.hr5min || '',
+                        rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '', rowData.zone5 || '',
+                        rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
+                        rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
+                    ]);
+
+                    // Apply color coding to Best 5F
+                    const best5fColor = getBest5FColor(rowData.best5f);
+                    if (best5fColor) {
+                        const argb = ('FF' + best5fColor.replace('#', '')).toUpperCase();
+                        row.getCell(BEST5F_COL).fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: argb },
+                            bgColor: { argb: argb }
+                        };
+                    }
+
+                    // Apply color coding to Fast Recovery
+                    const fastRecoveryColor = getFastRecoveryColor(rowData.fastRecovery);
+                    if (fastRecoveryColor) {
+                        const argb = ('FF' + fastRecoveryColor.replace('#', '')).toUpperCase();
+                        row.getCell(FAST_RECOVERY_COL).fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: argb },
+                            bgColor: { argb: argb }
+                        };
+                    }
+
+                    // Apply color coding to 15 Recovery
+                    const recovery15Color = getRecovery15Color(rowData.recovery15);
+                    if (recovery15Color) {
+                        const argb = ('FF' + recovery15Color.replace('#', '')).toUpperCase();
+                        row.getCell(RECOVERY15_COL).fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: argb },
+                            bgColor: { argb: argb }
+                        };
+                    }
+
+                    return row;
+                }
+
+                // Helper to set column widths
+                function setColumnWidths(worksheet) {
+                    worksheet.columns.forEach((column, i) => {
+                        column.width = i === 39 ? 30 : 12; // Notes column wider
+                    });
+                }
+
+                // Sheet 1: All Training combined
+                const allTrainingSheet = workbook.addWorksheet('All Training');
+                addHeaderRow(allTrainingSheet);
+
+                // Collect all training data and sort by date (most recent first)
+                let allTrainingData = [];
+                allHorses.forEach(horseName => {
+                    const horseTraining = allHorseDetailData[horseName] || [];
+                    horseTraining.forEach(entry => {
+                        allTrainingData.push({ ...entry, horse: entry.horse || horseName });
+                    });
+                });
+
+                // Sort by date descending
+                allTrainingData.sort((a, b) => {
+                    const dateA = a.date ? new Date(a.date.split('/').reverse().join('-')) : new Date(0);
+                    const dateB = b.date ? new Date(b.date.split('/').reverse().join('-')) : new Date(0);
+                    return dateB - dateA;
+                });
+
+                // Add all training data to the first sheet
+                allTrainingData.forEach(rowData => {
+                    addDataRow(allTrainingSheet, rowData);
+                });
+                setColumnWidths(allTrainingSheet);
+
+                // Create individual sheets for each horse
+                // Sort horses alphabetically for consistent ordering
+                const sortedHorses = [...allHorses].sort((a, b) => a.localeCompare(b));
+
+                sortedHorses.forEach(horseName => {
+                    // Sanitize sheet name (Excel has restrictions)
+                    let sheetName = horseName
+                        .replace(/[\\/*?:\[\]]/g, '') // Remove invalid chars
+                        .substring(0, 31); // Max 31 chars
+
+                    // Ensure unique sheet name
+                    let uniqueName = sheetName;
+                    let counter = 1;
+                    while (workbook.getWorksheet(uniqueName)) {
+                        uniqueName = sheetName.substring(0, 28) + `_${counter}`;
+                        counter++;
+                    }
+
+                    const horseSheet = workbook.addWorksheet(uniqueName);
+                    addHeaderRow(horseSheet);
+
+                    const horseTraining = allHorseDetailData[horseName] || [];
+
+                    // Sort horse training by date descending
+                    const sortedTraining = [...horseTraining].sort((a, b) => {
+                        const dateA = a.date ? new Date(a.date.split('/').reverse().join('-')) : new Date(0);
+                        const dateB = b.date ? new Date(b.date.split('/').reverse().join('-')) : new Date(0);
+                        return dateB - dateA;
+                    });
+
+                    sortedTraining.forEach(rowData => {
+                        addDataRow(horseSheet, { ...rowData, horse: rowData.horse || horseName });
+                    });
+                    setColumnWidths(horseSheet);
+                });
+
+                // Generate filename with date
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `all_training_data_${date}.xlsx`;
+
+                // Download using ExcelJS buffer
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                // Show success message
+                const totalEntries = allTrainingData.length;
+                const totalHorses = sortedHorses.length;
+                alert(`Export complete!\n\n${totalHorses} horses\n${totalEntries} total training entries\n${totalHorses + 1} sheets created`);
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Error exporting data: ' + error.message);
+            } finally {
+                // Restore button
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
 
         // Helper: find horse data with fuzzy matching
         function findHorseData(horseName) {
@@ -2839,7 +3042,8 @@
                 cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
-                    fgColor: { argb: 'FFE0E0E0' }
+                    fgColor: { argb: 'FFE0E0E0' },
+                    bgColor: { argb: 'FFE0E0E0' }
                 };
             });
 
@@ -2867,30 +3071,36 @@
                 // Apply color coding to Best 5F
                 const best5fColor = getBest5FColor(rowData.best5f);
                 if (best5fColor) {
+                    const argb = ('FF' + best5fColor.replace('#', '')).toUpperCase();
                     row.getCell(BEST5F_COL).fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: 'FF' + best5fColor.replace('#', '') }
+                        fgColor: { argb: argb },
+                        bgColor: { argb: argb }
                     };
                 }
 
                 // Apply color coding to Fast Recovery
                 const fastRecoveryColor = getFastRecoveryColor(rowData.fastRecovery);
                 if (fastRecoveryColor) {
+                    const argb = ('FF' + fastRecoveryColor.replace('#', '')).toUpperCase();
                     row.getCell(FAST_RECOVERY_COL).fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: 'FF' + fastRecoveryColor.replace('#', '') }
+                        fgColor: { argb: argb },
+                        bgColor: { argb: argb }
                     };
                 }
 
                 // Apply color coding to 15 Recovery
                 const recovery15Color = getRecovery15Color(rowData.recovery15);
                 if (recovery15Color) {
+                    const argb = ('FF' + recovery15Color.replace('#', '')).toUpperCase();
                     row.getCell(RECOVERY15_COL).fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: 'FF' + recovery15Color.replace('#', '') }
+                        fgColor: { argb: argb },
+                        bgColor: { argb: argb }
                     };
                 }
             });
@@ -3094,6 +3304,7 @@
                         updateTableColumnVisibility();
 
                         document.getElementById('exportCsv').disabled = false;
+                    document.getElementById('exportAllTraining').disabled = false;
 
                         // Refresh horse detail view if it's currently visible
                         const horseDetailView = document.getElementById('horseDetailView');
