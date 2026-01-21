@@ -2316,18 +2316,18 @@
             sortData();
         }
 
-        // Mobile menu toggle
-        function toggleMobileMenu() {
+        // Mobile menu toggle - explicit window assignment for onclick access
+        window.toggleMobileMenu = function() {
             const secondary = document.getElementById('controlsSecondary');
             const toggle = document.querySelector('.mobile-menu-toggle');
             if (secondary.classList.contains('show')) {
                 secondary.classList.remove('show');
-                toggle.textContent = '☰ More';
+                toggle.innerHTML = '☰';
             } else {
                 secondary.classList.add('show');
-                toggle.textContent = '✕ Less';
+                toggle.innerHTML = '✕';
             }
-        }
+        };
 
         function switchView() {
             const viewSelector = document.getElementById('viewSelector');
