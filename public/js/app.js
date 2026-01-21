@@ -2851,10 +2851,25 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+            // Helper to convert hex color to ARGB format for Excel
+            function hexToARGB(hex) {
+                if (!hex) return null;
+                return 'FF' + hex.replace('#', '').toUpperCase();
+            }
+
             // Time columns that need text format (0-indexed):
             // 8-14 (Best 1F-7F), 15 (Max HR), 16-21 (Fast Recovery through HR 15%)
             const timeColumns = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+            // Column indices for colored columns
+            const BEST5F_COL = 12;      // Best 5F
+            const FAST_RECOVERY_COL = 16; // Fast Recovery
+            const RECOVERY15_COL = 19;   // 15 Recovery
+
             for (let row = 1; row <= currentHorseDetailData.length; row++) {
+                const rowData = currentHorseDetailData[row - 1];
+
+                // Apply text format to time columns
                 timeColumns.forEach(col => {
                     const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
                     if (ws[cellRef] && ws[cellRef].v) {
@@ -2862,6 +2877,33 @@
                         ws[cellRef].z = '@'; // Text format
                     }
                 });
+
+                // Apply color coding to Best 5F
+                const best5fColor = getBest5FColor(rowData.best5f);
+                if (best5fColor) {
+                    const cellRef = XLSX.utils.encode_cell({ r: row, c: BEST5F_COL });
+                    if (ws[cellRef]) {
+                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(best5fColor) } } };
+                    }
+                }
+
+                // Apply color coding to Fast Recovery
+                const fastRecoveryColor = getFastRecoveryColor(rowData.fastRecovery);
+                if (fastRecoveryColor) {
+                    const cellRef = XLSX.utils.encode_cell({ r: row, c: FAST_RECOVERY_COL });
+                    if (ws[cellRef]) {
+                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(fastRecoveryColor) } } };
+                    }
+                }
+
+                // Apply color coding to 15 Recovery
+                const recovery15Color = getRecovery15Color(rowData.recovery15);
+                if (recovery15Color) {
+                    const cellRef = XLSX.utils.encode_cell({ r: row, c: RECOVERY15_COL });
+                    if (ws[cellRef]) {
+                        ws[cellRef].s = { fill: { fgColor: { rgb: hexToARGB(recovery15Color) } } };
+                    }
+                }
             }
 
             XLSX.utils.book_append_sheet(wb, ws, 'Training Data');
