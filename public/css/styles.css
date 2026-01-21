@@ -67,6 +67,27 @@
             align-items: center;
         }
 
+        /* Desktop: show everything inline */
+        .controls-primary {
+            display: contents;
+        }
+
+        .controls-secondary {
+            display: contents;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            padding: 7px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #1a3a5c;
+            color: white;
+        }
+
         .controls-divider {
             width: 1px;
             height: 20px;
@@ -1169,10 +1190,51 @@
         @media (max-width: 767px) {
             .controls {
                 display: flex !important;
-                flex-wrap: wrap !important;
-                gap: 6px !important;
-                padding: 8px !important;
-                justify-content: flex-start !important;
+                flex-direction: column !important;
+                gap: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Primary controls - always visible row */
+            .controls-primary {
+                display: flex !important;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 8px;
+                padding: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .controls-primary .control-group {
+                flex: 0 0 auto;
+            }
+
+            .controls-primary #horseFilter {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            /* Show mobile menu toggle */
+            .mobile-menu-toggle {
+                display: block !important;
+                flex: 0 0 auto;
+            }
+
+            /* Secondary controls - collapsible */
+            .controls-secondary {
+                display: none !important;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 10px;
+                background: #eef1f4;
+                border-top: 1px solid #ddd;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .controls-secondary.show {
+                display: flex !important;
             }
 
             /* Hide dividers on mobile */
@@ -1184,25 +1246,18 @@
             .controls .btn,
             .controls .file-label,
             .controls .race-upload-btn {
-                padding: 6px 10px !important;
-                font-size: 11px !important;
+                padding: 8px 12px !important;
+                font-size: 12px !important;
                 flex: 0 0 auto !important;
                 width: auto !important;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 6px !important;
-                font-size: 11px !important;
-                min-width: 80px !important;
+                padding: 8px !important;
+                font-size: 13px !important;
+                min-width: 70px !important;
                 width: auto !important;
-            }
-
-            /* Search input slightly wider */
-            .controls #horseFilter {
-                flex: 1 1 100px !important;
-                min-width: 100px !important;
-                max-width: 150px !important;
             }
 
             /* Control groups inline */
@@ -1224,28 +1279,26 @@
 
         /* Even smaller screens */
         @media (max-width: 480px) {
-            .controls {
-                gap: 5px !important;
-                padding: 8px !important;
+            .controls-primary {
+                gap: 6px;
+                padding: 8px;
+            }
+
+            .controls-secondary {
+                gap: 6px;
+                padding: 8px;
             }
 
             .controls .btn,
             .controls .file-label {
-                padding: 6px 10px !important;
+                padding: 7px 10px !important;
                 font-size: 11px !important;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 6px !important;
-                font-size: 11px !important;
-                min-width: 80px !important;
-            }
-
-            .controls #horseFilter {
-                width: auto !important;
-                flex: 1 1 120px !important;
-                min-width: 120px !important;
+                padding: 7px !important;
+                font-size: 12px !important;
             }
         }
 

@@ -18,50 +18,56 @@
 
 
         <div class="controls">
-            <div class="control-group">
-                <select id="viewSelector" onchange="switchView()">
-                    <option value="active">Active Horses</option>
-                    <option value="historic">Historic</option>
-                </select>
+            <!-- Primary controls - always visible -->
+            <div class="controls-primary">
+                <div class="control-group">
+                    <select id="viewSelector" onchange="switchView()">
+                        <option value="active">Active Horses</option>
+                        <option value="historic">Historic</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <input type="text" id="horseFilter" list="horseList" placeholder="Search horse...">
+                    <datalist id="horseList"></datalist>
+                </div>
+
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
             </div>
 
-            <div class="controls-divider"></div>
+            <!-- Secondary controls - collapsible on mobile -->
+            <div class="controls-secondary" id="controlsSecondary">
+                <button onclick="openCsvUploadModal()" class="file-label">Upload CSV</button>
+                <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
-            <button onclick="openCsvUploadModal()" class="file-label">Upload CSV</button>
-            <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
+                <button onclick="openRaceUploadModal()" class="race-upload-btn">Upload Races</button>
 
-            <button onclick="openRaceUploadModal()" class="race-upload-btn">Upload Races</button>
+                <button onclick="showHorseManagement()" class="btn">Manage</button>
+                <button onclick="clearAllData()" class="btn">Clear</button>
 
-            <button onclick="showHorseManagement()" class="btn">Manage</button>
-            <button onclick="clearAllData()" class="btn">Clear</button>
+                <div class="controls-divider"></div>
 
-            <div class="controls-divider"></div>
+                <div class="control-group">
+                    <select id="ownerFilter" onchange="applyFilters()">
+                        <option value="">All Owners</option>
+                    </select>
+                </div>
 
-            <div class="control-group">
-                <input type="text" id="horseFilter" list="horseList" placeholder="Search horse...">
-                <datalist id="horseList"></datalist>
+                <div class="control-group">
+                    <select id="countryFilter" onchange="applyFilters()">
+                        <option value="">All Countries</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <select id="ageFilter">
+                        <option value="">All Ages</option>
+                    </select>
+                </div>
+
+                <button id="exportCsv" class="btn" disabled>Export</button>
+                <button id="exportAllTraining" class="btn" disabled>Export All</button>
             </div>
-
-            <div class="control-group">
-                <select id="ownerFilter" onchange="applyFilters()">
-                    <option value="">All Owners</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <select id="countryFilter" onchange="applyFilters()">
-                    <option value="">All Countries</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <select id="ageFilter">
-                    <option value="">All Ages</option>
-                </select>
-            </div>
-
-            <button id="exportCsv" class="btn" disabled>Export</button>
-            <button id="exportAllTraining" class="btn" disabled>Export All</button>
         </div>
 
         <div class="table-container">

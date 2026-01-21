@@ -2316,6 +2316,19 @@
             sortData();
         }
 
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const secondary = document.getElementById('controlsSecondary');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (secondary.classList.contains('show')) {
+                secondary.classList.remove('show');
+                toggle.textContent = '☰ Menu';
+            } else {
+                secondary.classList.add('show');
+                toggle.textContent = '✕ Close';
+            }
+        }
+
         function switchView() {
             const viewSelector = document.getElementById('viewSelector');
             currentView = viewSelector.value;
