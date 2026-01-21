@@ -5,15 +5,26 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const compression = require('compression');
 const helmet = require('helmet');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const pdfParse = require('pdf-parse');
 const Fuse = require('fuse.js');
 
 // Auth credentials from environment variables
 const AUTH_USERNAME = process.env.AUTH_USERNAME || 'admin';
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || 'password';
+const AUTH_SECRET = process.env.SESSION_SECRET || 'horse-training-secret-key-2024';
+
+// Generate auth token from credentials
+function generateAuthToken() {
+  return crypto.createHmac('sha256', AUTH_SECRET)
+    .update(AUTH_USERNAME + AUTH_PASSWORD)
+    .digest('hex');
+}
+
+const VALID_AUTH_TOKEN = generateAuthToken();
 
 // Import Upstash Redis for persistent storage
 let redis = null;
@@ -42,18 +53,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'horse-training-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-  }
-}));
+app.use(cookieParser());
 
 // Auth middleware - protect all routes except login
 function requireAuth(req, res, next) {
@@ -62,8 +62,9 @@ function requireAuth(req, res, next) {
     return next();
   }
 
-  // Check if user is authenticated
-  if (req.session && req.session.authenticated) {
+  // Check if user is authenticated via cookie
+  const authToken = req.cookies.auth_token;
+  if (authToken && authToken === VALID_AUTH_TOKEN) {
     return next();
   }
 
@@ -80,7 +81,13 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
-    req.session.authenticated = true;
+    // Set auth cookie (7 days)
+    res.cookie('auth_token', VALID_AUTH_TOKEN, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
     return res.redirect('/');
   }
 
@@ -89,14 +96,14 @@ app.post('/login', (req, res) => {
 
 // Logout route
 app.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    res.redirect('/login.html');
-  });
+  res.clearCookie('auth_token');
+  res.redirect('/login.html');
 });
 
 // Auth status endpoint
 app.get('/api/auth/status', (req, res) => {
-  res.json({ authenticated: !!(req.session && req.session.authenticated) });
+  const authToken = req.cookies.auth_token;
+  res.json({ authenticated: authToken === VALID_AUTH_TOKEN });
 });
 
 // Apply auth middleware to all routes
