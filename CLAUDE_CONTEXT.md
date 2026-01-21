@@ -7,129 +7,126 @@
 
 ## What the App Does
 - Displays horse training data from uploaded Excel/CSV files
-- Main table shows horses with their most recent training data (1F, 5F times, Fast Recovery, 15 min Recovery)
-- Click a horse to see full training history
+- Main table shows horses sorted by most recent training date (default)
+- Click a horse to see full training history (detail view)
 - Supports Active/Historic horse views
 - Filters by owner, country, age
-- **NEW**: Upload race chart PDFs to add race results to horse training profiles
+- Upload race chart PDFs to add race results to horse training profiles
 
-## Project Structure (Recently Reorganized)
+## Project Structure
 ```
 arioneo-redis-main/
 ├── server.js              # Express backend (all API routes)
-├── package.json           # Dependencies include pdf-parse, fuse.js
+├── package.json           # Dependencies: pdf-parse, fuse.js, express, etc.
 ├── public/
-│   ├── index.html         # Main HTML (237 lines, references external CSS/JS)
+│   ├── index.html         # Main HTML (loads xlsx.js, exceljs.js, CSS, JS)
 │   ├── css/
-│   │   └── styles.css     # All CSS styles (~1700 lines)
+│   │   └── styles.css     # All CSS styles (~1900 lines)
 │   └── js/
-│       ├── app.js         # Main application JS (~3400 lines)
+│       ├── app.js         # Main application JS (~3500 lines)
 │       └── race-upload.js # Race chart upload module (~700 lines)
 └── CLAUDE_CONTEXT.md      # This file
 ```
 
-## CURRENT WORK IN PROGRESS: Race Chart Upload Feature
+## External Libraries (loaded via CDN in index.html)
+- **SheetJS (xlsx.full.min.js)** - For reading Excel/CSV uploads
+- **ExcelJS (exceljs.min.js)** - For exporting Excel files with styling (just added)
 
-### What It Does
-- Upload Equibase race chart PDFs (bulk upload, up to 50 at once)
-- Parse race data: date, track, surface, distance, race type, final time, positions, comments
-- Fuzzy match horses in chart to existing horses in system
-- Review/edit parsed data before saving
-- Save race results to horse training profiles
+## Recent Changes (This Session)
 
-### Implementation Status
-- **Working**: PDF parsing, horse detection, data extraction, modal UI, horse dropdown selection
-- **Just Fixed**: Server 500 error on save (null check), modal height issues
-- **Needs Testing**: Full end-to-end flow after latest fixes
+### UI Improvements
+1. **CSV Upload Modal** - Drag-and-drop modal for uploading CSV/Excel files
+   - `openCsvUploadModal()`, `closeCsvUploadModal()`, `initCsvDropzone()` in app.js
+   - CSS in styles.css under "CSV UPLOAD MODAL STYLES"
 
-### Key Files Modified
-1. **server.js** (lines ~2350-3400):
-   - `RaceChartParser` class - parses Equibase PDF format
-   - `POST /api/upload/race-charts` - handles bulk PDF upload and parsing
-   - `POST /api/race-charts/save` - saves reviewed race data
-   - `buildHorseSummaryFromDetailData()` - rebuilds horse summary
-   - `fuzzyMatchHorse()` - uses fuse.js for name matching
-   - `checkDuplicateRace()` - prevents duplicate entries
+2. **Manage Horses Modal** - Added filter and search
+   - Status filter dropdown (Active/Historic/All) - defaults to Active
+   - Search box to filter horses by name, owner, or aliases
+   - `filterHorseMappings()` function in app.js
 
-2. **public/js/race-upload.js** (new file):
-   - `RaceChartUploader` class - modal UI for upload workflow
-   - `buildHorseSelector()` - dropdown with horses found in chart
-   - `handleHorseChange()` - updates form when different horse selected
-   - `updateFormFields()` - populates form with selected horse's data
-   - `collectRaceData()` / `saveAllRaces()` - save workflow
+3. **Default Sort** - Main table always defaults to most recent training date
+   - `currentSort = { column: 'lastTrainingDate', order: 'desc' }` set on:
+     - Page load
+     - After any upload
+     - When returning from horse detail view (`showMainView()`)
+   - Removed sort preference restoration from `loadUserPreferences()`
 
-3. **public/css/styles.css** (lines ~1260-1750):
-   - Race upload modal styles
-   - Review card styles
-   - Made modal 90vh tall with scrollable review list
+### Export Functionality
+1. **Main Page Export** - Uses SheetJS, exports as .xlsx
+   - `exportToCsv()` function in app.js
+   - Columns: Horse Name, Owner, Country, Last Training, Age, 1F, 5F, Fast, 15 min
+   - Time columns forced to text format to prevent Excel conversion
 
-### Data Mapping (Race to Training Entry)
-When a race is saved, it creates a training entry with these mappings:
-- `type`: "Race"
-- `maxSpeed`: Race type (MSW, AOC, G1, etc.)
-- `best1f`: 1/4 position
-- `best2f`: 1/4 time
-- `best3f`: 1/2 position
-- `best4f`: 1/2 time
-- `best5f`: 5F reduction time (calculated)
-- `best6f`: 3/4 position
-- `best7f`: 3/4 time
-- `maxHR`: Final time
-- `fastRecovery`: Finish position
-- `notes`: Chart comments
+2. **Horse Detail Export** - Uses ExcelJS for styling support
+   - `exportHorseDataToCsv()` function in app.js (async)
+   - Exports all training columns
+   - **ISSUE**: Color coding not working - attempted to add background colors for:
+     - Best 5F column (blue/green/cream/yellow/red based on time)
+     - Fast Recovery column (based on numeric value)
+     - 15 Recovery column (based on numeric value)
 
-### Recent Bug Fixes (This Session)
-1. Surface detection - Fixed to detect "Inner Turf"/"Turf" correctly
-2. Race type - Fixed "Allowance Optional Claiming" -> AOC
-3. Horse name extraction - Now searches after "H Wt" header
-4. Final time regex - Only matches `[12]:\d{2}\.\d{2}` format
-5. Position formatting - Fixed "31th" -> "3rd"
-6. `odds is not defined` error - Removed from return statement
-7. Horse dropdown - Now shows all horses found in chart
-8. Data switching - Form updates when different horse selected
-9. Server 500 error - Added null checks for `horse.horse` property
-10. Modal height - Made 90vh tall with flex layout
+### Color Coding Logic (defined in app.js)
+```javascript
+// Best 5F - getBest5FColor(timeStr)
+<= 60 sec: '#d1ecf1' (light blue - fastest)
+<= 65 sec: '#d4edda' (light green)
+<= 70 sec: '#f9f7e3' (light cream)
+<= 75 sec: '#fff3cd' (light yellow)
+> 75 sec: '#fdeaea' (light red - slowest)
 
-### Known Issues / TODO
-- Modal may still need height adjustment on smaller screens
-- Need to verify main page keeps all horses after race save
-- Slowness during save (many Redis calls, expected without Redis configured)
+// Fast Recovery - getFastRecoveryColor(value)
+>= 140: '#fdeaea' (light red)
+>= 125: '#fff3cd' (light yellow)
+>= 119: '#f9f7e3' (light cream)
+>= 101: '#d4edda' (light green)
+< 101: '#d1ecf1' (light blue)
 
-## Key Features (Previously Implemented)
+// 15 Recovery - getRecovery15Color(value)
+>= 116: '#fdeaea' (light red)
+>= 102: '#fff3cd' (light yellow)
+>= 81: '#d4edda' (light green)
+< 81: '#d1ecf1' (light blue)
+```
 
-### Horse Mapping System
-- Manage Horses modal for owner/country assignments
-- **Merge Horses**: Combine multiple names for same horse
-- **Rename Horse**: Change display name while keeping training data linked via alias
-- **Auto-add**: New horses from uploads automatically added to mappings
+### Bug Fixes
+1. **Export button not working** - Added null check for removed `sortBy` element (line ~507)
+2. **sortBy dropdown removed** - Was causing JS error that blocked other listeners
 
-### Training Data
-- Edit individual training entries (type, track, surface, notes)
-- Notes display as truncated text with full tooltip
-- CSV export includes notes
+## CURRENT ISSUE TO FIX
 
-### Data Flow
-1. Upload Excel/CSV -> processed on server
-2. Data stored in Redis (session data + horse mapping + training edits)
-3. On load: fetch session -> apply alias merging -> apply training edits -> display
+**Excel export color coding not working for horse detail page.**
 
-## Important Code Locations
+The `exportHorseDataToCsv()` function uses ExcelJS to export with cell background colors, but the colors are not appearing in the exported Excel file.
 
-### Server (server.js)
-- `generateHorseSummary()` - Creates main table data from training entries
-- `resolveHorseAlias()` - Maps alias names to primary names
-- `mergeAliasedHorseData()` - Combines training data for aliased horses
-- `RaceChartParser` class - PDF parsing (lines ~2350-2970)
-- `/api/upload/race-charts` - Race PDF upload endpoint
-- `/api/race-charts/save` - Save races endpoint
+Current implementation (app.js lines ~2813-2917):
+- Uses `ExcelJS.Workbook()` and `worksheet.addRow()`
+- Attempts to set `cell.fill` with `type: 'pattern'`, `pattern: 'solid'`, `fgColor: { argb: '...' }`
+- Colors are being calculated correctly (using getBest5FColor, etc.)
+- But the exported file has no colors
 
-### Client
-- `public/js/app.js` - Main application logic
-- `public/js/race-upload.js` - Race chart upload module
-- `public/css/styles.css` - All styles
+Column indices for colored columns (1-based for ExcelJS):
+- BEST5F_COL = 13
+- FAST_RECOVERY_COL = 17
+- RECOVERY15_COL = 20
+
+## Key Functions Reference
+
+### app.js
+- `exportToCsv()` - Main page export (SheetJS)
+- `exportHorseDataToCsv()` - Horse detail export (ExcelJS) - NEEDS FIX
+- `getBest5FColor()`, `getFastRecoveryColor()`, `getRecovery15Color()` - Color logic
+- `filterHorseMappings()` - Manage horses filter
+- `showMainView()` - Return to main table (resets sort)
+- `handleArioneoUpload()` - CSV upload handler
+- `openCsvUploadModal()` - Opens drag-drop modal
+
+### server.js
+- `RaceChartParser` class - PDF parsing
+- `/api/upload/race-charts` - Race PDF upload
+- `/api/race-charts/save` - Save races
+- `/api/upload/arioneo` - CSV/Excel upload
 
 ## Testing Notes
-- Local testing requires `npm install` first
-- Redis errors expected locally (no credentials) - falls back to memory
-- Test PDFs in `/Users/madisonscott/Desktop/Claude/Streamline/`: paradise.pdf, ontario.pdf, blanco.pdf
-- Deploy via git push to main - Vercel auto-deploys
+- Local: `npm install` then `node server.js`
+- Deploy: `git add -A && git commit -m "message" && git push`
+- Vercel auto-deploys on push to main
