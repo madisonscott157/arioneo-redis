@@ -245,14 +245,7 @@
                             populateColumnOrderList();
                         }
                     }
-                    if (preferences.currentSort) {
-                        currentSort = preferences.currentSort;
-                        // Apply saved sort to UI
-                        const sortByElement = document.getElementById('sortBy');
-                        const sortOrderElement = document.getElementById('sortOrder');
-                        if (sortByElement) sortByElement.value = currentSort.column;
-                        if (sortOrderElement) sortOrderElement.value = currentSort.order;
-                    }
+                    // Sort is always defaulted to most recent training - don't restore from preferences
                     console.log('Loaded user preferences from:', preferences.lastUpdated);
                 }
             } catch (error) {
@@ -987,6 +980,9 @@
 
                     updateHorseFilter();
                     updateAgeFilter();
+
+                    // Default sort to most recent training
+                    currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
                     document.getElementById('exportCsv').disabled = false;
 
@@ -1068,6 +1064,9 @@
                     updateHorseFilter();
                     updateAgeFilter();
                     loadHorseFilters();
+
+                    // Default sort to most recent training
+                    currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
                     document.getElementById('exportCsv').disabled = false;
 
@@ -3043,9 +3042,12 @@
 
                         updateHorseFilter();
                         updateAgeFilter();
+
+                        // Default sort to most recent training
+                        currentSort = { column: 'lastTrainingDate', order: 'desc' };
                         filterData();
 
-                        // Apply user preferences after loading data
+                        // Apply user preferences (column visibility only, not sort)
                         loadUserPreferences();
                         updateColumnVisibilityUI();
                         updateTableColumnVisibility();
