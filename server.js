@@ -3139,8 +3139,8 @@ class RaceChartParser {
     // Final time is typically 1:07.00 - 2:30.00
     const allMinutesTimes = afterHorse.match(/[12]:\d{2}\.\d{2}/g) || [];
 
-    // Last M:SS.SS time is the final time
-    const finalTime = allMinutesTimes.length > 0 ? allMinutesTimes[allMinutesTimes.length - 1] : '-';
+    // FIRST M:SS.SS time is the final time (not last - horse boundary detection may include next horse's data)
+    const finalTime = allMinutesTimes.length > 0 ? allMinutesTimes[0] : '-';
 
     // 6F time (3/4 time): Priority order:
     // 1. sixFurlongTime from subsequent line (/f pattern)
