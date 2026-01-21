@@ -1200,30 +1200,32 @@
                 display: flex !important;
                 flex-wrap: nowrap;
                 align-items: center;
-                gap: 8px;
+                gap: 6px;
                 padding: 10px;
                 width: 100%;
                 box-sizing: border-box;
             }
 
             .controls-primary .control-group {
-                flex: 0 0 auto;
+                flex: 0 1 auto;
             }
 
             .controls-primary #horseFilter {
-                flex: 1;
+                width: 100px;
                 min-width: 80px;
+                max-width: 120px;
             }
 
             /* Show mobile menu toggle */
             .mobile-menu-toggle {
-                display: block !important;
+                display: flex !important;
                 flex: 0 0 auto;
+                margin-left: auto;
             }
 
-            /* Secondary controls - visible by default on mobile, can be hidden */
+            /* Secondary controls - HIDDEN by default on mobile */
             .controls-secondary {
-                display: flex !important;
+                display: none !important;
                 flex-wrap: wrap;
                 gap: 8px;
                 padding: 10px;
@@ -1233,8 +1235,9 @@
                 box-sizing: border-box;
             }
 
-            .controls-secondary.hide {
-                display: none !important;
+            /* Show when toggled */
+            .controls-secondary.show {
+                display: flex !important;
             }
 
             /* Hide dividers on mobile */
