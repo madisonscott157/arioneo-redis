@@ -2316,18 +2316,18 @@
             sortData();
         }
 
-        // Mobile menu toggle - explicit window assignment for onclick access
-        window.toggleMobileMenu = function() {
-            const secondary = document.getElementById('controlsSecondary');
-            const toggle = document.querySelector('.mobile-menu-toggle');
-            if (secondary.classList.contains('show')) {
-                secondary.classList.remove('show');
-                toggle.innerHTML = '☰';
-            } else {
-                secondary.classList.add('show');
-                toggle.innerHTML = '✕';
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            const controls = document.getElementById('mainControls');
+
+            if (menuBtn && controls) {
+                menuBtn.addEventListener('click', function() {
+                    controls.classList.toggle('expanded');
+                    menuBtn.textContent = controls.classList.contains('expanded') ? '✕' : '⋯';
+                });
             }
-        };
+        });
 
         function switchView() {
             const viewSelector = document.getElementById('viewSelector');

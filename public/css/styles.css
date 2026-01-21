@@ -67,27 +67,21 @@
             align-items: center;
         }
 
-        /* Desktop: show everything inline */
-        .controls-primary {
-            display: contents;
-        }
-
-        .controls-secondary {
-            display: contents;
-        }
-
-        .mobile-menu-toggle {
+        /* Mobile menu button - hidden on desktop */
+        .mobile-menu-btn {
             display: none;
-            padding: 8px 12px;
+            padding: 6px 14px;
             border: none;
             border-radius: 4px;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
             background: #1a3a5c;
             color: white;
-            min-width: 40px;
-            text-align: center;
+        }
+
+        /* Extra controls wrapper - inline on desktop */
+        .mobile-hidden {
+            display: contents;
         }
 
         .controls-divider {
@@ -1191,125 +1185,91 @@
         /* Mobile-specific layout */
         @media (max-width: 767px) {
             .controls {
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 0 !important;
-                padding: 0 !important;
-            }
-
-            /* Primary controls - always visible row */
-            .controls-primary {
-                display: flex !important;
-                flex-wrap: nowrap;
-                align-items: center;
-                gap: 8px;
-                padding: 10px;
-                width: 100%;
-                box-sizing: border-box;
-                overflow: hidden;
-            }
-
-            .controls-primary .control-group {
-                flex: 0 0 auto;
-            }
-
-            .controls-primary .control-group:nth-child(2) {
-                flex: 1 1 auto;
-                min-width: 0;
-            }
-
-            .controls-primary #horseFilter {
-                width: 100%;
-                min-width: 60px;
-            }
-
-            /* Show mobile menu toggle */
-            .mobile-menu-toggle {
-                display: flex !important;
-                flex: 0 0 auto;
-                align-items: center;
-                justify-content: center;
-            }
-
-            /* Secondary controls - HIDDEN by default on mobile */
-            .controls-secondary {
-                display: none !important;
                 flex-wrap: wrap;
                 gap: 8px;
                 padding: 10px;
-                background: #eef1f4;
-                border-top: 1px solid #ddd;
-                width: 100%;
-                box-sizing: border-box;
             }
 
-            /* Show when toggled */
-            .controls-secondary.show {
-                display: flex !important;
+            /* Show mobile menu button */
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            /* Hide extra controls by default on mobile */
+            .mobile-hidden {
+                display: none;
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding-top: 10px;
+                border-top: 1px solid #ddd;
+                margin-top: 8px;
+            }
+
+            /* Show when expanded */
+            .controls.expanded .mobile-hidden {
+                display: flex;
+            }
+
+            /* Change button when expanded */
+            .controls.expanded .mobile-menu-btn::after {
+                content: ' Hide';
             }
 
             /* Hide dividers on mobile */
             .controls-divider {
-                display: none !important;
+                display: none;
             }
 
-            /* Make buttons and selects compact */
+            /* Compact buttons */
             .controls .btn,
             .controls .file-label,
             .controls .race-upload-btn {
-                padding: 8px 12px !important;
-                font-size: 12px !important;
-                flex: 0 0 auto !important;
-                width: auto !important;
+                padding: 8px 12px;
+                font-size: 12px;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 8px !important;
-                font-size: 13px !important;
-                min-width: 70px !important;
-                width: auto !important;
+                padding: 8px;
+                font-size: 13px;
             }
 
-            /* Control groups inline */
-            .control-group {
-                margin: 0 !important;
-                padding: 0 !important;
-                width: auto !important;
+            #horseFilter {
+                width: 100px;
             }
 
             /* Header adjustments */
             .header h1 {
-                font-size: 1.3em !important;
+                font-size: 1.3em;
             }
 
             .header p {
-                font-size: 0.8em !important;
+                font-size: 0.8em;
             }
         }
 
         /* Even smaller screens */
         @media (max-width: 480px) {
-            .controls-primary {
-                gap: 6px;
-                padding: 8px;
-            }
-
-            .controls-secondary {
+            .controls {
                 gap: 6px;
                 padding: 8px;
             }
 
             .controls .btn,
             .controls .file-label {
-                padding: 7px 10px !important;
-                font-size: 11px !important;
+                padding: 7px 10px;
+                font-size: 11px;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 7px !important;
-                font-size: 12px !important;
+                padding: 7px;
+                font-size: 12px;
+            }
+
+            #horseFilter {
+                width: 80px;
             }
         }
 

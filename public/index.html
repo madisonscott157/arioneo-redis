@@ -17,26 +17,22 @@
         </div>
 
 
-        <div class="controls">
-            <!-- Primary controls - always visible -->
-            <div class="controls-primary">
-                <div class="control-group">
-                    <select id="viewSelector" onchange="switchView()">
-                        <option value="active">Active Horses</option>
-                        <option value="historic">Historic</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <input type="text" id="horseFilter" list="horseList" placeholder="Search horse...">
-                    <datalist id="horseList"></datalist>
-                </div>
-
-                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+        <div class="controls" id="mainControls">
+            <div class="control-group">
+                <select id="viewSelector" onchange="switchView()">
+                    <option value="active">Active Horses</option>
+                    <option value="historic">Historic</option>
+                </select>
             </div>
 
-            <!-- Secondary controls - collapsible on mobile -->
-            <div class="controls-secondary" id="controlsSecondary">
+            <div class="control-group">
+                <input type="text" id="horseFilter" list="horseList" placeholder="Search...">
+                <datalist id="horseList"></datalist>
+            </div>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">⋯</button>
+
+            <div class="mobile-hidden" id="extraControls">
                 <button onclick="openCsvUploadModal()" class="file-label">Upload CSV</button>
                 <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
