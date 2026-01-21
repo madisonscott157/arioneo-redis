@@ -26,7 +26,7 @@
 
             <div class="controls-divider"></div>
 
-            <label for="arioneoFileInput" class="file-label">Upload CSV</label>
+            <button onclick="openCsvUploadModal()" class="file-label">Upload CSV</button>
             <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
             <button onclick="openRaceUploadModal()" class="race-upload-btn">Upload Races</button>
@@ -222,6 +222,26 @@
     </div>
     </div>
 
+
+    <!-- CSV Upload Modal -->
+    <div id="csvUploadModal" class="csv-upload-modal" style="display: none;">
+        <div class="csv-upload-content">
+            <div class="csv-upload-header">
+                <h2>Upload Training Data</h2>
+                <button class="csv-upload-close" onclick="closeCsvUploadModal()">&times;</button>
+            </div>
+            <div class="csv-upload-body">
+                <div class="csv-upload-dropzone" id="csvDropzone">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">📊</div>
+                        <p>Drag & drop CSV or Excel file here</p>
+                        <p class="dropzone-subtitle">or click to select a file</p>
+                    </div>
+                </div>
+                <div id="csvSelectedFile" class="csv-selected-file"></div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/app.js"></script>
     <script src="js/race-upload.js"></script>

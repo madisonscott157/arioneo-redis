@@ -1090,6 +1090,110 @@
         }
 
         // ============================================
+        // CSV UPLOAD MODAL FUNCTIONS
+        // ============================================
+        function openCsvUploadModal() {
+            const modal = document.getElementById('csvUploadModal');
+            modal.style.display = 'flex';
+            initCsvDropzone();
+        }
+
+        function closeCsvUploadModal() {
+            const modal = document.getElementById('csvUploadModal');
+            modal.style.display = 'none';
+            // Clear selected file display
+            const selectedFileDiv = document.getElementById('csvSelectedFile');
+            selectedFileDiv.innerHTML = '';
+            selectedFileDiv.classList.remove('has-file');
+        }
+
+        function initCsvDropzone() {
+            const dropzone = document.getElementById('csvDropzone');
+            const fileInput = document.getElementById('arioneoFileInput');
+
+            // Remove old listeners by cloning
+            const newDropzone = dropzone.cloneNode(true);
+            dropzone.parentNode.replaceChild(newDropzone, dropzone);
+
+            // Click to select file
+            newDropzone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Drag events
+            newDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                newDropzone.classList.add('dragover');
+            });
+
+            newDropzone.addEventListener('dragleave', () => {
+                newDropzone.classList.remove('dragover');
+            });
+
+            newDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                newDropzone.classList.remove('dragover');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.endsWith('.csv') || file.name.endsWith('.xlsx')) {
+                        handleDroppedCsvFile(file);
+                    } else {
+                        alert('Please drop a CSV or Excel file.');
+                    }
+                }
+            });
+
+            // Handle file input change (from click)
+            fileInput.onchange = function(e) {
+                if (e.target.files.length > 0) {
+                    handleDroppedCsvFile(e.target.files[0]);
+                }
+            };
+        }
+
+        function handleDroppedCsvFile(file) {
+            // Show selected file
+            const selectedFileDiv = document.getElementById('csvSelectedFile');
+            selectedFileDiv.innerHTML = `
+                <span class="csv-file-name">📄 ${file.name}</span>
+                <button class="csv-file-remove" onclick="clearCsvSelection()">&times;</button>
+            `;
+            selectedFileDiv.classList.add('has-file');
+
+            // Process the file
+            closeCsvUploadModal();
+
+            // Create a fake event for handleArioneoUpload
+            const fakeEvent = {
+                target: {
+                    files: [file],
+                    value: file.name
+                }
+            };
+            // Reset value function
+            fakeEvent.target.value = '';
+
+            handleArioneoUpload(fakeEvent);
+        }
+
+        function clearCsvSelection() {
+            const selectedFileDiv = document.getElementById('csvSelectedFile');
+            selectedFileDiv.innerHTML = '';
+            selectedFileDiv.classList.remove('has-file');
+            document.getElementById('arioneoFileInput').value = '';
+        }
+
+        // Close modal on outside click
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('csvUploadModal');
+            if (e.target === modal) {
+                closeCsvUploadModal();
+            }
+        });
+
+        // ============================================
         // CLEAR DATA FUNCTION
         // ============================================
         async function clearAllData() {
