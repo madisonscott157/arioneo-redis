@@ -2818,23 +2818,24 @@
             }
 
             const horseName = document.getElementById('horseDetailTitle').textContent.replace(' - Training Details', '');
-            
-            // Create CSV header with all English columns
+
+            // Create headers
             const headers = [
                 'Date', 'Horse', 'Type', 'Track', 'Surface', 'Distance', 'Avg Speed', 'Max Speed',
                 'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
                 'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
                 'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
                 'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp',
-                'Distance', 'Trot HR', 'Walk HR', 'Notes'
+                'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
             ];
-            let csvContent = headers.join(',') + '\n';
+
+            const wsData = [headers];
 
             // Add data rows
             currentHorseDetailData.forEach(row => {
-                const csvRow = [
-                    `"${row.date || ''}"`, `"${row.horse || ''}"`, `"${row.type || ''}"`,
-                    `"${row.track || ''}"`, `"${row.surface || ''}"`, row.distance || '',
+                wsData.push([
+                    row.date || '', row.horse || '', row.type || '',
+                    row.track || '', row.surface || '', row.distance || '',
                     row.avgSpeed || '', row.maxSpeed || '', row.best1f || '', row.best2f || '',
                     row.best3f || '', row.best4f || '', row.best5f || '', row.best6f || '',
                     row.best7f || '', row.maxHR || '', row.fastRecovery || '', row.fastQuality || '',
@@ -2843,24 +2844,35 @@
                     row.slWork || '', row.sfWork || '', row.hr2min || '', row.hr5min || '',
                     row.symmetry || '', row.regularity || '', row.bpm120 || '', row.zone5 || '',
                     row.age || '', row.sex || '', row.temp || '', row.distanceCol || '',
-                    row.trotHR || '', row.walkHR || '', `"${(row.notes || '').replace(/"/g, '""')}"`
-                ];
-                csvContent += csvRow.join(',') + '\n';
+                    row.trotHR || '', row.walkHR || '', row.notes || ''
+                ]);
             });
 
-            // Create and download file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset-utf-8;' });
-            const link = document.createElement('a');
-            
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', `${horseName}_arioneo_training_data.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Time columns that need text format (0-indexed):
+            // 8-14 (Best 1F-7F), 15 (Max HR), 16-21 (Fast Recovery through HR 15%)
+            const timeColumns = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+            for (let row = 1; row <= currentHorseDetailData.length; row++) {
+                timeColumns.forEach(col => {
+                    const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+                    if (ws[cellRef] && ws[cellRef].v) {
+                        ws[cellRef].t = 's'; // Force text type
+                        ws[cellRef].z = '@'; // Text format
+                    }
+                });
             }
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Training Data');
+
+            // Generate filename
+            const date = new Date().toISOString().split('T')[0];
+            const filename = `${horseName}_training_data_${date}.xlsx`;
+
+            // Download
+            XLSX.writeFile(wb, filename);
         }
         
         // Load latest session on page load
