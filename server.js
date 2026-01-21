@@ -2633,6 +2633,15 @@ class RaceChartParser {
     raceDate = dateMatch ? dateMatch[1] : 'Unknown Date';
 
     // Extract race type - ORDER MATTERS! Check specific patterns first
+    // Also extract race name for stakes races
+    let raceName = '';
+
+    // Check for stakes race name (e.g., "Seeking the Ante S." after track name)
+    const stakesNameMatch = text.match(/(?:Saratoga|Churchill|Belmont|Keeneland|Gulfstream|Del Mar|Santa Anita|Aqueduct|Woodbine|Oaklawn|Tampa Bay|Fair Grounds|Monmouth|Laurel|Parx|Pimlico)\s*\n\s*([A-Z][A-Za-z'\s\-\.]+(?:S\.|Stakes|H\.|Handicap|Derby|Oaks|Cup|Futurity|Classic|Mile|Sprint|Distaff|Breeders'))/i);
+    if (stakesNameMatch) {
+      raceName = stakesNameMatch[1].trim();
+    }
+
     if (text.match(/Allowance\s+Optional\s+Claiming/i) || text.match(/Optional\s+Claiming/i)) {
       raceType = 'AOC';
     } else if (text.match(/Maiden\s+Special\s+Weight/i)) {
@@ -2646,15 +2655,17 @@ class RaceChartParser {
         else if (grade === 'III') grade = '3';
         raceType = `G${grade}`;
       }
-    } else if (text.match(/\b(Stakes|Stake)\b/i) && !text.match(/Claiming/i)) {
+    } else if (raceName || text.match(/\bStakes\s+\d+yo/i) || text.match(/^\s*Stakes\b/m)) {
+      // Stakes race - detected by race name or "Stakes 2yo" pattern
       raceType = 'STK';
     } else if (text.match(/Maiden\s+Claiming/i)) {
       raceType = 'MCL';
     } else if (text.match(/Starter\s+Allowance/i)) {
       raceType = 'STR';
-    } else if (text.match(/\bAllowance\b/i) && !text.match(/Claiming/i)) {
+    } else if (text.match(/\bAllowance\b/i) && !text.match(/Claiming\s+Price\s*\$/i)) {
       raceType = 'ALW';
-    } else if (text.match(/\bClaiming\b/i)) {
+    } else if (text.match(/Claiming\s+Price\s*\$/i) || text.match(/\bClaiming\s+\$\d/i)) {
+      // Only CLM if there's an actual claiming price with $
       raceType = 'CLM';
     } else if (text.match(/\bHandicap\b/i)) {
       raceType = 'HCP';
@@ -2665,6 +2676,7 @@ class RaceChartParser {
       track,
       surface,
       raceType,
+      raceName,
       distance: distanceText,
       distanceInFurlongs
     };
@@ -2962,6 +2974,13 @@ class RaceChartParser {
       }
     }
 
+    // For 6F races, the final time IS the 6F time (no separate 3/4 time)
+    // For longer races, use the extracted f3Time
+    let f3Time = horseData.f3Time;
+    if (metadata.distanceInFurlongs === 6) {
+      f3Time = horseData.finalTime;
+    }
+
     return {
       ...metadata,
       finalTime: horseData.finalTime,
@@ -2969,7 +2988,7 @@ class RaceChartParser {
       fiveFReductionTime,
       f1Time: horseData.f1Time,
       f2Time: horseData.f2Time,
-      f3Time: horseData.f3Time,
+      f3Time: f3Time,
       pos1_4: horseData.pos1_4,
       pos1_2: horseData.pos1_2,
       pos3_4: horseData.pos3_4,
