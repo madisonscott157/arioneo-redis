@@ -2619,6 +2619,11 @@ class RaceChartParser {
       }
     }
 
+    // Turfway Park has a synthetic surface - always AWT
+    if (track === 'TP') {
+      surface = 'AWT';
+    }
+
     // Extract race date
     let dateMatch = text.match(/(\w+,\s+\w+\s+\d{1,2},\s+\d{4})\s+(?:Saratoga|Churchill|Woodbine|Belmont|Keeneland)/i);
     if (!dateMatch) {
