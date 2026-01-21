@@ -1221,9 +1221,9 @@
                 flex: 0 0 auto;
             }
 
-            /* Secondary controls - collapsible */
+            /* Secondary controls - visible by default on mobile, can be hidden */
             .controls-secondary {
-                display: none !important;
+                display: flex !important;
                 flex-wrap: wrap;
                 gap: 8px;
                 padding: 10px;
@@ -1233,8 +1233,8 @@
                 box-sizing: border-box;
             }
 
-            .controls-secondary.show {
-                display: flex !important;
+            .controls-secondary.hide {
+                display: none !important;
             }
 
             /* Hide dividers on mobile */

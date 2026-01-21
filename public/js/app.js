@@ -2320,12 +2320,12 @@
         function toggleMobileMenu() {
             const secondary = document.getElementById('controlsSecondary');
             const toggle = document.querySelector('.mobile-menu-toggle');
-            if (secondary.classList.contains('show')) {
-                secondary.classList.remove('show');
-                toggle.textContent = '☰ Menu';
+            if (secondary.classList.contains('hide')) {
+                secondary.classList.remove('hide');
+                toggle.textContent = '✕ Hide';
             } else {
-                secondary.classList.add('show');
-                toggle.textContent = '✕ Close';
+                secondary.classList.add('hide');
+                toggle.textContent = '☰ Menu';
             }
         }
 
