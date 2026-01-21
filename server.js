@@ -3191,15 +3191,39 @@ class RaceChartParser {
     if (finalTime !== '-') {
       const afterFinalTime = afterHorse.substring(afterHorse.lastIndexOf(finalTime) + finalTime.length);
 
-      // Extract only the FIRST consecutive run of digits after final time
-      // This avoids picking up digits from margin fractions like "1½1½3¼"
+      // Try Format A first: concatenated digits like "109765" or "7422"
       const positionMatch = afterFinalTime.match(/^(\d+)/);
       const digitsOnly = positionMatch ? positionMatch[1] : '';
+      let positions = this.parsePositions(digitsOnly);
 
-      // Parse positions intelligently - handles double-digit positions (10, 11, 12)
-      const positions = this.parsePositions(digitsOnly);
+      console.log(`[DEBUG] Horse: ${horseName}, afterFinalTime: "${afterFinalTime.substring(0, 50)}", digitsOnly: "${digitsOnly}"`);
 
-      console.log(`[DEBUG] Horse: ${horseName}, digitsOnly: "${digitsOnly}", parsed positions: [${positions.join(', ')}]`);
+      // If Format A didn't work, try Format B: space-separated tokens with margins
+      // Format B example: " 4 3 11 1hd 1½ 11 in hand" (PP, St, 1/4, 1/2, Str, Fin)
+      if (positions.length < 4) {
+        const tokens = afterFinalTime.trim().split(/\s+/);
+        // Look for position tokens: start with digit, may have margin attached (e.g., "11", "1hd", "32½")
+        const positionTokens = [];
+        for (const token of tokens) {
+          if (/^\d/.test(token)) {
+            positionTokens.push(token);
+          } else {
+            // Stop when we hit non-position tokens like "in hand" or comments
+            if (positionTokens.length >= 4) break;
+          }
+        }
+
+        console.log(`[DEBUG] Format B tokens: [${positionTokens.join(', ')}]`);
+
+        // Format B has: PP, St, then 4 position columns (1/4, 1/2, Str, Fin for sprints)
+        // or: PP, St, then 5 position columns (1/4, 1/2, 3/4, Str, Fin for routes)
+        if (positionTokens.length >= 6) {
+          // Skip PP (index 0) and St (index 1), take positions from index 2 onwards
+          const posTokensOnly = positionTokens.slice(2);
+          positions = posTokensOnly.map(t => this.extractPositionFromToken(t));
+          console.log(`[DEBUG] Format B positions (skipped PP/St): [${positions.join(', ')}]`);
+        }
+      }
 
       if (positions.length >= 5) {
         // 5 positions: 1/4, 1/2, 3/4, Str, Fin - take indices 0,1,2,4 (skip Str)
@@ -3207,7 +3231,6 @@ class RaceChartParser {
         pos1_2 = this.formatPosition(positions[1]);
         pos3_4 = this.formatPosition(positions[2]);
         posFin = this.formatPosition(positions[4]);
-        console.log(`[DEBUG] Final positions - 1/4: ${pos1_4}, 1/2: ${pos1_2}, 3/4: ${pos3_4}, Fin: ${posFin}`);
       } else if (positions.length === 4) {
         // 4 positions: 1/4, 1/2, Str, Fin (for sprints without 3/4 call)
         pos1_4 = this.formatPosition(positions[0]);
@@ -3218,6 +3241,8 @@ class RaceChartParser {
         // If fewer positions, just get finish
         posFin = this.formatPosition(positions[positions.length - 1]);
       }
+
+      console.log(`[DEBUG] Final positions - 1/4: ${pos1_4}, 1/2: ${pos1_2}, 3/4: ${pos3_4}, Fin: ${posFin}`);
     }
 
     return {
@@ -3240,6 +3265,42 @@ class RaceChartParser {
     if (p === 2) return '2nd';
     if (p === 3) return '3rd';
     return `${p}th`;
+  }
+
+  // Extract position number from a token that may have margin attached
+  // Examples: "11" -> 1 (position 1, margin 1), "1hd" -> 1, "32" -> 3, "10" -> 10
+  // Position 0 doesn't exist, margin 0 doesn't exist, so "10" must be position 10
+  extractPositionFromToken(token) {
+    if (!token) return 0;
+
+    // Extract leading digits
+    const digitMatch = token.match(/^(\d+)/);
+    if (!digitMatch) return 0;
+
+    const digits = digitMatch[1];
+
+    // Special case: "10", "11", "12" with no additional margin chars could be position 10/11/12
+    // But "10" as position 1 margin 0 is invalid (margin 0 doesn't exist)
+    if (digits === '10') return 10;
+    if (digits === '11' && token.length === 2) return 11; // "11" alone could be position 11
+    if (digits === '12' && token.length === 2) return 12;
+
+    // For tokens with non-digit margins (like "1hd", "3nk", "2½"), first digit is position
+    if (token.length > digits.length) {
+      // Has margin chars after digits - first digit is position
+      return parseInt(digits[0]);
+    }
+
+    // For pure digit tokens like "32", "64", "11" with nothing after:
+    // These are position+margin where first digit is position
+    // (Since races rarely have >12 horses, "32" can't be position 32)
+    if (parseInt(digits) > 12) {
+      return parseInt(digits[0]);
+    }
+
+    // Ambiguous case: "11" could be position 11 or position 1 margin 1
+    // Default to first digit as position (safer for typical races)
+    return parseInt(digits[0]);
   }
 
   // Parse position string into array of positions, handling double-digit positions (10, 11, 12)
