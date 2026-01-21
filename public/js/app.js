@@ -1338,6 +1338,14 @@
                                 <h4 style="margin: 0;">Current Mappings</h4>
                                 <button onclick="showMergeHorsesUI()" class="upload-btn" style="padding: 6px 12px;">Merge Horses</button>
                             </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                                <select id="mappingStatusFilter" onchange="filterHorseMappings()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                                    <option value="active">Active Horses</option>
+                                    <option value="historic">Historic Horses</option>
+                                    <option value="all">All Horses</option>
+                                </select>
+                                <input type="text" id="mappingSearchInput" placeholder="Search horses..." oninput="filterHorseMappings()" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                            </div>
                             <div id="mergeHorsesPanel" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #3498db;">
                                 <h5 style="margin: 0 0 10px 0;">Merge Horses (combine names for the same horse)</h5>
                                 <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Select the horses to merge, then choose which name to use as the primary display name.</p>
@@ -1406,10 +1414,62 @@
                     return;
                 }
 
-                // Store horses data for merge UI
+                // Store horses data for merge UI and filtering
                 window.horseMappingData = data.horses;
 
-                tbody.innerHTML = data.horses.map(h => {
+                // Apply current filter
+                filterHorseMappings();
+
+                // Populate the rename dropdown with ALL horses
+                const renameSelect = document.getElementById('renameOldName');
+                if (renameSelect) {
+                    renameSelect.innerHTML = '<option value="">-- Select horse --</option>' +
+                        data.horses.map(h => {
+                            const encodedName = btoa(encodeURIComponent(h.name));
+                            const displayName = h.displayName || h.name;
+                            return `<option value="${encodedName}">${displayName}</option>`;
+                        }).join('');
+                }
+
+            } catch (error) {
+                console.error('Error loading horse mappings:', error);
+            }
+        }
+
+        function filterHorseMappings() {
+            const tbody = document.getElementById('horseMappingTableBody');
+            if (!tbody || !window.horseMappingData) return;
+
+            const statusFilter = document.getElementById('mappingStatusFilter')?.value || 'active';
+            const searchTerm = (document.getElementById('mappingSearchInput')?.value || '').toLowerCase().trim();
+
+            // Filter horses based on status and search
+            let filteredHorses = window.horseMappingData.filter(h => {
+                const isHistoric = h.isHistoric || false;
+
+                // Status filter
+                if (statusFilter === 'active' && isHistoric) return false;
+                if (statusFilter === 'historic' && !isHistoric) return false;
+
+                // Search filter
+                if (searchTerm) {
+                    const displayName = (h.displayName || h.name || '').toLowerCase();
+                    const owner = (h.owner || '').toLowerCase();
+                    const aliases = (h.aliases || []).join(' ').toLowerCase();
+                    if (!displayName.includes(searchTerm) && !owner.includes(searchTerm) && !aliases.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (filteredHorses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">No horses found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredHorses.map(h => {
                     const isHistoric = h.isHistoric || false;
                     const statusColor = isHistoric ? '#e74c3c' : '#27ae60';
                     const statusText = isHistoric ? 'Historic' : 'Active';
@@ -1443,21 +1503,6 @@
                         </td>
                     </tr>`;
                 }).join('');
-
-                // Populate the rename dropdown
-                const renameSelect = document.getElementById('renameOldName');
-                if (renameSelect) {
-                    renameSelect.innerHTML = '<option value="">-- Select horse --</option>' +
-                        data.horses.map(h => {
-                            const encodedName = btoa(encodeURIComponent(h.name));
-                            const displayName = h.displayName || h.name;
-                            return `<option value="${encodedName}">${displayName}</option>`;
-                        }).join('');
-                }
-
-            } catch (error) {
-                console.error('Error loading horse mappings:', error);
-            }
         }
 
         async function renameHorse() {
