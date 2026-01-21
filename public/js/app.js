@@ -504,7 +504,8 @@
         loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
-        document.getElementById('sortBy').addEventListener('change', updateSort);
+        const sortByEl = document.getElementById('sortBy');
+        if (sortByEl) sortByEl.addEventListener('change', updateSort);
         const sortOrderEl = document.getElementById('sortOrder');
         if (sortOrderEl) sortOrderEl.addEventListener('change', updateSort);
         document.getElementById('exportCsv').addEventListener('click', exportToCsv);
