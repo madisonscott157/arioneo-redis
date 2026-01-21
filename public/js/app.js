@@ -2556,8 +2556,12 @@
         function showMainView() {
             document.getElementById('horseDetailView').style.display = 'none';
             document.getElementById('mainView').style.display = 'block';
-            
+
             document.getElementById('horseFilter').value = '';
+
+            // Reset sort to most recent training (default view)
+            currentSort = { column: 'lastTrainingDate', order: 'desc' };
+
             filterData();
         }
 
