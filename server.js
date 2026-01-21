@@ -3194,7 +3194,10 @@ class RaceChartParser {
       // Try Format A first: concatenated digits like "109765" or "7422"
       const positionMatch = afterFinalTime.match(/^(\d+)/);
       const digitsOnly = positionMatch ? positionMatch[1] : '';
-      let positions = this.parsePositions(digitsOnly);
+      // Expected positions: 4 for sprints, 5 for routes
+      // Use digit length as heuristic: 4 digits = 4 positions, 5+ digits may have double-digit positions
+      const expectedPositions = digitsOnly.length <= 5 ? digitsOnly.length : 5;
+      let positions = this.parsePositions(digitsOnly, expectedPositions);
 
       console.log(`[DEBUG] Horse: ${horseName}, afterFinalTime: "${afterFinalTime.substring(0, 50)}", digitsOnly: "${digitsOnly}"`);
 
@@ -3303,17 +3306,37 @@ class RaceChartParser {
     return parseInt(digits[0]);
   }
 
-  // Parse position string into array of positions, handling double-digit positions (10, 11, 12)
-  // Position "0" doesn't exist, so "10" must be position 10, not positions "1" and "0"
-  parsePositions(digitsStr) {
+  // Parse position string into array of positions, handling double-digit positions
+  // Only "10" is unambiguous (position 0 doesn't exist, so "10" must be position 10)
+  // "11" and "12" are ambiguous: could be position 11/12 OR positions 1,1 / 1,2
+  // We use heuristic: if digit count matches expected positions (4-5), parse as singles
+  parsePositions(digitsStr, expectedCount = 0) {
     const positions = [];
     let i = 0;
+
+    // If digit count matches expected, all are single digits (e.g., "1111" → [1,1,1,1])
+    if (expectedCount > 0 && digitsStr.length === expectedCount) {
+      for (const d of digitsStr) {
+        positions.push(parseInt(d));
+      }
+      return positions;
+    }
+
     while (i < digitsStr.length) {
-      // Check if this could be a double-digit position (10, 11, 12)
+      // Only "10" is unambiguously double-digit (position 0 is invalid)
+      if (digitsStr[i] === '1' && i + 1 < digitsStr.length && digitsStr[i + 1] === '0') {
+        positions.push(10);
+        i += 2;
+        continue;
+      }
+
+      // For "11" and "12": only treat as double-digit if we have MORE digits than expected
+      // This handles cases like "109765" (6 digits for 5 positions) but not "1111" (4 digits for 4 positions)
       if (digitsStr[i] === '1' && i + 1 < digitsStr.length) {
         const nextDigit = digitsStr[i + 1];
-        if (nextDigit === '0' || nextDigit === '1' || nextDigit === '2') {
-          // This is a double-digit position (10, 11, or 12)
+        if ((nextDigit === '1' || nextDigit === '2') &&
+            (expectedCount === 0 || digitsStr.length > expectedCount)) {
+          // Likely a double-digit position (11 or 12)
           positions.push(parseInt(digitsStr.substring(i, i + 2)));
           i += 2;
           continue;
