@@ -3062,10 +3062,15 @@ class RaceChartParser {
         const nextLine = lines[i + 1];
         if (/^\d+\.\d+/.test(nextLine.trim())) {
           // Combine this line with subsequent lines to form the full horse data
+          // But STOP before the 6F time line (which has pattern like "118L3/m1:12.24KY")
           horseLine = lines[i] + nextLine;
-          // Also grab a few more lines that likely contain the horse's data
-          for (let j = 2; j <= 4 && i + j < lines.length; j++) {
-            horseLine += lines[i + j];
+          for (let j = 2; j <= 5 && i + j < lines.length; j++) {
+            const checkLine = lines[i + j];
+            // Stop if we hit the 6F time line (contains /m or /f followed by time and state)
+            if (/\d+L\d+\/[a-z][12]:\d{2}\.\d{2}[A-Z]{2}/i.test(checkLine)) {
+              break;
+            }
+            horseLine += checkLine;
           }
           horseLineIndex = i;
           break;
@@ -3075,11 +3080,11 @@ class RaceChartParser {
 
     if (!horseLine) return null;
 
-    // Look at subsequent lines (up to 3) for the 6F time
+    // Look at subsequent lines (up to 6) for the 6F time
     // Format: {weight}L{num}/{letter}{time}{state} e.g., "117L4/f1:13.91ON" or "115L3/m1:11.83KY"
     // The letter can be 'f', 'm', or others - so match any letter before the time
     let sixFurlongTime = null;
-    for (let j = 1; j <= 3 && horseLineIndex + j < lines.length; j++) {
+    for (let j = 1; j <= 6 && horseLineIndex + j < lines.length; j++) {
       const nextLine = lines[horseLineIndex + j];
       // Look for /{letter} followed by M:SS.SS time (6F time pattern)
       const sixFMatch = nextLine.match(/\/[a-z]([12]:\d{2}\.\d{2})/i);
@@ -3166,14 +3171,18 @@ class RaceChartParser {
       // Extract all digits as a string
       const digitsOnly = afterFinalTime.replace(/\D/g, '');
 
-      if (digitsOnly.length >= 4) {
-        // Take the last 4 digits as positions (1/4, 1/2, 3/4, finish)
-        // Most charts have 4 or 5 call positions; we take the last 4
-        const posDigits = digitsOnly.slice(-4);
-        pos1_4 = this.formatPosition(posDigits[0]);
-        pos1_2 = this.formatPosition(posDigits[1]);
-        pos3_4 = this.formatPosition(posDigits[2]);
-        posFin = this.formatPosition(posDigits[3]);
+      if (digitsOnly.length >= 5) {
+        // 5 positions: 1/4, 1/2, 3/4, Str, Fin - take indices 0,1,2,4 (skip Str)
+        pos1_4 = this.formatPosition(digitsOnly[0]);
+        pos1_2 = this.formatPosition(digitsOnly[1]);
+        pos3_4 = this.formatPosition(digitsOnly[2]);
+        posFin = this.formatPosition(digitsOnly[4]);
+      } else if (digitsOnly.length === 4) {
+        // 4 positions: 1/4, 1/2, 3/4, Fin
+        pos1_4 = this.formatPosition(digitsOnly[0]);
+        pos1_2 = this.formatPosition(digitsOnly[1]);
+        pos3_4 = this.formatPosition(digitsOnly[2]);
+        posFin = this.formatPosition(digitsOnly[3]);
       } else if (digitsOnly.length >= 2) {
         // If fewer positions, just get finish
         posFin = this.formatPosition(digitsOnly[digitsOnly.length - 1]);
