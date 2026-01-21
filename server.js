@@ -3053,6 +3053,24 @@ class RaceChartParser {
         horseLineIndex = i;
         break;
       }
+
+      // Also check if horse name is on its own line and odds are on the next line
+      // This handles PDFs where text extraction splits them across lines
+      const horseOnlyPattern = new RegExp('^' + horseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+      if (horseOnlyPattern.test(lines[i].trim()) && i + 1 < lines.length) {
+        // Check if next line starts with odds
+        const nextLine = lines[i + 1];
+        if (/^\d+\.\d+/.test(nextLine.trim())) {
+          // Combine this line with subsequent lines to form the full horse data
+          horseLine = lines[i] + nextLine;
+          // Also grab a few more lines that likely contain the horse's data
+          for (let j = 2; j <= 4 && i + j < lines.length; j++) {
+            horseLine += lines[i + j];
+          }
+          horseLineIndex = i;
+          break;
+        }
+      }
     }
 
     if (!horseLine) return null;
