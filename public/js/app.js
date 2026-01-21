@@ -2316,8 +2316,9 @@
             sortData();
         }
 
-        // Mobile menu toggle
+        // Mobile menu toggles
         document.addEventListener('DOMContentLoaded', function() {
+            // Main page toggle
             const menuBtn = document.getElementById('mobileMenuBtn');
             const controls = document.getElementById('mainControls');
 
@@ -2325,6 +2326,17 @@
                 menuBtn.addEventListener('click', function() {
                     controls.classList.toggle('expanded');
                     menuBtn.textContent = controls.classList.contains('expanded') ? '✕' : '⋯';
+                });
+            }
+
+            // Detail page toggle
+            const detailMenuBtn = document.getElementById('detailMenuBtn');
+            const detailControls = document.getElementById('detailControls');
+
+            if (detailMenuBtn && detailControls) {
+                detailMenuBtn.addEventListener('click', function() {
+                    detailControls.classList.toggle('expanded');
+                    detailMenuBtn.textContent = detailControls.classList.contains('expanded') ? '✕' : '⋯';
                 });
             }
         });

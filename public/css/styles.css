@@ -1185,19 +1185,19 @@
         /* Mobile-specific layout */
         @media (max-width: 767px) {
             .controls {
-                flex-wrap: wrap;
-                gap: 8px;
-                padding: 10px;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                padding: 10px !important;
             }
 
             /* Show mobile menu button */
             .mobile-menu-btn {
-                display: block;
+                display: block !important;
             }
 
             /* Hide extra controls by default on mobile */
             .mobile-hidden {
-                display: none;
+                display: none !important;
                 width: 100%;
                 flex-wrap: wrap;
                 gap: 8px;
@@ -1208,31 +1208,33 @@
 
             /* Show when expanded */
             .controls.expanded .mobile-hidden {
-                display: flex;
-            }
-
-            /* Change button when expanded */
-            .controls.expanded .mobile-menu-btn::after {
-                content: ' Hide';
+                display: flex !important;
             }
 
             /* Hide dividers on mobile */
             .controls-divider {
-                display: none;
+                display: none !important;
             }
 
             /* Compact buttons */
             .controls .btn,
             .controls .file-label,
-            .controls .race-upload-btn {
-                padding: 8px 12px;
-                font-size: 12px;
+            .controls .race-upload-btn,
+            .controls .export-btn,
+            .controls .back-button {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
             }
 
             .controls select,
             .controls input[type="text"] {
-                padding: 8px;
-                font-size: 13px;
+                padding: 8px !important;
+                font-size: 13px !important;
+            }
+
+            /* Hide labels on mobile to save space */
+            .controls .control-group label {
+                display: none !important;
             }
 
             #horseFilter {
@@ -1240,8 +1242,9 @@
             }
 
             /* Header adjustments */
-            .header h1 {
-                font-size: 1.3em;
+            .header h1,
+            .horse-detail-header h1 {
+                font-size: 1.3em !important;
             }
 
             .header p {

@@ -97,47 +97,50 @@
             <h1 id="horseDetailTitle">Horse Details</h1>
         </div>
 
-        <div class="controls">
+        <div class="controls" id="detailControls">
             <div class="control-group">
                 <button class="back-button" onclick="showMainView()">Main</button>
             </div>
-            
-            <div class="control-group">
-                <label for="horseAgeFilter">Filter by Age:</label>
-                <select id="horseAgeFilter">
-                    <option value="">All Ages</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="typeFilter">Filter by Type:</label>
-                <select id="typeFilter">
-                    <option value="all">All Entries</option>
-                    <option value="work">Works Only</option>
-                    <option value="race">Races Only</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="horseSortBy">Sort by:</label>
-                <select id="horseSortBy">
-                    <option value="date">Date</option>
-                    <option value="distance">Distance</option>
-                    <option value="maxSpeed">Max Speed</option>
-                    <option value="avgSpeed">Avg Speed</option>
-                    <option value="best1f">Best 1F</option>
-                    <option value="best5f">Best 5F</option>
-                    <option value="maxHR">Max HR</option>
-                </select>
-            </div>
-            
-            
-            <div class="control-group">
-                <button id="exportHorseCsv" class="export-btn">Export</button>
-            </div>
-            
-            <div class="control-group">
-                <button id="toggleColumnVisibility" class="export-btn">Show/Hide</button>
+
+            <button class="mobile-menu-btn" id="detailMenuBtn">⋯</button>
+
+            <div class="mobile-hidden" id="detailExtraControls">
+                <div class="control-group">
+                    <label for="horseAgeFilter">Age:</label>
+                    <select id="horseAgeFilter">
+                        <option value="">All Ages</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="typeFilter">Type:</label>
+                    <select id="typeFilter">
+                        <option value="all">All Entries</option>
+                        <option value="work">Works Only</option>
+                        <option value="race">Races Only</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="horseSortBy">Sort:</label>
+                    <select id="horseSortBy">
+                        <option value="date">Date</option>
+                        <option value="distance">Distance</option>
+                        <option value="maxSpeed">Max Speed</option>
+                        <option value="avgSpeed">Avg Speed</option>
+                        <option value="best1f">Best 1F</option>
+                        <option value="best5f">Best 5F</option>
+                        <option value="maxHR">Max HR</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button id="exportHorseCsv" class="export-btn">Export</button>
+                </div>
+
+                <div class="control-group">
+                    <button id="toggleColumnVisibility" class="export-btn">Columns</button>
+                </div>
             </div>
         </div>
         
