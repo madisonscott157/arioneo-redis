@@ -2329,19 +2329,14 @@ app.get('/api/debug/data', async (req, res) => {
   }
 });
 
-// Debug route
+// Debug route - disabled in production for security
 app.get('/api/debug', (req, res) => {
-  res.json({ 
-    message: 'Server is working', 
-    headers: req.headers,
-    protocol: req.protocol,
-    secure: req.secure,
-    host: req.get('host'),
-    allEnvVars: Object.keys(process.env).filter(key => key.includes('KV') || key.includes('REDIS') || key.includes('UPSTASH')),
-    specificEnvs: {
-      KV_REST_API_URL: process.env.KV_REST_API_URL ? 'exists' : 'missing',
-      KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'exists' : 'missing'
-    }
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.json({
+    message: 'Server is working (dev only)',
+    redisConnected: redis !== null
   });
 });
 
