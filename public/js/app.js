@@ -2188,11 +2188,13 @@
                 // Default to 'desc' for lastTrainingDate column (most recent first), 'asc' for others
                 currentSort.order = column === 'lastTrainingDate' ? 'desc' : 'asc';
             }
-            
-            document.getElementById('sortBy').value = column;
+
+            // Update sortBy dropdown if it exists
+            const sortByEl = document.getElementById('sortBy');
+            if (sortByEl) sortByEl.value = column;
             const sortOrderEl = document.getElementById('sortOrder');
             if (sortOrderEl) sortOrderEl.value = currentSort.order;
-            
+
             sortData();
         }
 
