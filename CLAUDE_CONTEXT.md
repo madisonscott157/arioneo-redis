@@ -131,6 +131,19 @@ parsePositions(digitsStr, expectedCount = 0)
 2. **Format B (Saratoga style)**: Space-separated tokens with margins attached
    - Example: "11 1hd 1½ 11" → positions 1, 1, 1, 1 (margins on separate line in text extraction)
 
+## Track-Specific Overrides
+
+### Surface Overrides (server.js ~line 2626)
+Some tracks have synthetic surfaces that should always be "AWT" regardless of PDF text:
+- **Turfway Park (TP)** - Synthetic all-weather track, always AWT
+
+```javascript
+// Turfway Park has a synthetic surface - always AWT
+if (track === 'TP') {
+  surface = 'AWT';
+}
+```
+
 ## Key Functions Reference
 
 ### app.js
