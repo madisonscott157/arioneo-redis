@@ -3046,7 +3046,8 @@ class RaceChartParser {
 
     for (let i = 0; i < lines.length; i++) {
       // Match horse name followed immediately by odds (e.g., "Paradise3.80")
-      const pattern = new RegExp(horseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\d+\\.\\d+');
+      // Use case-insensitive matching since DB has uppercase names but PDFs may have mixed case
+      const pattern = new RegExp(horseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\d+\\.\\d+', 'i');
       if (pattern.test(lines[i])) {
         horseLine = lines[i];
         horseLineIndex = i;
@@ -3070,8 +3071,8 @@ class RaceChartParser {
       }
     }
 
-    // Extract after horse name
-    const horseIndex = horseLine.indexOf(horseName);
+    // Extract after horse name (case-insensitive search)
+    const horseIndex = horseLine.toLowerCase().indexOf(horseName.toLowerCase());
     const afterHorse = horseLine.substring(horseIndex + horseName.length);
 
     // Extract odds and comment
