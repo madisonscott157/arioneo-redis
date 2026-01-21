@@ -2426,34 +2426,62 @@
                 return;
             }
 
-            const headers = ['Horse Name', 'Last Training', 'Age', '1F', '5F', 'Fast', '15 min'];
-            let csvContent = headers.join(',') + '\n';
+            // Create worksheet data with headers
+            const headers = ['Horse Name', 'Owner', 'Country', 'Last Training', 'Age', '1F', '5F', 'Fast', '15 min'];
+            const wsData = [headers];
 
             filteredData.forEach(horse => {
-                const row = [
-                    `"${horse.name}"`,
+                const displayName = horse.displayName || horse.name;
+                wsData.push([
+                    displayName,
+                    horse.owner || '',
+                    horse.country || '',
                     horse.lastTrainingDate || horse.lastWorkDate || '',
                     horse.age || '',
                     horse.best1f || '',
                     horse.best5f || '',
                     horse.fastRecovery || '',
                     horse.recovery15min || ''
-                ];
-                csvContent += row.join(',') + '\n';
+                ]);
             });
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'horse_training_summary.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 25 }, // Horse Name
+                { wch: 20 }, // Owner
+                { wch: 12 }, // Country
+                { wch: 14 }, // Last Training
+                { wch: 6 },  // Age
+                { wch: 10 }, // 1F
+                { wch: 10 }, // 5F
+                { wch: 8 },  // Fast
+                { wch: 8 }   // 15 min
+            ];
+
+            // Force time columns to be text format to preserve display
+            const timeColumns = [5, 6, 7, 8]; // 1F, 5F, Fast, 15 min (0-indexed)
+            for (let row = 1; row <= filteredData.length; row++) {
+                timeColumns.forEach(col => {
+                    const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+                    if (ws[cellRef] && ws[cellRef].v) {
+                        ws[cellRef].t = 's'; // Force text type
+                        ws[cellRef].z = '@'; // Text format
+                    }
+                });
             }
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Training Summary');
+
+            // Generate filename with date
+            const date = new Date().toISOString().split('T')[0];
+            const filename = `horse_training_summary_${date}.xlsx`;
+
+            // Download
+            XLSX.writeFile(wb, filename);
         }
 
 
