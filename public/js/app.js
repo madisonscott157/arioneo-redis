@@ -2539,10 +2539,32 @@
                     });
                 }
 
+                // Helper function to parse date string to Date object
+                function parseDate(dateStr) {
+                    if (!dateStr || dateStr === '-' || dateStr === '') return null;
+
+                    // Try parsing various date formats
+                    let date = new Date(dateStr);
+
+                    // If invalid, try MM/DD/YYYY format
+                    if (isNaN(date.getTime())) {
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            // Assume MM/DD/YYYY
+                            date = new Date(parts[2], parts[0] - 1, parts[1]);
+                        }
+                    }
+
+                    return isNaN(date.getTime()) ? null : date;
+                }
+
                 // Helper function to add a data row with color coding
                 function addDataRow(worksheet, rowData) {
+                    // Parse date to proper Date object for Excel
+                    const dateValue = parseDate(rowData.date);
+
                     const row = worksheet.addRow([
-                        rowData.date || '', rowData.horse || '', rowData.type || '',
+                        dateValue || rowData.date || '', rowData.horse || '', rowData.type || '',
                         rowData.track || '', rowData.surface || '', rowData.distance || '',
                         rowData.avgSpeed || '', rowData.maxSpeed || '', rowData.best1f || '', rowData.best2f || '',
                         rowData.best3f || '', rowData.best4f || '', rowData.best5f || '', rowData.best6f || '',
@@ -2554,6 +2576,11 @@
                         rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
                         rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
                     ]);
+
+                    // Format date cell if we have a valid date
+                    if (dateValue) {
+                        row.getCell(1).numFmt = 'MM/DD/YYYY';
+                    }
 
                     // Apply color coding to Best 5F
                     const best5fColor = getBest5FColor(rowData.best5f);
@@ -3057,10 +3084,25 @@
             const FAST_RECOVERY_COL = 17; // Fast Recovery
             const RECOVERY15_COL = 20;    // 15 Recovery
 
+            // Helper function to parse date string to Date object
+            function parseDate(dateStr) {
+                if (!dateStr || dateStr === '-' || dateStr === '') return null;
+                let date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        date = new Date(parts[2], parts[0] - 1, parts[1]);
+                    }
+                }
+                return isNaN(date.getTime()) ? null : date;
+            }
+
             // Add data rows with coloring
             currentHorseDetailData.forEach(rowData => {
+                const dateValue = parseDate(rowData.date);
+
                 const row = worksheet.addRow([
-                    rowData.date || '', rowData.horse || '', rowData.type || '',
+                    dateValue || rowData.date || '', rowData.horse || '', rowData.type || '',
                     rowData.track || '', rowData.surface || '', rowData.distance || '',
                     rowData.avgSpeed || '', rowData.maxSpeed || '', rowData.best1f || '', rowData.best2f || '',
                     rowData.best3f || '', rowData.best4f || '', rowData.best5f || '', rowData.best6f || '',
@@ -3072,6 +3114,11 @@
                     rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
                     rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
                 ]);
+
+                // Format date cell
+                if (dateValue) {
+                    row.getCell(1).numFmt = 'MM/DD/YYYY';
+                }
 
                 // Apply color coding to Best 5F
                 const best5fColor = getBest5FColor(rowData.best5f);
