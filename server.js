@@ -1057,9 +1057,9 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       return dateB - dateA;
     });
 
-    // Get the most recent TRAINING entry (exclude races for main table display)
-    // Races have isRace: true flag
-    const trainingEntries = sortedEntries.filter(e => !e.isRace);
+    // Get the most recent TRAINING entry (exclude races and notes for main table display)
+    // Races have isRace: true flag, notes have isNote: true flag
+    const trainingEntries = sortedEntries.filter(e => !e.isRace && !e.isNote);
     const lastTraining = trainingEntries.length > 0 ? trainingEntries[0] : null;
 
     // Debug: log first horse's date info
