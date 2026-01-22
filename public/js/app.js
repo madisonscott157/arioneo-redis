@@ -1294,6 +1294,47 @@
             }
         }
 
+        async function deleteNote(encodedHorse, encodedDate) {
+            const horseName = decodeURIComponent(atob(encodedHorse));
+            const date = decodeURIComponent(atob(encodedDate));
+
+            if (!confirm(`Delete note for ${horseName} on ${date}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/notes', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        horseName: horseName,
+                        date: date
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Remove the note from local data
+                    if (allHorseDetailData[horseName]) {
+                        allHorseDetailData[horseName] = allHorseDetailData[horseName].filter(
+                            entry => !(entry.isNote && entry.date === date)
+                        );
+                    }
+
+                    // Re-render the table
+                    sortHorseTable(currentHorseDetailSort.column);
+                } else {
+                    alert('Error deleting note: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting note:', error);
+                alert('Error deleting note: ' + error.message);
+            }
+        }
+
         // ============================================
         // CLEAR DATA FUNCTION
         // ============================================
@@ -2983,9 +3024,17 @@
                 // Add Edit button at the end - use base64 encoding for horse name to handle special characters
                 const encodedHorse = btoa(encodeURIComponent(row.horse || ''));
                 const encodedDate = btoa(encodeURIComponent(row.date || ''));
-                const editBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModalEncoded('${encodedHorse}', '${encodedDate}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
 
-                return `<tr class="${rowClass}">${rowHTML}${editBtn}</tr>`;
+                let actionBtn;
+                if (row.isNote) {
+                    // Show Delete button for notes
+                    actionBtn = `<td style="text-align: center;"><button onclick="deleteNote('${encodedHorse}', '${encodedDate}')" style="padding: 2px 8px; font-size: 11px; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 3px;">Delete</button></td>`;
+                } else {
+                    // Show Edit button for regular entries
+                    actionBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModalEncoded('${encodedHorse}', '${encodedDate}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
+                }
+
+                return `<tr class="${rowClass}">${rowHTML}${actionBtn}</tr>`;
             }).join('');
         }
         
