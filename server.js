@@ -2348,6 +2348,44 @@ app.get('/api/notes/:horseName', async (req, res) => {
   }
 });
 
+// Delete a note for a horse
+app.delete('/api/notes', async (req, res) => {
+  try {
+    const { horseName, date } = req.body;
+
+    if (!horseName || !date) {
+      return res.status(400).json({ error: 'Horse name and date are required' });
+    }
+
+    const notes = await getHorseNotes();
+
+    if (!notes[horseName] || notes[horseName].length === 0) {
+      return res.status(404).json({ error: 'No notes found for this horse' });
+    }
+
+    // Filter out the note with the matching date
+    const originalLength = notes[horseName].length;
+    notes[horseName] = notes[horseName].filter(n => n.date !== date);
+
+    if (notes[horseName].length === originalLength) {
+      return res.status(404).json({ error: 'Note not found for the specified date' });
+    }
+
+    await saveHorseNotes(notes);
+
+    console.log(`Deleted note for ${horseName} on ${date}`);
+
+    res.json({
+      success: true,
+      message: `Note deleted for ${horseName} on ${date}`
+    });
+
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
 // Regenerate all display names (apply formatting fixes without re-uploading)
 app.post('/api/regenerate', async (req, res) => {
   try {
