@@ -1436,9 +1436,13 @@ async function saveHorseNotes(notes) {
 
 // Apply notes to training data (adds note entries to each horse's data)
 function applyHorseNotes(allHorseDetailData, notes) {
-  if (!notes || Object.keys(notes).length === 0) return allHorseDetailData;
+  // First, remove any existing notes from the data (they may have been incorrectly saved before)
+  const result = {};
+  Object.keys(allHorseDetailData).forEach(horseName => {
+    result[horseName] = (allHorseDetailData[horseName] || []).filter(entry => !entry.isNote);
+  });
 
-  const result = { ...allHorseDetailData };
+  if (!notes || Object.keys(notes).length === 0) return result;
 
   Object.keys(notes).forEach(horseName => {
     const horseNotes = notes[horseName] || [];
