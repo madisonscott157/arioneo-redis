@@ -60,7 +60,7 @@ arioneo-redis-main/
 2. **Horse Detail Export** - Uses ExcelJS for styling support
    - `exportHorseDataToCsv()` function in app.js (async)
    - Exports all training columns
-   - **ISSUE**: Color coding not working - attempted to add background colors for:
+   - Color coding working - background colors applied for:
      - Best 5F column (blue/green/cream/yellow/red based on time)
      - Fast Recovery column (based on numeric value)
      - 15 Recovery column (based on numeric value)
@@ -87,6 +87,17 @@ arioneo-redis-main/
 >= 81: '#d4edda' (light green)
 < 81: '#d1ecf1' (light blue)
 ```
+
+### Add Note Feature
+- **Add Note button** on horse detail page to add custom notes with dates
+- Opens modal with date picker (defaults to today) and note textarea
+- Notes stored in Redis under `horse-notes` key
+- Notes appear as rows in the training table with type "Note"
+- Note rows styled with light yellow background (`note-row` class)
+- Notes sort by date with other entries
+- Functions: `openAddNoteModal()`, `closeAddNoteModal()`, `submitNote()` in app.js
+- Backend: `POST /api/notes`, `GET /api/notes/:horseName` endpoints
+- Storage helpers: `getHorseNotes()`, `saveHorseNotes()`, `applyHorseNotes()` in server.js
 
 ### Bug Fixes
 1. **Export button not working** - Added null check for removed `sortBy` element (line ~507)
@@ -148,18 +159,21 @@ if (track === 'TP') {
 
 ### app.js
 - `exportToCsv()` - Main page export (SheetJS)
-- `exportHorseDataToCsv()` - Horse detail export (ExcelJS) - NEEDS FIX
+- `exportHorseDataToCsv()` - Horse detail export (ExcelJS) with color coding
 - `getBest5FColor()`, `getFastRecoveryColor()`, `getRecovery15Color()` - Color logic
 - `filterHorseMappings()` - Manage horses filter
 - `showMainView()` - Return to main table (resets sort)
 - `handleArioneoUpload()` - CSV upload handler
 - `openCsvUploadModal()` - Opens drag-drop modal
+- `openAddNoteModal()`, `closeAddNoteModal()`, `submitNote()` - Add note functionality
 
 ### server.js
 - `RaceChartParser` class - PDF parsing
 - `/api/upload/race-charts` - Race PDF upload
 - `/api/race-charts/save` - Save races
 - `/api/upload/arioneo` - CSV/Excel upload
+- `/api/notes` - POST to add note, GET to retrieve notes for a horse
+- `getHorseNotes()`, `saveHorseNotes()`, `applyHorseNotes()` - Note storage helpers
 
 ## Testing Notes
 - Local: `npm install` then `node server.js`

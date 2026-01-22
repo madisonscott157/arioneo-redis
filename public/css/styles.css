@@ -1940,3 +1940,160 @@
         .csv-file-remove:hover {
             color: #dc3545;
         }
+
+        /* ============================================
+           ADD NOTE MODAL STYLES
+           ============================================ */
+
+        .add-note-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .add-note-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-note-header {
+            background: #1a3a5c;
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-note-header h2 {
+            margin: 0;
+            font-size: 1.3em;
+        }
+
+        .add-note-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .add-note-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .add-note-body {
+            padding: 25px;
+        }
+
+        .add-note-field {
+            margin-bottom: 20px;
+        }
+
+        .add-note-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .add-note-field .required {
+            color: #dc3545;
+        }
+
+        .add-note-field input[type="date"],
+        .add-note-field textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .add-note-field input[type="date"]:focus,
+        .add-note-field textarea:focus {
+            border-color: #1a3a5c;
+            outline: none;
+        }
+
+        .add-note-field textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .add-note-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .add-note-cancel {
+            padding: 12px 24px;
+            border: 2px solid #ddd;
+            background: white;
+            color: #666;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-note-cancel:hover {
+            border-color: #999;
+            color: #333;
+        }
+
+        .add-note-submit {
+            padding: 12px 24px;
+            border: none;
+            background: #1a3a5c;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-note-submit:hover {
+            background: #2a5a8c;
+        }
+
+        .add-note-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Note row styling in table */
+        .note-row {
+            background-color: #fffef0 !important;
+        }
+
+        .note-row:hover {
+            background-color: #fffde0 !important;
+        }

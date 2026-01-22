@@ -103,6 +103,10 @@
                 <button class="back-button" onclick="showMainView()">Main</button>
             </div>
 
+            <div class="control-group">
+                <button id="addNoteBtn" class="export-btn" onclick="openAddNoteModal()">Add Note</button>
+            </div>
+
             <button class="mobile-menu-btn" id="detailMenuBtn">⋯</button>
 
             <div class="mobile-hidden" id="detailExtraControls">
@@ -230,6 +234,30 @@
     </div>
     </div>
 
+
+    <!-- Add Note Modal -->
+    <div id="addNoteModal" class="add-note-modal" style="display: none;">
+        <div class="add-note-content">
+            <div class="add-note-header">
+                <h2>Add Note</h2>
+                <button class="add-note-close" onclick="closeAddNoteModal()">&times;</button>
+            </div>
+            <div class="add-note-body">
+                <div class="add-note-field">
+                    <label for="noteDate">Date <span class="required">*</span></label>
+                    <input type="date" id="noteDate" required>
+                </div>
+                <div class="add-note-field">
+                    <label for="noteText">Note <span class="required">*</span></label>
+                    <textarea id="noteText" rows="4" placeholder="Enter your note..." required></textarea>
+                </div>
+                <div class="add-note-actions">
+                    <button class="add-note-cancel" onclick="closeAddNoteModal()">Cancel</button>
+                    <button class="add-note-submit" onclick="submitNote()">Add Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- CSV Upload Modal -->
     <div id="csvUploadModal" class="csv-upload-modal" style="display: none;">

@@ -1403,6 +1403,73 @@ function applyTrainingEdits(allHorseDetailData, edits) {
   return result;
 }
 
+// ============================================
+// HORSE NOTES STORAGE
+// ============================================
+
+async function getHorseNotes() {
+  try {
+    if (redis) {
+      const data = await redis.get('horse-notes');
+      if (data) {
+        return typeof data === 'string' ? JSON.parse(data) : data;
+      }
+    }
+    return global.horseNotes || {};
+  } catch (error) {
+    console.error('Error getting horse notes:', error);
+    return global.horseNotes || {};
+  }
+}
+
+async function saveHorseNotes(notes) {
+  try {
+    if (redis) {
+      await redis.set('horse-notes', JSON.stringify(notes));
+    }
+    global.horseNotes = notes;
+    console.log('Horse notes saved');
+  } catch (error) {
+    console.error('Error saving horse notes:', error);
+  }
+}
+
+// Apply notes to training data (adds note entries to each horse's data)
+function applyHorseNotes(allHorseDetailData, notes) {
+  if (!notes || Object.keys(notes).length === 0) return allHorseDetailData;
+
+  const result = { ...allHorseDetailData };
+
+  Object.keys(notes).forEach(horseName => {
+    const horseNotes = notes[horseName] || [];
+    if (horseNotes.length > 0) {
+      if (!result[horseName]) {
+        result[horseName] = [];
+      }
+      // Add each note as a separate entry
+      horseNotes.forEach(note => {
+        result[horseName].push({
+          date: note.date,
+          horse: horseName,
+          type: 'Note',
+          notes: note.note,
+          isNote: true,
+          track: '-', surface: '-', distance: '-', avgSpeed: '-', maxSpeed: '-',
+          best1f: '-', best2f: '-', best3f: '-', best4f: '-', best5f: '-',
+          best6f: '-', best7f: '-', maxHR: '-', fastRecovery: '-', fastQuality: '-',
+          fastPercent: '-', recovery15: '-', quality15: '-', hr15Percent: '-',
+          maxSL: '-', slGallop: '-', sfGallop: '-', slWork: '-', sfWork: '-',
+          hr2min: '-', hr5min: '-', symmetry: '-', regularity: '-', bpm120: '-',
+          zone5: '-', age: '-', sex: '-', temp: '-', distanceCol: '-',
+          trotHR: '-', walkHR: '-'
+        });
+      });
+    }
+  });
+
+  return result;
+}
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -1508,9 +1575,14 @@ app.get('/api/session/:sessionId', async (req, res) => {
     // Apply alias merging to combine data for horses with aliases
     const horseMapping = await getHorseMapping();
     const mergedDetailData = mergeAliasedHorseData(sessionData.allHorseDetailData, horseMapping);
-    const mergedHorseData = generateHorseSummary(mergedDetailData, horseMapping);
 
-    console.log('Session found:', sessionId, 'with', mergedHorseData.length, 'horses (after alias merge)');
+    // Apply horse notes to the merged data
+    const horseNotes = await getHorseNotes();
+    const dataWithNotes = applyHorseNotes(mergedDetailData, horseNotes);
+
+    const mergedHorseData = generateHorseSummary(dataWithNotes, horseMapping);
+
+    console.log('Session found:', sessionId, 'with', mergedHorseData.length, 'horses (after alias merge and notes)');
 
     res.json({
       sessionId: sessionData.id,
@@ -1518,7 +1590,7 @@ app.get('/api/session/:sessionId', async (req, res) => {
       uploadedAt: sessionData.createdAt,
       updatedAt: sessionData.updatedAt,
       horseData: mergedHorseData,
-      allHorseDetailData: mergedDetailData,
+      allHorseDetailData: dataWithNotes,
       // Include sheet data if available
       allSheets: sessionData.allSheets,
       sheetNames: sessionData.sheetNames,
@@ -1634,7 +1706,11 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     console.log('Merged data keys:', mergedKeys);
 
     // Apply any manual edits
-    const finalDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
+    const editedDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
+
+    // Apply horse notes
+    const horseNotes = await getHorseNotes();
+    const finalDetailData = applyHorseNotes(editedDetailData, horseNotes);
 
     // Ensure all horses from the data are in the mapping
     await ensureHorsesInMapping(finalDetailData);
@@ -2207,6 +2283,64 @@ app.post('/api/horses/rename', async (req, res) => {
   } catch (error) {
     console.error('Error renaming horse:', error);
     res.status(500).json({ error: 'Failed to rename horse' });
+  }
+});
+
+// Add a note for a horse
+app.post('/api/notes', async (req, res) => {
+  try {
+    const { horseName, date, note } = req.body;
+
+    if (!horseName || !date || !note) {
+      return res.status(400).json({ error: 'Horse name, date, and note are required' });
+    }
+
+    const notes = await getHorseNotes();
+
+    // Initialize array for this horse if needed
+    if (!notes[horseName]) {
+      notes[horseName] = [];
+    }
+
+    // Add the new note
+    notes[horseName].push({
+      date: date,
+      note: note,
+      createdAt: new Date().toISOString()
+    });
+
+    await saveHorseNotes(notes);
+
+    console.log(`Added note for ${horseName} on ${date}`);
+
+    res.json({
+      success: true,
+      message: `Note added for ${horseName}`,
+      note: { horseName, date, note }
+    });
+
+  } catch (error) {
+    console.error('Error adding note:', error);
+    res.status(500).json({ error: 'Failed to add note' });
+  }
+});
+
+// Get notes for a horse
+app.get('/api/notes/:horseName', async (req, res) => {
+  try {
+    const { horseName } = req.params;
+    const notes = await getHorseNotes();
+    const horseNotes = notes[horseName] || [];
+
+    res.json({
+      success: true,
+      horseName,
+      notes: horseNotes
+    });
+
+  } catch (error) {
+    console.error('Error getting notes:', error);
+    res.status(500).json({ error: 'Failed to get notes' });
   }
 });
 

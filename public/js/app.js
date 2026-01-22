@@ -1190,7 +1190,109 @@
             if (e.target === modal) {
                 closeCsvUploadModal();
             }
+            const noteModal = document.getElementById('addNoteModal');
+            if (e.target === noteModal) {
+                closeAddNoteModal();
+            }
         });
+
+        // ============================================
+        // ADD NOTE MODAL FUNCTIONS
+        // ============================================
+        function openAddNoteModal() {
+            const modal = document.getElementById('addNoteModal');
+            modal.style.display = 'flex';
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('noteDate').value = today;
+            document.getElementById('noteText').value = '';
+        }
+
+        function closeAddNoteModal() {
+            const modal = document.getElementById('addNoteModal');
+            modal.style.display = 'none';
+            document.getElementById('noteDate').value = '';
+            document.getElementById('noteText').value = '';
+        }
+
+        async function submitNote() {
+            const dateInput = document.getElementById('noteDate');
+            const noteInput = document.getElementById('noteText');
+
+            const dateValue = dateInput.value;
+            const noteText = noteInput.value.trim();
+
+            if (!dateValue) {
+                alert('Please select a date.');
+                return;
+            }
+
+            if (!noteText) {
+                alert('Please enter a note.');
+                return;
+            }
+
+            // Format date as MM/DD/YYYY for consistency with other entries
+            const dateParts = dateValue.split('-');
+            const formattedDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+
+            const horseName = currentHorseRawName;
+            if (!horseName) {
+                alert('No horse selected.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        horseName: horseName,
+                        date: formattedDate,
+                        note: noteText
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeAddNoteModal();
+                    // Add the note to the current detail data and re-render
+                    const noteEntry = {
+                        date: formattedDate,
+                        horse: horseName,
+                        type: 'Note',
+                        notes: noteText,
+                        isNote: true,
+                        // Empty values for other columns
+                        track: '-', surface: '-', distance: '-', avgSpeed: '-', maxSpeed: '-',
+                        best1f: '-', best2f: '-', best3f: '-', best4f: '-', best5f: '-',
+                        best6f: '-', best7f: '-', maxHR: '-', fastRecovery: '-', fastQuality: '-',
+                        fastPercent: '-', recovery15: '-', quality15: '-', hr15Percent: '-',
+                        maxSL: '-', slGallop: '-', sfGallop: '-', slWork: '-', sfWork: '-',
+                        hr2min: '-', hr5min: '-', symmetry: '-', regularity: '-', bpm120: '-',
+                        zone5: '-', age: '-', sex: '-', temp: '-', distanceCol: '-',
+                        trotHR: '-', walkHR: '-'
+                    };
+
+                    // Add to allHorseDetailData for persistence
+                    if (!allHorseDetailData[horseName]) {
+                        allHorseDetailData[horseName] = [];
+                    }
+                    allHorseDetailData[horseName].push(noteEntry);
+
+                    // Re-fetch and display the horse data
+                    sortHorseTable(currentHorseDetailSort.column);
+                } else {
+                    alert('Error saving note: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving note:', error);
+                alert('Error saving note: ' + error.message);
+            }
+        }
 
         // ============================================
         // CLEAR DATA FUNCTION
@@ -2774,7 +2876,9 @@
             
             tbody.innerHTML = currentHorseDetailData.map((row, index) => {
                 let rowClass = '';
-                if (row.isWork) {
+                if (row.isNote) {
+                    rowClass = 'note-row';
+                } else if (row.isWork) {
                     rowClass = 'work-row';
                 } else if (row.isRace) {
                     rowClass = 'race-row';
