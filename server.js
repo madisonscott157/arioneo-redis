@@ -1708,27 +1708,27 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     // Apply any manual edits
     const editedDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
 
-    // Apply horse notes
-    const horseNotes = await getHorseNotes();
-    const finalDetailData = applyHorseNotes(editedDetailData, horseNotes);
-
     // Ensure all horses from the data are in the mapping
-    await ensureHorsesInMapping(finalDetailData);
+    await ensureHorsesInMapping(editedDetailData);
 
     // Get horse mapping for owner/country info (refresh after ensuring horses)
     const horseMapping = await getHorseMapping();
 
-    // Generate summary data
-    const horseData = generateHorseSummary(finalDetailData, horseMapping);
+    // Apply horse notes for display (but don't save notes to session - they're stored separately)
+    const horseNotes = await getHorseNotes();
+    const dataWithNotes = applyHorseNotes(editedDetailData, horseNotes);
 
-    // Save to session
-    await saveSession(sessionId, req.file.originalname, horseData, finalDetailData);
+    // Generate summary data (with notes for display)
+    const horseData = generateHorseSummary(dataWithNotes, horseMapping);
+
+    // Save to session WITHOUT notes (notes are stored separately in Redis)
+    await saveSession(sessionId, req.file.originalname, horseData, editedDetailData);
 
     // Clean up uploaded file
     fs.unlinkSync(req.file.path);
 
-    // Count new entries
-    const totalEntries = Object.values(finalDetailData).reduce((sum, arr) => sum + arr.length, 0);
+    // Count new entries (use editedDetailData to not count notes)
+    const totalEntries = Object.values(editedDetailData).reduce((sum, arr) => sum + arr.length, 0);
     const previousEntries = Object.values(existingDetailData).reduce((sum, arr) => sum + arr.length, 0);
     const newEntries = totalEntries - previousEntries;
 
@@ -1745,11 +1745,11 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
         uniqueHorsesInCSV: horseNamesInRows.length,
         horseNames: horseNamesInRows.slice(0, 20),
         existingDataKeys: existingKeys.slice(0, 20),
-        finalDataKeys: Object.keys(finalDetailData).slice(0, 20)
+        finalDataKeys: Object.keys(editedDetailData).slice(0, 20)
       },
       data: {
         horseData,
-        allHorseDetailData: finalDetailData
+        allHorseDetailData: dataWithNotes
       }
     });
 
