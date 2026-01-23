@@ -3027,8 +3027,8 @@
 
                 let actionBtn;
                 if (row.isNote) {
-                    // Show Delete button for notes
-                    actionBtn = `<td style="text-align: center;"><button onclick="deleteNote('${encodedHorse}', '${encodedDate}')" style="padding: 2px 8px; font-size: 11px; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 3px;">Delete</button></td>`;
+                    // Show Delete button for notes (styled like Edit button)
+                    actionBtn = `<td style="text-align: center;"><button onclick="deleteNote('${encodedHorse}', '${encodedDate}')" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Delete</button></td>`;
                 } else {
                     // Show Edit button for regular entries
                     actionBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModalEncoded('${encodedHorse}', '${encodedDate}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
