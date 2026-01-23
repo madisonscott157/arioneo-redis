@@ -1294,14 +1294,7 @@
             }
         }
 
-        async function deleteNote(encodedHorse, encodedDate) {
-            const horseName = decodeURIComponent(atob(encodedHorse));
-            const date = decodeURIComponent(atob(encodedDate));
-
-            if (!confirm(`Delete note for ${horseName} on ${date}?`)) {
-                return;
-            }
-
+        async function deleteNote(horseName, date) {
             try {
                 const response = await fetch('/api/notes', {
                     method: 'DELETE',
@@ -1326,12 +1319,166 @@
 
                     // Re-render the table
                     sortHorseTable(currentHorseDetailSort.column);
+                    return true;
                 } else {
                     alert('Error deleting note: ' + (data.error || 'Unknown error'));
+                    return false;
                 }
             } catch (error) {
                 console.error('Error deleting note:', error);
                 alert('Error deleting note: ' + error.message);
+                return false;
+            }
+        }
+
+        function showEditNoteModal(encodedHorse, encodedDate, encodedNote) {
+            const horseName = decodeURIComponent(atob(encodedHorse));
+            const date = decodeURIComponent(atob(encodedDate));
+            const noteText = decodeURIComponent(atob(encodedNote));
+
+            let modal = document.getElementById('editNoteModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'editNoteModal';
+                modal.className = 'add-note-modal';
+                modal.innerHTML = `
+                    <div class="add-note-content">
+                        <div class="add-note-header">
+                            <h2>Edit Note</h2>
+                            <button class="add-note-close" onclick="closeEditNoteModal()">&times;</button>
+                        </div>
+                        <div class="add-note-body">
+                            <div class="add-note-field">
+                                <label for="editNoteDate">Date <span class="required">*</span></label>
+                                <input type="date" id="editNoteDate" required>
+                            </div>
+                            <div class="add-note-field">
+                                <label for="editNoteText">Note <span class="required">*</span></label>
+                                <textarea id="editNoteText" rows="4" placeholder="Enter your note..." required></textarea>
+                            </div>
+                            <input type="hidden" id="editNoteHorse">
+                            <input type="hidden" id="editNoteOriginalDate">
+                            <div class="add-note-actions" style="justify-content: space-between;">
+                                <button class="add-note-cancel" style="background: #dc3545; color: white; border-color: #dc3545;" onclick="deleteNoteFromModal()">Delete</button>
+                                <div style="display: flex; gap: 12px;">
+                                    <button class="add-note-cancel" onclick="closeEditNoteModal()">Cancel</button>
+                                    <button class="add-note-submit" onclick="saveNoteEdit()">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // Convert MM/DD/YYYY to YYYY-MM-DD for date input
+            const dateParts = date.split('/');
+            const dateValue = dateParts.length === 3 ?
+                `${dateParts[2]}-${dateParts[0].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}` : '';
+
+            document.getElementById('editNoteHorse').value = horseName;
+            document.getElementById('editNoteOriginalDate').value = date;
+            document.getElementById('editNoteDate').value = dateValue;
+            document.getElementById('editNoteText').value = noteText;
+
+            modal.style.display = 'flex';
+
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeEditNoteModal();
+                }
+            };
+        }
+
+        function closeEditNoteModal() {
+            const modal = document.getElementById('editNoteModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function deleteNoteFromModal() {
+            const horseName = document.getElementById('editNoteHorse').value;
+            const originalDate = document.getElementById('editNoteOriginalDate').value;
+
+            if (!confirm(`Delete this note?`)) {
+                return;
+            }
+
+            const success = await deleteNote(horseName, originalDate);
+            if (success) {
+                closeEditNoteModal();
+            }
+        }
+
+        async function saveNoteEdit() {
+            const horseName = document.getElementById('editNoteHorse').value;
+            const originalDate = document.getElementById('editNoteOriginalDate').value;
+            const newDateValue = document.getElementById('editNoteDate').value;
+            const newNoteText = document.getElementById('editNoteText').value.trim();
+
+            if (!newDateValue) {
+                alert('Please select a date.');
+                return;
+            }
+
+            if (!newNoteText) {
+                alert('Please enter a note.');
+                return;
+            }
+
+            // Convert YYYY-MM-DD to MM/DD/YYYY
+            const dateParts = newDateValue.split('-');
+            const newDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+
+            try {
+                // Delete old note
+                const deleteResponse = await fetch('/api/notes', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horseName, date: originalDate })
+                });
+
+                // Add updated note
+                const addResponse = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ horseName, date: newDate, note: newNoteText })
+                });
+
+                const addData = await addResponse.json();
+
+                if (addData.success) {
+                    // Update local data
+                    if (allHorseDetailData[horseName]) {
+                        // Remove old note
+                        allHorseDetailData[horseName] = allHorseDetailData[horseName].filter(
+                            entry => !(entry.isNote && entry.date === originalDate)
+                        );
+                        // Add updated note
+                        allHorseDetailData[horseName].push({
+                            date: newDate,
+                            horse: horseName,
+                            type: 'Note',
+                            notes: newNoteText,
+                            isNote: true,
+                            track: '-', surface: '-', distance: '-', avgSpeed: '-', maxSpeed: '-',
+                            best1f: '-', best2f: '-', best3f: '-', best4f: '-', best5f: '-',
+                            best6f: '-', best7f: '-', maxHR: '-', fastRecovery: '-', fastQuality: '-',
+                            fastPercent: '-', recovery15: '-', quality15: '-', hr15Percent: '-',
+                            maxSL: '-', slGallop: '-', sfGallop: '-', slWork: '-', sfWork: '-',
+                            hr2min: '-', hr5min: '-', symmetry: '-', regularity: '-', bpm120: '-',
+                            zone5: '-', age: '-', sex: '-', temp: '-', distanceCol: '-',
+                            trotHR: '-', walkHR: '-'
+                        });
+                    }
+
+                    closeEditNoteModal();
+                    sortHorseTable(currentHorseDetailSort.column);
+                } else {
+                    alert('Error saving note: ' + (addData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving note:', error);
+                alert('Error saving note: ' + error.message);
             }
         }
 
@@ -3027,8 +3174,9 @@
 
                 let actionBtn;
                 if (row.isNote) {
-                    // Show Delete button for notes (styled like Edit button)
-                    actionBtn = `<td style="text-align: center;"><button onclick="deleteNote('${encodedHorse}', '${encodedDate}')" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Delete</button></td>`;
+                    // Show Edit button for notes
+                    const encodedNote = btoa(encodeURIComponent(row.notes || ''));
+                    actionBtn = `<td style="text-align: center;"><button onclick="showEditNoteModal('${encodedHorse}', '${encodedDate}', '${encodedNote}')" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
                 } else {
                     // Show Edit button for regular entries
                     actionBtn = `<td style="text-align: center;"><button onclick="showEditTrainingModalEncoded('${encodedHorse}', '${encodedDate}', JSON.parse(this.dataset.row))" data-row="${rowDataStr}" style="padding: 2px 8px; font-size: 11px; cursor: pointer;">Edit</button></td>`;
