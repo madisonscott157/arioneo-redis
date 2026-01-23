@@ -1719,11 +1719,11 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     const horseMapping = await getHorseMapping();
 
     // Apply alias merging to combine data for horses with aliases (for display)
-    const mergedDetailData = mergeAliasedHorseData(editedDetailData, horseMapping);
+    const aliasedDetailData = mergeAliasedHorseData(editedDetailData, horseMapping);
 
     // Apply horse notes for display (but don't save notes to session - they're stored separately)
     const horseNotes = await getHorseNotes();
-    const dataWithNotes = applyHorseNotes(mergedDetailData, horseNotes);
+    const dataWithNotes = applyHorseNotes(aliasedDetailData, horseNotes);
 
     // Generate summary data (with notes for display)
     const horseData = generateHorseSummary(dataWithNotes, horseMapping);
@@ -1752,7 +1752,7 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
         uniqueHorsesInCSV: horseNamesInRows.length,
         horseNames: horseNamesInRows.slice(0, 20),
         existingDataKeys: existingKeys.slice(0, 20),
-        finalDataKeys: Object.keys(mergedDetailData).slice(0, 20)
+        finalDataKeys: Object.keys(aliasedDetailData).slice(0, 20)
       },
       data: {
         horseData,
