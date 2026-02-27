@@ -67,12 +67,19 @@ arioneo-redis-main/
 
 ### Color Coding Logic (defined in app.js)
 ```javascript
-// Best 5F - getBest5FColor(timeStr)
+// Best 5F - getBest5FColor(timeStr, country)
+// Default thresholds (non-FR horses):
 <= 60 sec: '#d1ecf1' (light blue - fastest)
 <= 65 sec: '#d4edda' (light green)
 <= 70 sec: '#f9f7e3' (light cream)
 <= 75 sec: '#fff3cd' (light yellow)
 > 75 sec: '#fdeaea' (light red - slowest)
+
+// FR (France) horses have different thresholds:
+< 63 sec (1:03): '#d1ecf1' (light blue - Excellent)
+< 71 sec (1:11): '#d4edda' (light green - Good)
+< 110 sec (1:50): '#f9f7e3' (light cream - Moderate)
+>= 110 sec: '#fdeaea' (light red - Slow)
 
 // Fast Recovery - getFastRecoveryColor(value)
 >= 140: '#fdeaea' (light red)

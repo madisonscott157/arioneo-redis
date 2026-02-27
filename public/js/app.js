@@ -152,11 +152,20 @@
             return '#d1ecf1';
         }
         
-        function getBest5FColor(timeStr) {
+        function getBest5FColor(timeStr, country) {
             if (!timeStr || timeStr === '-' || !isValidTime(timeStr)) return null;
-            
+
             const seconds = timeToSeconds(timeStr);
-            
+
+            // FR (France) horses have different thresholds
+            if (country === 'FR') {
+                if (seconds < 63) return '#d1ecf1';   // Blue - Excellent
+                if (seconds < 71) return '#d4edda';   // Green - Good
+                if (seconds < 110) return '#f9f7e3';  // Cream - Moderate
+                return '#fdeaea';                      // Red - Slow
+            }
+
+            // Default thresholds for non-FR horses
             if (seconds <= 60) return '#d1ecf1';
             if (seconds <= 65) return '#d4edda';
             if (seconds <= 70) return '#f9f7e3';
@@ -2701,7 +2710,7 @@
                     }
 
                     // Apply color coding to Best 5F
-                    const best5fColor = getBest5FColor(rowData.best5f);
+                    const best5fColor = getBest5FColor(rowData.best5f, rowData.country);
                     if (best5fColor) {
                         const argb = ('FF' + best5fColor.replace('#', '')).toUpperCase();
                         row.getCell(BEST5F_COL).fill = {
@@ -3072,14 +3081,14 @@
                     rowClass = 'race-row';
                 }
                 
-                const best5fColor = getBest5FColor(row.best5f);
+                const best5fColor = getBest5FColor(row.best5f, row.country);
                 const fastRecoveryColor = getFastRecoveryColor(row.fastRecovery);
                 const recovery15Color = getRecovery15Color(row.recovery15);
-                
+
                 const best5fStyle = best5fColor ? `background-color: ${best5fColor}; color: #000;` : '';
                 const fastRecoveryStyle = fastRecoveryColor ? `background-color: ${fastRecoveryColor}; color: #000;` : '';
                 const recovery15Style = recovery15Color ? `background-color: ${recovery15Color}; color: #000;` : '';
-                
+
                 // Escape quotes for JSON in onclick
                 const rowDataStr = JSON.stringify({
                     type: row.type || '',
@@ -3262,7 +3271,7 @@
                 }
 
                 // Apply color coding to Best 5F
-                const best5fColor = getBest5FColor(rowData.best5f);
+                const best5fColor = getBest5FColor(rowData.best5f, rowData.country);
                 if (best5fColor) {
                     const argb = ('FF' + best5fColor.replace('#', '')).toUpperCase();
                     row.getCell(BEST5F_COL).fill = {
@@ -3856,6 +3865,7 @@
             const fastRecovery = lastTraining ? lastTraining.fastRecovery : '-';
             const recovery15min = lastTraining ? lastTraining.recovery15 : '-';
             const age = lastTraining ? lastTraining.age : 'N/A';
+            const country = lastTraining ? lastTraining.country : '';
 
             return {
                 name: horseName,
@@ -3865,7 +3875,7 @@
                 best5f: best5f,
                 fastRecovery: fastRecovery,
                 recovery15min: recovery15min,
-                best5fColor: getBest5FColor(best5f),
+                best5fColor: getBest5FColor(best5f, country),
                 fastRecoveryColor: getFastRecoveryColor(fastRecovery),
                 recovery15Color: getRecovery15Color(recovery15min)
             };
