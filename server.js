@@ -545,11 +545,21 @@ function getRecovery15Color(value) {
   return '#d1ecf1';
 }
 
-function getBest5FColor(timeStr) {
+function getBest5FColor(timeStr, country) {
   if (!timeStr || timeStr === '-' || !isValidTime(timeStr)) return null;
 
   const seconds = timeToSeconds(timeStr);
 
+  // FR (France) horses have different thresholds
+  const countryUpper = (country || '').toUpperCase().trim();
+  if (countryUpper === 'FR' || countryUpper === 'FRANCE') {
+    if (seconds < 63) return '#d1ecf1';   // Blue - Excellent
+    if (seconds < 71) return '#d4edda';   // Green - Good
+    if (seconds < 110) return '#f9f7e3';  // Cream - Moderate
+    return '#fdeaea';                      // Red - Slow
+  }
+
+  // Default thresholds for non-FR horses
   if (seconds <= 60) return '#d1ecf1';
   if (seconds <= 65) return '#d4edda';
   if (seconds <= 70) return '#f9f7e3';
@@ -1129,7 +1139,7 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
       best5f: best5f,
       fastRecovery: fastRecovery,
       recovery15min: recovery15min,
-      best5fColor: getBest5FColor(best5f),
+      best5fColor: getBest5FColor(best5f, mapping.country),
       fastRecoveryColor: getFastRecoveryColor(fastRecovery),
       recovery15Color: getRecovery15Color(recovery15min),
       owner: mapping.owner || '',
