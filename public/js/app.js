@@ -6,6 +6,7 @@
         let currentHorseDetailSort = { column: 'date', order: 'desc' };
         let currentTypeFilter = 'all';
         let currentHorseRawName = ''; // Store raw name for data lookup
+        let currentHorseCountry = ''; // Store country for color thresholds
 
         // View: 'active' or 'historic'
         let currentView = 'active';
@@ -2904,9 +2905,10 @@
             // Store the raw name for data lookups
             currentHorseRawName = horseName;
 
-            // Get the display name from horseData or use override
+            // Get the display name and country from horseData or use override
             const horse = horseData.find(h => h.name === horseName);
             const displayName = displayNameOverride || horse?.displayName || horseName;
+            currentHorseCountry = horse?.country || '';
             document.getElementById('horseDetailTitle').textContent = `${displayName} - Training Details`;
 
             // Use fuzzy matching to find the data
@@ -3082,7 +3084,7 @@
                     rowClass = 'race-row';
                 }
                 
-                const best5fColor = getBest5FColor(row.best5f, row.country);
+                const best5fColor = getBest5FColor(row.best5f, currentHorseCountry);
                 const fastRecoveryColor = getFastRecoveryColor(row.fastRecovery);
                 const recovery15Color = getRecovery15Color(row.recovery15);
 
@@ -3272,7 +3274,7 @@
                 }
 
                 // Apply color coding to Best 5F
-                const best5fColor = getBest5FColor(rowData.best5f, rowData.country);
+                const best5fColor = getBest5FColor(rowData.best5f, currentHorseCountry);
                 if (best5fColor) {
                     const argb = ('FF' + best5fColor.replace('#', '')).toUpperCase();
                     row.getCell(BEST5F_COL).fill = {
