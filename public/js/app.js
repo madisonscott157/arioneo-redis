@@ -2894,11 +2894,11 @@
         function showHorseDetailByIndex(index) {
             const horse = filteredData[index];
             if (horse) {
-                showHorseDetail(horse.name, horse.displayName);
+                showHorseDetail(horse.name, horse.displayName, horse.country);
             }
         }
 
-        function showHorseDetail(horseName, displayNameOverride) {
+        function showHorseDetail(horseName, displayNameOverride, countryOverride) {
             console.log('Clicked horse:', horseName);
             console.log('Available horse detail data:', Object.keys(allHorseDetailData));
 
@@ -2908,7 +2908,7 @@
             // Get the display name and country from horseData or use override
             const horse = horseData.find(h => h.name === horseName);
             const displayName = displayNameOverride || horse?.displayName || horseName;
-            currentHorseCountry = horse?.country || '';
+            currentHorseCountry = countryOverride || horse?.country || '';
             document.getElementById('horseDetailTitle').textContent = `${displayName} - Training Details`;
 
             // Use fuzzy matching to find the data
