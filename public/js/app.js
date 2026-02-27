@@ -158,7 +158,8 @@
             const seconds = timeToSeconds(timeStr);
 
             // FR (France) horses have different thresholds
-            if (country === 'FR') {
+            const countryUpper = (country || '').toUpperCase().trim();
+            if (countryUpper === 'FR' || countryUpper === 'FRANCE') {
                 if (seconds < 63) return '#d1ecf1';   // Blue - Excellent
                 if (seconds < 71) return '#d4edda';   // Green - Good
                 if (seconds < 110) return '#f9f7e3';  // Cream - Moderate
