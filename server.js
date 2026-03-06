@@ -2414,6 +2414,135 @@ app.delete('/api/notes', async (req, res) => {
   }
 });
 
+// Bulk upload notes from Excel file
+app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'File is empty or has no data rows' });
+    }
+
+    const horseMapping = await getHorseMapping();
+    const notes = await getHorseNotes();
+    const errors = [];
+    let successCount = 0;
+    const horsesUpdated = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2; // 1-indexed + header row
+
+      // Get values from columns (try common header names)
+      const rawName = (row['Name'] || row['name'] || row['Horse'] || row['horse'] || '').toString().trim();
+      const rawDate = row['Date'] || row['date'] || '';
+      const rawNote = (row['Note'] || row['note'] || row['Notes'] || row['notes'] || '').toString().trim();
+
+      if (!rawName) {
+        errors.push({ row: rowNum, name: rawName, reason: 'Missing horse name' });
+        continue;
+      }
+      if (!rawDate && rawDate !== 0) {
+        errors.push({ row: rowNum, name: rawName, reason: 'Missing date' });
+        continue;
+      }
+      if (!rawNote) {
+        errors.push({ row: rowNum, name: rawName, reason: 'Missing note text' });
+        continue;
+      }
+
+      // Convert Excel serial date to MM/DD/YYYY
+      let dateStr;
+      if (typeof rawDate === 'number') {
+        // Excel serial date: days since 1900-01-01 (with the 1900 leap year bug)
+        const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+        const jsDate = new Date(excelEpoch.getTime() + rawDate * 86400000);
+        const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+        const day = String(jsDate.getDate()).padStart(2, '0');
+        const year = jsDate.getFullYear();
+        dateStr = `${month}/${day}/${year}`;
+      } else {
+        // Already a string date — use as-is
+        dateStr = rawDate.toString().trim();
+      }
+
+      // Resolve horse name via alias mapping
+      const canonicalName = resolveHorseAlias(rawName, horseMapping);
+
+      // Check if horse exists in mapping
+      const nameInMapping = Object.keys(horseMapping).find(k =>
+        k.toLowerCase() === canonicalName.toLowerCase()
+      );
+
+      if (!nameInMapping) {
+        errors.push({ row: rowNum, name: rawName, reason: 'Horse not found in system' });
+        continue;
+      }
+
+      // Add note to the canonical horse name
+      if (!notes[nameInMapping]) {
+        notes[nameInMapping] = [];
+      }
+
+      // Check for duplicate (same date and note text)
+      const isDuplicate = notes[nameInMapping].some(n =>
+        n.date === dateStr && n.note === rawNote
+      );
+
+      if (!isDuplicate) {
+        notes[nameInMapping].push({
+          date: dateStr,
+          note: rawNote,
+          createdAt: new Date().toISOString()
+        });
+        successCount++;
+        horsesUpdated.add(nameInMapping);
+      }
+    }
+
+    // Sort each horse's notes chronologically
+    for (const horseName of horsesUpdated) {
+      notes[horseName].sort((a, b) => {
+        const parseDate = (d) => {
+          const parts = d.split('/');
+          if (parts.length === 3) {
+            return new Date(parts[2], parts[0] - 1, parts[1]);
+          }
+          return new Date(d);
+        };
+        return parseDate(a.date) - parseDate(b.date);
+      });
+    }
+
+    await saveHorseNotes(notes);
+
+    // Clean up uploaded file
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
+
+    console.log(`Bulk notes upload: ${successCount} notes added for ${horsesUpdated.size} horses, ${errors.length} errors`);
+
+    res.json({
+      success: true,
+      added: successCount,
+      horsesUpdated: horsesUpdated.size,
+      errors: errors
+    });
+
+  } catch (error) {
+    console.error('Error in bulk notes upload:', error);
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.status(500).json({ error: 'Failed to process notes file' });
+  }
+});
+
 // Regenerate all display names (apply formatting fixes without re-uploading)
 app.post('/api/regenerate', async (req, res) => {
   try {

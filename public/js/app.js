@@ -1205,7 +1205,127 @@
             if (e.target === noteModal) {
                 closeAddNoteModal();
             }
+            const noteUploadModal = document.getElementById('noteUploadModal');
+            if (e.target === noteUploadModal) {
+                closeNoteUploadModal();
+            }
         });
+
+        // ============================================
+        // NOTE UPLOAD MODAL FUNCTIONS
+        // ============================================
+        function openNoteUploadModal() {
+            const modal = document.getElementById('noteUploadModal');
+            modal.style.display = 'flex';
+            initNoteDropzone();
+        }
+
+        function closeNoteUploadModal() {
+            const modal = document.getElementById('noteUploadModal');
+            modal.style.display = 'none';
+            const selectedFileDiv = document.getElementById('noteSelectedFile');
+            selectedFileDiv.innerHTML = '';
+            selectedFileDiv.classList.remove('has-file');
+        }
+
+        function initNoteDropzone() {
+            const dropzone = document.getElementById('noteDropzone');
+            const fileInput = document.getElementById('noteFileInput');
+
+            // Remove old listeners by cloning
+            const newDropzone = dropzone.cloneNode(true);
+            dropzone.parentNode.replaceChild(newDropzone, dropzone);
+
+            newDropzone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            newDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                newDropzone.classList.add('dragover');
+            });
+
+            newDropzone.addEventListener('dragleave', () => {
+                newDropzone.classList.remove('dragover');
+            });
+
+            newDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                newDropzone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.endsWith('.xlsx') || file.name.endsWith('.csv')) {
+                        handleNoteFileUpload(file);
+                    } else {
+                        alert('Please drop an Excel (.xlsx) or CSV file.');
+                    }
+                }
+            });
+
+            fileInput.onchange = function(e) {
+                if (e.target.files.length > 0) {
+                    handleNoteFileUpload(e.target.files[0]);
+                    fileInput.value = '';
+                }
+            };
+        }
+
+        async function handleNoteFileUpload(file) {
+            closeNoteUploadModal();
+
+            // Show progress overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'noteUploadOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10001;display:flex;align-items:center;justify-content:center;';
+            overlay.innerHTML = '<div style="background:white;padding:30px 40px;border-radius:12px;text-align:center;font-size:1.1em;">Uploading notes...</div>';
+            document.body.appendChild(overlay);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/notes/bulk', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                let message = `Added ${result.added} notes for ${result.horsesUpdated} horses.`;
+
+                if (result.errors && result.errors.length > 0) {
+                    const unmatchedHorses = result.errors
+                        .filter(e => e.reason === 'Horse not found in system')
+                        .map(e => e.name);
+                    const otherErrors = result.errors.filter(e => e.reason !== 'Horse not found in system');
+
+                    if (unmatchedHorses.length > 0) {
+                        const unique = [...new Set(unmatchedHorses)];
+                        message += `\n\nUnmatched horses (${unique.length}):\n${unique.join(', ')}`;
+                    }
+                    if (otherErrors.length > 0) {
+                        message += `\n\nOther errors (${otherErrors.length}):`;
+                        otherErrors.forEach(e => {
+                            message += `\nRow ${e.row}: ${e.reason}`;
+                        });
+                    }
+                }
+
+                alert(message);
+                loadLatestSession();
+
+            } catch (error) {
+                alert('Error uploading notes: ' + error.message);
+            } finally {
+                const ov = document.getElementById('noteUploadOverlay');
+                if (ov) ov.remove();
+            }
+        }
 
         // ============================================
         // ADD NOTE MODAL FUNCTIONS

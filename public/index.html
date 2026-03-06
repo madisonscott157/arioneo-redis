@@ -38,6 +38,8 @@
                 <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
                 <button onclick="openRaceUploadModal()" class="race-upload-btn">Upload Races</button>
+                <button onclick="openNoteUploadModal()" class="file-label">Upload Notes</button>
+                <input type="file" id="noteFileInput" accept=".xlsx,.csv" style="display: none;">
 
                 <button onclick="showHorseManagement()" class="btn">Manage</button>
                 <button onclick="clearAllData()" class="btn">Clear</button>
@@ -275,6 +277,26 @@
                     </div>
                 </div>
                 <div id="csvSelectedFile" class="csv-selected-file"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Upload Modal -->
+    <div id="noteUploadModal" class="csv-upload-modal" style="display: none;">
+        <div class="csv-upload-content">
+            <div class="csv-upload-header">
+                <h2>Upload Notes</h2>
+                <button class="csv-upload-close" onclick="closeNoteUploadModal()">&times;</button>
+            </div>
+            <div class="csv-upload-body">
+                <div class="csv-upload-dropzone" id="noteDropzone">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">📝</div>
+                        <p>Drag & drop Excel file with notes</p>
+                        <p class="dropzone-subtitle">Columns: Name, Date, Note</p>
+                    </div>
+                </div>
+                <div id="noteSelectedFile" class="csv-selected-file"></div>
             </div>
         </div>
     </div>
