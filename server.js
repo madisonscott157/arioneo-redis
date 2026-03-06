@@ -1791,11 +1791,18 @@ app.put('/api/training/edit', async (req, res) => {
 
     console.log(`Editing training entry: ${horse} on ${date}`);
 
+    // Resolve alias to canonical name so the edit key matches stored data
+    const horseMapping = await getHorseMapping();
+    const canonicalHorse = resolveHorseAlias(horse, horseMapping);
+    if (canonicalHorse !== horse) {
+      console.log(`Resolved edit alias: "${horse}" -> "${canonicalHorse}"`);
+    }
+
     // Get existing edits
     const edits = await getTrainingEdits();
 
-    // Create edit key
-    const editKey = `${horse}|${date}`;
+    // Create edit key using canonical name
+    const editKey = `${canonicalHorse}|${date}`;
 
     // Save the edit
     edits[editKey] = {
@@ -1814,7 +1821,6 @@ app.put('/api/training/edit', async (req, res) => {
 
     if (session && session.allHorseDetailData) {
       const updatedDetailData = applyTrainingEdits(session.allHorseDetailData, edits);
-      const horseMapping = await getHorseMapping();
       const horseData = generateHorseSummary(updatedDetailData, horseMapping);
       // Preserve existing sheet data when saving
       await saveSession(sessionId, session.fileName, horseData, updatedDetailData, {
