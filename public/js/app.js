@@ -2317,6 +2317,11 @@
                             </select>
                         </div>
 
+                        <div class="form-group" id="editRaceNameGroup" style="display: none;">
+                            <label>Race Name</label>
+                            <input type="text" id="editRaceName" style="width: 100%; padding: 8px;" placeholder="e.g. MSW, CLM, STK, Breeders Cup...">
+                        </div>
+
                         <div class="form-group">
                             <label>Track</label>
                             <input type="text" id="editTrack" style="width: 100%; padding: 8px;">
@@ -2363,6 +2368,17 @@
             document.getElementById('editSurface').value = currentData.surface || '';
             document.getElementById('editNotes').value = currentData.notes || '';
 
+            // Show race name field for race entries
+            const raceNameGroup = document.getElementById('editRaceNameGroup');
+            const raceNameInput = document.getElementById('editRaceName');
+            if (currentData.isRace || (currentData.type && currentData.type.toLowerCase() === 'race')) {
+                raceNameGroup.style.display = 'block';
+                raceNameInput.value = currentData.maxSpeed || '';
+            } else {
+                raceNameGroup.style.display = 'none';
+                raceNameInput.value = '';
+            }
+
             modal.style.display = 'flex';
 
             // Close modal when clicking on background
@@ -2392,12 +2408,18 @@
             const track = document.getElementById('editTrack').value;
             const surface = document.getElementById('editSurface').value;
             const notes = document.getElementById('editNotes').value;
+            const raceName = document.getElementById('editRaceName').value;
 
             try {
+                const body = { horse, date, type, track, surface, notes };
+                // Include race name if editing a race entry
+                if (document.getElementById('editRaceNameGroup').style.display !== 'none') {
+                    body.raceName = raceName;
+                }
                 const response = await fetch('/api/training/edit', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ horse, date, type, track, surface, notes })
+                    body: JSON.stringify(body)
                 });
 
                 const data = await response.json();

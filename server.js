@@ -1409,6 +1409,7 @@ function applyTrainingEdits(allHorseDetailData, edits, horseMapping) {
           type: edit.type !== undefined ? edit.type : entry.type,
           track: edit.track !== undefined ? edit.track : entry.track,
           surface: edit.surface !== undefined ? edit.surface : entry.surface,
+          maxSpeed: edit.maxSpeed !== undefined ? edit.maxSpeed : entry.maxSpeed,
           notes: edit.notes !== undefined ? edit.notes : (entry.notes || ''),
           isRace: edit.type ? edit.type.toLowerCase().includes('race') : entry.isRace,
           isWork: edit.type ? edit.type.toLowerCase().includes('work') : entry.isWork
@@ -1829,7 +1830,7 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
 // Edit a specific training entry
 app.put('/api/training/edit', async (req, res) => {
   try {
-    const { horse, date, type, track, surface, notes } = req.body;
+    const { horse, date, type, track, surface, notes, raceName } = req.body;
 
     if (!horse || !date) {
       return res.status(400).json({ error: 'Horse and date are required' });
@@ -1858,6 +1859,11 @@ app.put('/api/training/edit', async (req, res) => {
       notes: notes,
       editedAt: new Date().toISOString()
     };
+
+    // Store race name if provided (stored in maxSpeed field for race entries)
+    if (raceName !== undefined) {
+      edits[editKey].maxSpeed = raceName;
+    }
 
     await saveTrainingEdits(edits);
 
