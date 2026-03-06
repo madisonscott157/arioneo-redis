@@ -2498,6 +2498,7 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
     const notes = await getHorseNotes();
     const errors = [];
     let successCount = 0;
+    let duplicatesSkipped = 0;
     const horsesUpdated = new Set();
 
     for (let i = 0; i < rows.length; i++) {
@@ -2560,7 +2561,14 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
         n.date === dateStr && n.note === rawNote
       );
 
-      if (!isDuplicate) {
+      const skipDuplicates = req.query.skipDuplicates !== 'false';
+
+      if (isDuplicate && skipDuplicates) {
+        duplicatesSkipped++;
+        continue;
+      }
+
+      if (!isDuplicate || !skipDuplicates) {
         notes[nameInMapping].push({
           date: dateStr,
           note: rawNote,
@@ -2596,6 +2604,7 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
       success: true,
       added: successCount,
       horsesUpdated: horsesUpdated.size,
+      duplicatesSkipped: duplicatesSkipped,
       errors: errors
     });
 

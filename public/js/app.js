@@ -1284,7 +1284,7 @@
             };
         }
 
-        async function handleNoteFileUpload(file) {
+        async function handleNoteFileUpload(file, skipDuplicates = true) {
             closeNoteUploadModal();
 
             // Show progress overlay
@@ -1298,7 +1298,8 @@
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('/api/notes/bulk', {
+                const url = skipDuplicates ? '/api/notes/bulk' : '/api/notes/bulk?skipDuplicates=false';
+                const response = await fetch(url, {
                     method: 'POST',
                     body: formData
                 });
@@ -1330,6 +1331,19 @@
                 }
 
                 alert(message);
+
+                // If duplicates were skipped, ask user if they want to import them
+                if (result.duplicatesSkipped > 0 && skipDuplicates) {
+                    const importDups = confirm(`${result.duplicatesSkipped} duplicate notes were skipped.\n\nWould you like to import them anyway?`);
+                    if (importDups) {
+                        // Remove overlay before re-uploading
+                        const ov = document.getElementById('noteUploadOverlay');
+                        if (ov) ov.remove();
+                        handleNoteFileUpload(file, false);
+                        return;
+                    }
+                }
+
                 loadLatestSession();
 
             } catch (error) {
