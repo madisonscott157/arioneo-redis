@@ -1779,6 +1779,18 @@
                             <button onclick="importHorseMappings()" class="export-btn">Import</button>
                         </div>
 
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f0f8f0; border-radius: 8px; border: 1px solid #27ae60;">
+                            <h4 style="margin-top: 0;">Backup / Restore</h4>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                Download a backup of all horse mappings, notes, and training edits. Restore from a previous backup.
+                            </p>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button onclick="downloadBackup()" class="export-btn" style="height: 38px;">Download Backup</button>
+                                <input type="file" id="restoreFile" accept=".json" style="display: none;">
+                                <button onclick="document.getElementById('restoreFile').click()" class="upload-btn" style="height: 38px;">Restore from Backup</button>
+                            </div>
+                        </div>
+
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <h4 style="margin: 0;">Current Mappings</h4>
@@ -2305,6 +2317,49 @@
                 alert('Error importing file');
             }
         }
+
+        // ============================================
+        // BACKUP / RESTORE
+        // ============================================
+        function downloadBackup() {
+            window.location.href = '/api/backup';
+        }
+
+        // Set up restore file handler
+        document.getElementById('restoreFile')?.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!confirm('This will overwrite your current horse mappings, notes, and training edits with the backup data.\n\nAre you sure?')) {
+                this.value = '';
+                return;
+            }
+
+            try {
+                const text = await file.text();
+                const backup = JSON.parse(text);
+
+                const response = await fetch('/api/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(backup)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Backup restored!\n\n' + data.message);
+                    loadHorseMappingList();
+                    loadLatestSession();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error restoring backup:', error);
+                alert('Error restoring backup. Make sure it is a valid backup JSON file.');
+            }
+
+            this.value = '';
+        });
 
         // ============================================
         // EDIT TRAINING ENTRY

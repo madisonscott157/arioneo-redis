@@ -2392,15 +2392,18 @@ app.post('/api/notes', async (req, res) => {
       return res.status(400).json({ error: 'Horse name, date, and note are required' });
     }
 
+    // Resolve alias to canonical name
+    const horseMapping = await getHorseMapping();
+    const canonicalName = resolveHorseAlias(horseName, horseMapping);
+    const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
+
     const notes = await getHorseNotes();
 
-    // Initialize array for this horse if needed
-    if (!notes[horseName]) {
-      notes[horseName] = [];
+    if (!notes[noteKey]) {
+      notes[noteKey] = [];
     }
 
-    // Add the new note
-    notes[horseName].push({
+    notes[noteKey].push({
       date: date,
       note: note,
       createdAt: new Date().toISOString()
@@ -2408,7 +2411,7 @@ app.post('/api/notes', async (req, res) => {
 
     await saveHorseNotes(notes);
 
-    console.log(`Added note for ${horseName} on ${date}`);
+    console.log(`Added note for ${noteKey} on ${date}`);
 
     res.json({
       success: true,
@@ -2426,12 +2429,17 @@ app.post('/api/notes', async (req, res) => {
 app.get('/api/notes/:horseName', async (req, res) => {
   try {
     const { horseName } = req.params;
+    const horseMapping = await getHorseMapping();
+    const canonicalName = resolveHorseAlias(horseName, horseMapping);
+    const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
+
     const notes = await getHorseNotes();
-    const horseNotes = notes[horseName] || [];
+    // Try canonical key, then fall back to original name
+    const horseNotes = notes[noteKey] || notes[horseName] || [];
 
     res.json({
       success: true,
-      horseName,
+      horseName: noteKey,
       notes: horseNotes
     });
 
@@ -2450,17 +2458,24 @@ app.delete('/api/notes', async (req, res) => {
       return res.status(400).json({ error: 'Horse name and date are required' });
     }
 
+    // Resolve alias to canonical name
+    const horseMapping = await getHorseMapping();
+    const canonicalName = resolveHorseAlias(horseName, horseMapping);
+    const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
+
     const notes = await getHorseNotes();
 
-    if (!notes[horseName] || notes[horseName].length === 0) {
+    // Try canonical key, then fall back to original name
+    const actualKey = notes[noteKey] ? noteKey : (notes[horseName] ? horseName : null);
+
+    if (!actualKey || notes[actualKey].length === 0) {
       return res.status(404).json({ error: 'No notes found for this horse' });
     }
 
-    // Filter out the note with the matching date
-    const originalLength = notes[horseName].length;
-    notes[horseName] = notes[horseName].filter(n => n.date !== date);
+    const originalLength = notes[actualKey].length;
+    notes[actualKey] = notes[actualKey].filter(n => n.date !== date);
 
-    if (notes[horseName].length === originalLength) {
+    if (notes[actualKey].length === originalLength) {
       return res.status(404).json({ error: 'Note not found for the specified date' });
     }
 
@@ -2614,6 +2629,79 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
       try { fs.unlinkSync(req.file.path); } catch (e) {}
     }
     res.status(500).json({ error: 'Failed to process notes file' });
+  }
+});
+
+// ============================================
+// BACKUP / RESTORE
+// ============================================
+
+// Export all user data as JSON backup
+app.get('/api/backup', async (req, res) => {
+  try {
+    const horseMapping = await getHorseMapping();
+    const horseNotes = await getHorseNotes();
+    const trainingEdits = await getTrainingEdits();
+
+    const backup = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      data: {
+        horseMapping,
+        horseNotes,
+        trainingEdits
+      }
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="streamline_backup_${new Date().toISOString().split('T')[0]}.json"`);
+    res.json(backup);
+
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    res.status(500).json({ error: 'Failed to create backup' });
+  }
+});
+
+// Restore from JSON backup
+app.post('/api/restore', express.json({ limit: '50mb' }), async (req, res) => {
+  try {
+    const backup = req.body;
+
+    if (!backup || !backup.data) {
+      return res.status(400).json({ error: 'Invalid backup file' });
+    }
+
+    const { horseMapping, horseNotes, trainingEdits } = backup.data;
+    const restored = [];
+
+    if (horseMapping && Object.keys(horseMapping).length > 0) {
+      await saveHorseMapping(horseMapping);
+      restored.push(`${Object.keys(horseMapping).length} horse mappings`);
+    }
+
+    if (horseNotes && Object.keys(horseNotes).length > 0) {
+      await saveHorseNotes(horseNotes);
+      const noteCount = Object.values(horseNotes).reduce((sum, arr) => sum + arr.length, 0);
+      restored.push(`${noteCount} notes for ${Object.keys(horseNotes).length} horses`);
+    }
+
+    if (trainingEdits && Object.keys(trainingEdits).length > 0) {
+      await saveTrainingEdits(trainingEdits);
+      restored.push(`${Object.keys(trainingEdits).length} training edits`);
+    }
+
+    console.log('Backup restored:', restored.join(', '));
+
+    res.json({
+      success: true,
+      message: `Restored: ${restored.join(', ')}`,
+      restored
+    });
+
+  } catch (error) {
+    console.error('Error restoring backup:', error);
+    res.status(500).json({ error: 'Failed to restore backup' });
   }
 });
 
