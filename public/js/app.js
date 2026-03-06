@@ -2964,6 +2964,30 @@
                     setColumnWidths(horseSheet);
                 });
 
+                // Notes sheet — collect all note entries across all horses
+                const allNotes = allTrainingData.filter(e => e.isNote);
+                if (allNotes.length > 0) {
+                    const notesSheet = workbook.addWorksheet('Notes');
+                    const noteHeaders = ['Date', 'Horse', 'Note'];
+                    const noteHeaderRow = notesSheet.addRow(noteHeaders);
+                    noteHeaderRow.font = { bold: true };
+                    noteHeaderRow.eachCell(cell => {
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFE0E0E0' },
+                            bgColor: { argb: 'FFE0E0E0' }
+                        };
+                    });
+                    allNotes.sort((a, b) => (a.horse || '').localeCompare(b.horse || ''));
+                    allNotes.forEach(n => {
+                        notesSheet.addRow([n.date || '', n.horse || '', n.notes || '']);
+                    });
+                    notesSheet.getColumn(1).width = 14;
+                    notesSheet.getColumn(2).width = 25;
+                    notesSheet.getColumn(3).width = 50;
+                }
+
                 // Generate filename with date
                 const date = new Date().toISOString().split('T')[0];
                 const filename = `all_training_data_${date}.xlsx`;
@@ -2981,7 +3005,8 @@
                 // Show success message
                 const totalEntries = allTrainingData.length;
                 const totalHorses = sortedHorses.length;
-                alert(`Export complete!\n\n${totalHorses} horses\n${totalEntries} total training entries\n${totalHorses + 1} sheets created`);
+                const noteCount = allNotes.length;
+                alert(`Export complete!\n\n${totalHorses} horses\n${totalEntries} total training entries\n${noteCount} notes\n${totalHorses + (noteCount > 0 ? 2 : 1)} sheets created`);
 
             } catch (error) {
                 console.error('Export error:', error);
@@ -3447,6 +3472,28 @@
             worksheet.columns.forEach((column, i) => {
                 column.width = i === 39 ? 30 : 12; // Notes column wider
             });
+
+            // Notes sheet for this horse
+            const horseNotes = currentHorseDetailData.filter(e => e.isNote);
+            if (horseNotes.length > 0) {
+                const notesSheet = workbook.addWorksheet('Notes');
+                const noteHeaders = ['Date', 'Note'];
+                const noteHeaderRow = notesSheet.addRow(noteHeaders);
+                noteHeaderRow.font = { bold: true };
+                noteHeaderRow.eachCell(cell => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFE0E0E0' },
+                        bgColor: { argb: 'FFE0E0E0' }
+                    };
+                });
+                horseNotes.forEach(n => {
+                    notesSheet.addRow([n.date || '', n.notes || '']);
+                });
+                notesSheet.getColumn(1).width = 14;
+                notesSheet.getColumn(2).width = 50;
+            }
 
             // Generate filename
             const date = new Date().toISOString().split('T')[0];
