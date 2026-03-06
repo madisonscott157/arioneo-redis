@@ -1318,7 +1318,15 @@ function mergeAliasedHorseData(allHorseDetailData, horseMapping) {
   console.log('Training data horse names:', dataKeys.slice(0, 10).join(', ') + (dataKeys.length > 10 ? '...' : ''));
 
   Object.keys(allHorseDetailData).forEach(horseName => {
-    const primaryName = resolveHorseAlias(horseName, horseMapping);
+    let primaryName = resolveHorseAlias(horseName, horseMapping);
+
+    // Also check for case-insensitive duplicates already in merged
+    if (!merged[primaryName]) {
+      const existingKey = Object.keys(merged).find(k => k.toLowerCase() === primaryName.toLowerCase());
+      if (existingKey) {
+        primaryName = existingKey;
+      }
+    }
 
     if (primaryName !== horseName) {
       console.log(`Merging: "${horseName}" -> "${primaryName}"`);
