@@ -3409,8 +3409,18 @@
                 return isNaN(date.getTime()) ? null : date;
             }
 
+            // Sort by date descending before export
+            const sortedExportData = [...currentHorseDetailData].sort((a, b) => {
+                const dateA = parseDate(a.date);
+                const dateB = parseDate(b.date);
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return dateB - dateA;
+            });
+
             // Add data rows with coloring
-            currentHorseDetailData.forEach(rowData => {
+            sortedExportData.forEach(rowData => {
                 const dateValue = parseDate(rowData.date);
 
                 const row = worksheet.addRow([
@@ -3475,7 +3485,7 @@
             });
 
             // Notes sheet for this horse
-            const horseNotes = currentHorseDetailData.filter(e => e.isNote);
+            const horseNotes = sortedExportData.filter(e => e.isNote);
             if (horseNotes.length > 0) {
                 const notesSheet = workbook.addWorksheet('Notes');
                 const noteHeaders = ['Date', 'Note'];
