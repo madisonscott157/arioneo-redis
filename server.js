@@ -4061,13 +4061,21 @@ app.post('/api/race-charts/save', async (req, res) => {
     const savedRaces = [];
     const skippedRaces = [];
 
+    const horseMapping = await getHorseMapping();
+
     for (const race of races) {
-      // Find existing horse key (case-insensitive) FIRST before creating entry
-      let horseKey = race.horseName;
+      // Resolve horse name through alias mapping first, then match existing keys
+      let horseKey = resolveHorseAlias(race.horseName, horseMapping);
       const existingKeys = Object.keys(sessionData.allHorseDetailData);
-      const matchingKey = existingKeys.find(k => k.toLowerCase() === race.horseName.toLowerCase());
+      const matchingKey = existingKeys.find(k => k.toLowerCase() === horseKey.toLowerCase());
       if (matchingKey) {
-        horseKey = matchingKey; // Use existing case (e.g., "Blanco" instead of "BLANCO")
+        horseKey = matchingKey;
+      } else {
+        // Fallback: try matching the original race name directly
+        const directMatch = existingKeys.find(k => k.toLowerCase() === race.horseName.toLowerCase());
+        if (directMatch) {
+          horseKey = directMatch;
+        }
       }
 
       // Skip duplicates unless explicitly included by user
