@@ -1745,9 +1745,8 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end;">
                                 <div>
                                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Current Name</label>
-                                    <select id="renameOldName" style="width: 100%; padding: 8px;">
-                                        <option value="">-- Select horse --</option>
-                                    </select>
+                                    <input type="text" id="renameOldName" list="renameHorseList" placeholder="Type to search..." style="width: 100%; padding: 8px;" autocomplete="off">
+                                    <datalist id="renameHorseList"></datalist>
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">New Name</label>
@@ -1853,15 +1852,15 @@
                 // Apply current filter
                 filterHorseMappings();
 
-                // Populate the rename dropdown with ALL horses
-                const renameSelect = document.getElementById('renameOldName');
-                if (renameSelect) {
-                    renameSelect.innerHTML = '<option value="">-- Select horse --</option>' +
-                        data.horses.map(h => {
-                            const encodedName = btoa(encodeURIComponent(h.name));
-                            const displayName = h.displayName || h.name;
-                            return `<option value="${encodedName}">${displayName}</option>`;
-                        }).join('');
+                // Populate the rename datalist with ALL horses
+                const renameList = document.getElementById('renameHorseList');
+                if (renameList) {
+                    window._renameHorseMap = {};
+                    renameList.innerHTML = data.horses.map(h => {
+                        const displayName = h.displayName || h.name;
+                        window._renameHorseMap[displayName.toLowerCase()] = h.name;
+                        return `<option value="${displayName}">`;
+                    }).join('');
                 }
 
             } catch (error) {
@@ -1939,15 +1938,17 @@
         }
 
         async function renameHorse() {
-            const oldNameSelect = document.getElementById('renameOldName');
+            const oldNameInput = document.getElementById('renameOldName');
             const newNameInput = document.getElementById('renameNewName');
+            const typed = oldNameInput.value.trim();
 
-            if (!oldNameSelect.value) {
-                alert('Please select a horse to rename');
+            if (!typed) {
+                alert('Please enter a horse name to rename');
                 return;
             }
 
-            const oldName = decodeURIComponent(atob(oldNameSelect.value));
+            // Resolve typed name to actual horse name via lookup
+            const oldName = (window._renameHorseMap && window._renameHorseMap[typed.toLowerCase()]) || typed;
             const newName = newNameInput.value.trim();
 
             if (!newName) {
@@ -1971,7 +1972,7 @@
                 if (data.success) {
                     alert(`Renamed "${oldName}" to "${newName}"`);
                     newNameInput.value = '';
-                    oldNameSelect.value = '';
+                    oldNameInput.value = '';
                     loadHorseMappingList();
                     loadLatestSession();
                 } else {
