@@ -508,8 +508,23 @@
         loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
         document.getElementById('ageFilter').addEventListener('change', filterData);
-        document.getElementById('exportCsv').addEventListener('click', exportToCsv);
-        document.getElementById('exportAllTraining').addEventListener('click', exportAllTrainingData);
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.btn-dropdown')) {
+                closeAllDropdowns();
+            }
+        });
+
+        function toggleDropdown(id) {
+            const menu = document.getElementById(id);
+            const wasOpen = menu.classList.contains('open');
+            closeAllDropdowns();
+            if (!wasOpen) menu.classList.add('open');
+        }
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.btn-dropdown-menu').forEach(m => m.classList.remove('open'));
+        }
 
         // Column visibility event listeners
         document.getElementById('toggleColumnVisibility').addEventListener('click', function() {
@@ -650,7 +665,7 @@
                         child.querySelector('.file-label') || child.querySelector('input[type="file"]')
                     );
                     const exportGroup = Array.from(mainControls.children).find(child =>
-                        child.querySelector('#exportCsv') || child.querySelector('.export-btn')
+                        child.querySelector('#exportBtn') || child.querySelector('.export-btn')
                     );
 
                     console.log('Upload group found:', !!uploadGroup);
@@ -992,8 +1007,7 @@
                     // Default sort to most recent training
                     currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
-                    document.getElementById('exportCsv').disabled = false;
-                    document.getElementById('exportAllTraining').disabled = false;
+                    document.getElementById('exportBtn').disabled = false;
 
                     // Show share URL
                     const shareUrl = `${window.location.origin}/share/${data.sessionId}`;
@@ -1077,8 +1091,7 @@
                     // Default sort to most recent training
                     currentSort = { column: 'lastTrainingDate', order: 'desc' };
                     filterData();
-                    document.getElementById('exportCsv').disabled = false;
-                    document.getElementById('exportAllTraining').disabled = false;
+                    document.getElementById('exportBtn').disabled = false;
 
                     // Show success message
                     alert(`Success!\n\n${data.message}\n\nTotal horses: ${data.totalHorses}\nTotal entries: ${data.totalEntries}`);
@@ -2742,7 +2755,7 @@
             }
 
             // Show loading indicator
-            const btn = document.getElementById('exportAllTraining');
+            const btn = document.getElementById('exportBtn');
             const originalText = btn.textContent;
             btn.textContent = 'Exporting...';
             btn.disabled = true;
@@ -3642,8 +3655,7 @@
                         updateColumnVisibilityUI();
                         updateTableColumnVisibility();
 
-                        document.getElementById('exportCsv').disabled = false;
-                    document.getElementById('exportAllTraining').disabled = false;
+                        document.getElementById('exportBtn').disabled = false;
 
                         // Refresh horse detail view if it's currently visible
                         const horseDetailView = document.getElementById('horseDetailView');

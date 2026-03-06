@@ -37,8 +37,13 @@
                 <button onclick="openCsvUploadModal()" class="file-label">Upload CSV</button>
                 <input type="file" id="arioneoFileInput" accept=".csv,.xlsx" style="display: none;">
 
-                <button onclick="openRaceUploadModal()" class="race-upload-btn">Upload Races</button>
-                <button onclick="openNoteUploadModal()" class="file-label">Upload Notes</button>
+                <div class="btn-dropdown">
+                    <button class="file-label" onclick="toggleDropdown('uploadDropdown')">Upload +</button>
+                    <div id="uploadDropdown" class="btn-dropdown-menu">
+                        <button onclick="openRaceUploadModal(); closeAllDropdowns()">Races</button>
+                        <button onclick="openNoteUploadModal(); closeAllDropdowns()">Notes</button>
+                    </div>
+                </div>
                 <input type="file" id="noteFileInput" accept=".xlsx,.csv" style="display: none;">
 
                 <button onclick="showHorseManagement()" class="btn">Manage</button>
@@ -64,8 +69,13 @@
                     </select>
                 </div>
 
-                <button id="exportCsv" class="btn" disabled>Export</button>
-                <button id="exportAllTraining" class="btn" disabled>Export All</button>
+                <div class="btn-dropdown">
+                    <button id="exportBtn" class="btn" disabled onclick="toggleDropdown('exportDropdown')">Export</button>
+                    <div id="exportDropdown" class="btn-dropdown-menu">
+                        <button id="exportCsvOption" onclick="exportToCsv(); closeAllDropdowns()">Current View</button>
+                        <button id="exportAllOption" onclick="exportAllTrainingData(); closeAllDropdowns()">All Training Data</button>
+                    </div>
+                </div>
             </div>
         </div>
 

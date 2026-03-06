@@ -184,6 +184,50 @@
             background: #0d2137;
         }
 
+        .btn-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .btn-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            min-width: 140px;
+            overflow: hidden;
+        }
+
+        .btn-dropdown-menu.open {
+            display: block;
+        }
+
+        .btn-dropdown-menu button {
+            display: block;
+            width: 100%;
+            padding: 9px 14px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 12px;
+            color: #333;
+            transition: background 0.15s;
+        }
+
+        .btn-dropdown-menu button:hover {
+            background: #f0f4f8;
+        }
+
+        .btn-dropdown-menu button + button {
+            border-top: 1px solid #eee;
+        }
+
         #fileInput {
             display: none;
         }
