@@ -4151,18 +4151,18 @@ app.post('/api/race-charts/save', async (req, res) => {
       savedRaces.push({ horseName: horseKey, date: race.date });
 
       // Ensure horse is in horse mapping
-      const horseMapping = await getHorseMapping();
-      if (!horseMapping[horseKey.toLowerCase()]) {
+      const currentMapping = await getHorseMapping();
+      if (!currentMapping[horseKey.toLowerCase()]) {
         // Add to mapping if new horse was manually created
         if (race.isNewHorse) {
-          horseMapping[horseKey.toLowerCase()] = {
+          currentMapping[horseKey.toLowerCase()] = {
             name: horseKey,
             displayName: horseKey,
             owner: race.owner || '-',
             country: race.country || '-',
             isHistoric: false
           };
-          await saveHorseMapping(horseMapping);
+          await saveHorseMapping(currentMapping);
         }
       }
     }
