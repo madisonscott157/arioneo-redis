@@ -2302,6 +2302,28 @@ app.post('/api/horses/rename', async (req, res) => {
 
     await saveHorseMapping(mapping);
 
+    // Migrate notes from old name to new name
+    const notes = await getHorseNotes();
+    const oldNoteKey = oldKey || oldName;
+    if (notes[oldNoteKey] && notes[oldNoteKey].length > 0) {
+      if (!notes[newName]) {
+        notes[newName] = [];
+      }
+      notes[newName] = notes[newName].concat(notes[oldNoteKey]);
+      // Sort chronologically
+      notes[newName].sort((a, b) => {
+        const parseDate = (d) => {
+          const parts = d.split('/');
+          if (parts.length === 3) return new Date(parts[2], parts[0] - 1, parts[1]);
+          return new Date(d);
+        };
+        return parseDate(a.date) - parseDate(b.date);
+      });
+      delete notes[oldNoteKey];
+      await saveHorseNotes(notes);
+      console.log(`Migrated ${notes[newName].length} notes from "${oldNoteKey}" to "${newName}"`);
+    }
+
     console.log(`Renamed horse: "${oldKey || oldName}" -> "${newName}" (aliases: ${mapping[newName].aliases.join(', ')})`);
 
     res.json({
