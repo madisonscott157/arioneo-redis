@@ -1384,16 +1384,24 @@ async function saveTrainingEdits(edits) {
 }
 
 // Apply edits to training data
-function applyTrainingEdits(allHorseDetailData, edits) {
+function applyTrainingEdits(allHorseDetailData, edits, horseMapping) {
   if (!edits || Object.keys(edits).length === 0) return allHorseDetailData;
 
   const result = { ...allHorseDetailData };
 
   Object.keys(result).forEach(horseName => {
     result[horseName] = result[horseName].map(entry => {
-      // Create unique key for this entry
-      const editKey = `${entry.horse}|${entry.date}`;
-      const edit = edits[editKey];
+      // Try exact key first, then resolve alias to canonical name
+      const exactKey = `${entry.horse}|${entry.date}`;
+      let edit = edits[exactKey];
+
+      if (!edit && horseMapping) {
+        const canonicalName = resolveHorseAlias(entry.horse, horseMapping);
+        if (canonicalName !== entry.horse) {
+          const canonicalKey = `${canonicalName}|${entry.date}`;
+          edit = edits[canonicalKey];
+        }
+      }
 
       if (edit) {
         return {
@@ -1709,8 +1717,9 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     const existingKeys = Object.keys(existingDetailData);
     console.log('Existing data keys:', existingKeys);
 
-    // Get training edits to apply
+    // Get training edits and horse mapping
     const trainingEdits = await getTrainingEdits();
+    let horseMapping = await getHorseMapping();
 
     // Merge new data with existing
     const mergedDetailData = mergeTrainingData(existingDetailData, processedRows);
@@ -1719,14 +1728,14 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     const mergedKeys = Object.keys(mergedDetailData);
     console.log('Merged data keys:', mergedKeys);
 
-    // Apply any manual edits
-    const editedDetailData = applyTrainingEdits(mergedDetailData, trainingEdits);
+    // Apply any manual edits (pass horseMapping for alias resolution)
+    const editedDetailData = applyTrainingEdits(mergedDetailData, trainingEdits, horseMapping);
 
     // Ensure all horses from the data are in the mapping
     await ensureHorsesInMapping(editedDetailData);
 
-    // Get horse mapping for owner/country info (refresh after ensuring horses)
-    const horseMapping = await getHorseMapping();
+    // Refresh horse mapping after ensuring horses
+    horseMapping = await getHorseMapping();
 
     // Apply alias merging to combine data for horses with aliases (for display)
     const aliasedDetailData = mergeAliasedHorseData(editedDetailData, horseMapping);
@@ -1820,7 +1829,7 @@ app.put('/api/training/edit', async (req, res) => {
     const session = await getSession(sessionId);
 
     if (session && session.allHorseDetailData) {
-      const updatedDetailData = applyTrainingEdits(session.allHorseDetailData, edits);
+      const updatedDetailData = applyTrainingEdits(session.allHorseDetailData, edits, horseMapping);
       const horseData = generateHorseSummary(updatedDetailData, horseMapping);
       // Preserve existing sheet data when saving
       await saveSession(sessionId, session.fileName, horseData, updatedDetailData, {
