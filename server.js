@@ -1452,8 +1452,41 @@ async function saveHorseNotes(notes) {
   }
 }
 
+// Migrate orphaned notes to canonical horse names via alias resolution
+async function migrateOrphanedNotes(horseMapping) {
+  const notes = await getHorseNotes();
+  if (!notes || Object.keys(notes).length === 0) return;
+
+  let changed = false;
+  const keysToProcess = Object.keys(notes);
+
+  for (const noteKey of keysToProcess) {
+    const canonical = resolveHorseAlias(noteKey, horseMapping);
+    // If the resolved name differs from the stored key, migrate
+    if (canonical !== noteKey && canonical.toLowerCase() !== noteKey.toLowerCase()) {
+      if (!notes[canonical]) {
+        notes[canonical] = [];
+      }
+      // Merge notes, skip duplicates
+      for (const note of notes[noteKey]) {
+        const isDup = notes[canonical].some(n => n.date === note.date && n.note === note.note);
+        if (!isDup) {
+          notes[canonical].push(note);
+        }
+      }
+      delete notes[noteKey];
+      changed = true;
+      console.log(`Migrated orphaned notes: "${noteKey}" -> "${canonical}"`);
+    }
+  }
+
+  if (changed) {
+    await saveHorseNotes(notes);
+  }
+}
+
 // Apply notes to training data (adds note entries to each horse's data)
-function applyHorseNotes(allHorseDetailData, notes) {
+function applyHorseNotes(allHorseDetailData, notes, horseMapping) {
   // First, remove any existing notes from the data (they may have been incorrectly saved before)
   const result = {};
   Object.keys(allHorseDetailData).forEach(horseName => {
@@ -1462,9 +1495,11 @@ function applyHorseNotes(allHorseDetailData, notes) {
 
   if (!notes || Object.keys(notes).length === 0) return result;
 
-  Object.keys(notes).forEach(horseName => {
-    const horseNotes = notes[horseName] || [];
+  Object.keys(notes).forEach(noteKey => {
+    const horseNotes = notes[noteKey] || [];
     if (horseNotes.length > 0) {
+      // Resolve the note key to canonical name via aliases
+      const horseName = horseMapping ? resolveHorseAlias(noteKey, horseMapping) : noteKey;
       if (!result[horseName]) {
         result[horseName] = [];
       }
@@ -1598,9 +1633,10 @@ app.get('/api/session/:sessionId', async (req, res) => {
     const horseMapping = await getHorseMapping();
     const mergedDetailData = mergeAliasedHorseData(sessionData.allHorseDetailData, horseMapping);
 
-    // Apply horse notes to the merged data
+    // Migrate any orphaned notes, then apply
+    await migrateOrphanedNotes(horseMapping);
     const horseNotes = await getHorseNotes();
-    const dataWithNotes = applyHorseNotes(mergedDetailData, horseNotes);
+    const dataWithNotes = applyHorseNotes(mergedDetailData, horseNotes, horseMapping);
 
     const mergedHorseData = generateHorseSummary(dataWithNotes, horseMapping);
 
@@ -1740,9 +1776,10 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     // Apply alias merging to combine data for horses with aliases (for display)
     const aliasedDetailData = mergeAliasedHorseData(editedDetailData, horseMapping);
 
-    // Apply horse notes for display (but don't save notes to session - they're stored separately)
+    // Migrate any orphaned notes, then apply for display
+    await migrateOrphanedNotes(horseMapping);
     const horseNotes = await getHorseNotes();
-    const dataWithNotes = applyHorseNotes(aliasedDetailData, horseNotes);
+    const dataWithNotes = applyHorseNotes(aliasedDetailData, horseNotes, horseMapping);
 
     // Generate summary data (with notes for display)
     const horseData = generateHorseSummary(dataWithNotes, horseMapping);
