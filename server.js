@@ -4070,11 +4070,13 @@ app.post('/api/race-charts/save', async (req, res) => {
         horseKey = matchingKey; // Use existing case (e.g., "Blanco" instead of "BLANCO")
       }
 
-      // Skip duplicates (check with the normalized horse key)
-      const isDuplicate = await checkDuplicateRace(horseKey, race.date, race.track);
-      if (isDuplicate) {
-        skippedRaces.push({ horseName: horseKey, date: race.date, reason: 'Duplicate entry' });
-        continue;
+      // Skip duplicates unless explicitly included by user
+      if (!race.forceSave) {
+        const isDuplicate = await checkDuplicateRace(horseKey, race.date, race.track);
+        if (isDuplicate) {
+          skippedRaces.push({ horseName: horseKey, date: race.date, reason: 'Duplicate entry' });
+          continue;
+        }
       }
 
       // Create training entry from race data (use horseKey, not race.horseName)

@@ -248,7 +248,7 @@ class RaceChartUploader {
                 </div>
                 <div class="stat stat-info">
                     <span class="stat-number">${data.duplicates}</span>
-                    <span class="stat-label">Duplicates (will skip)</span>
+                    <span class="stat-label">Duplicates</span>
                 </div>
             </div>
         `;
@@ -257,9 +257,17 @@ class RaceChartUploader {
         const reviewList = document.getElementById('reviewList');
         reviewList.innerHTML = this.results.map((result, index) => this.buildReviewCard(result, index)).join('');
 
-        // Add event listeners for checkboxes to update save button count
+        // Add event listeners for checkboxes to update save button count and toggle fields
         document.querySelectorAll('.include-race').forEach(checkbox => {
-            checkbox.addEventListener('change', () => this.updateSaveButton());
+            checkbox.addEventListener('change', () => {
+                this.updateSaveButton();
+                // Enable/disable inputs in the card when toggling a duplicate
+                const card = checkbox.closest('.review-card');
+                if (card) {
+                    const inputs = card.querySelectorAll('.review-input');
+                    inputs.forEach(input => input.disabled = !checkbox.checked);
+                }
+            });
         });
 
         // Update save button
@@ -275,7 +283,7 @@ class RaceChartUploader {
                           result.success && !result.needsVerification ? '✅' :
                           result.needsVerification ? '⚠️' : '❌';
 
-        const statusText = result.isDuplicate ? 'Duplicate - Will Skip' :
+        const statusText = result.isDuplicate ? 'Duplicate' :
                           result.success && !result.needsVerification ? 'Ready to Save' :
                           result.needsVerification ? 'Needs Verification' : 'Parse Error';
 
@@ -409,12 +417,10 @@ class RaceChartUploader {
                         <span class="file-name">${result.fileName}</span>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </div>
-                    ${!result.isDuplicate ? `
-                        <label class="include-checkbox">
-                            <input type="checkbox" class="include-race" data-index="${index}" checked>
-                            Include
-                        </label>
-                    ` : ''}
+                    <label class="include-checkbox">
+                        <input type="checkbox" class="include-race" data-index="${index}" ${result.isDuplicate ? '' : 'checked'}>
+                        Include
+                    </label>
                 </div>
                 ${cardContent}
             </div>
@@ -703,7 +709,8 @@ class RaceChartUploader {
                 comments: getValue('comments'),
                 isNewHorse,
                 owner,
-                country
+                country,
+                forceSave: result.isDuplicate ? true : false
             });
         });
 
