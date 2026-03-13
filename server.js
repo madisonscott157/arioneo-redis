@@ -1045,12 +1045,20 @@ function mergeTrainingData(existingData, newData) {
     }
 
     // Check for duplicate (same horse + same date)
-    const isDuplicate = merged[horseName].some(existing =>
+    const existingIndex = merged[horseName].findIndex(existing =>
       existing.date === row.date && existing.horse === row.horse
     );
 
-    if (!isDuplicate) {
+    if (existingIndex === -1) {
       merged[horseName].push(row);
+    } else {
+      // Update existing row with any new/missing fields from the new data
+      const existing = merged[horseName][existingIndex];
+      Object.keys(row).forEach(key => {
+        if (row[key] && row[key] !== '' && row[key] !== '-' && (!existing[key] || existing[key] === '' || existing[key] === '-')) {
+          existing[key] = row[key];
+        }
+      });
     }
   });
 
