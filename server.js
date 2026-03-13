@@ -818,7 +818,7 @@ function processArioneoCSV(csvData) {
 
     // Distance variations
     'working distance': 'distance',
-    'distance': 'distance',
+    'distance': 'distanceCol',
     'work distance': 'distance',
 
     // Speed variations
