@@ -836,7 +836,7 @@
             best5f: true, best6f: true, best7f: true, maxHR: true, fastRecovery: true, fastQuality: true,
             fastPercent: true, recovery15: true, quality15: true, hr15Percent: true, maxSL: true,
             slGallop: true, sfGallop: true, slWork: true, sfWork: true, hr2min: true, hr5min: true,
-            symmetry: true, regularity: true, bpm120: true, zone5: true, age: true, sex: true,
+            symmetry: true, regularity: true, bpm120: true, zone1: true, zone2: true, zone3: true, zone4: true, zone5: true, age: true, sex: true,
             temp: true, distanceCol: true, trotHR: true, walkHR: true
         };
         
@@ -847,7 +847,7 @@
             'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
             'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
             'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
-            'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+            'symmetry', 'regularity', 'bpm120', 'zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'age', 'sex',
             'temp', 'distanceCol', 'trotHR', 'walkHR'
         ];
         
@@ -1366,7 +1366,7 @@
                 best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
                 fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
                 slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
-                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone1: 'Zone 1', zone2: 'Zone 2', zone3: 'Zone 3', zone4: 'Zone 4', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
                 temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR'
             };
             
@@ -1388,7 +1388,7 @@
                 best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
                 fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
                 slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
-                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone1: 'Zone 1', zone2: 'Zone 2', zone3: 'Zone 3', zone4: 'Zone 4', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
                 temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR'
             };
             
@@ -1505,6 +1505,10 @@
                     symmetry: row.symmetry || '-',
                     regularity: row.regularity || '-',
                     bpm120: row.bpm120 || '-',
+                    zone1: row.zone1 || '-',
+                    zone2: row.zone2 || '-',
+                    zone3: row.zone3 || '-',
+                    zone4: row.zone4 || '-',
                     zone5: row.zone5 || '-',
                     age: row.age || '-',
                     sex: row.sex || '-',

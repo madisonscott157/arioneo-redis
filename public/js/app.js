@@ -23,7 +23,7 @@
             best5f: true, best6f: true, best7f: true, maxHR: true, fastRecovery: true, fastQuality: true,
             fastPercent: true, recovery15: true, quality15: true, hr15Percent: true, maxSL: true,
             slGallop: true, sfGallop: true, slWork: true, sfWork: true, hr2min: true, hr5min: true,
-            symmetry: true, regularity: true, bpm120: true, zone5: true, age: true, sex: true,
+            symmetry: true, regularity: true, bpm120: true, zone1: true, zone2: true, zone3: true, zone4: true, zone5: true, age: true, sex: true,
             temp: true, distanceCol: true, trotHR: true, walkHR: true, notes: true
         };
 
@@ -34,10 +34,10 @@
             'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
             'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
             'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
-            'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+            'symmetry', 'regularity', 'bpm120', 'zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'age', 'sex',
             'temp', 'distanceCol', 'trotHR', 'walkHR', 'notes'
         ];
-        
+
         // LocalStorage functions for multi-sheet functionality
         function loadAllSheets() {
             try {
@@ -192,10 +192,18 @@
                     const parsedOrder = JSON.parse(savedOrder);
                     if (Array.isArray(parsedOrder) && parsedOrder.length > 0) {
                         columnOrder = parsedOrder;
-                        // Ensure notes column is in the order (may be missing from old preferences)
-                        if (!columnOrder.includes('notes')) {
-                            columnOrder.push('notes');
-                        }
+                        // Ensure new columns are in the order (may be missing from old preferences)
+                        ['zone1', 'zone2', 'zone3', 'zone4', 'notes'].forEach(col => {
+                            if (!columnOrder.includes(col)) {
+                                // Insert zone columns before zone5 if possible, notes at end
+                                if (col.startsWith('zone') && columnOrder.includes('zone5')) {
+                                    const idx = columnOrder.indexOf('zone5');
+                                    columnOrder.splice(idx, 0, col);
+                                } else {
+                                    columnOrder.push(col);
+                                }
+                            }
+                        });
                         console.log('Loaded column order preferences:', parsedOrder.length, 'columns');
                     }
                 }
@@ -247,10 +255,17 @@
                     }
                     if (preferences.columnOrder && Array.isArray(preferences.columnOrder)) {
                         columnOrder = preferences.columnOrder;
-                        // Ensure notes column is in the order
-                        if (!columnOrder.includes('notes')) {
-                            columnOrder.push('notes');
-                        }
+                        // Ensure new columns are in the order (may be missing from old preferences)
+                        ['zone1', 'zone2', 'zone3', 'zone4', 'notes'].forEach(col => {
+                            if (!columnOrder.includes(col)) {
+                                if (col.startsWith('zone') && columnOrder.includes('zone5')) {
+                                    const idx = columnOrder.indexOf('zone5');
+                                    columnOrder.splice(idx, 0, col);
+                                } else {
+                                    columnOrder.push(col);
+                                }
+                            }
+                        });
                         // Update column order UI if it exists
                         if (typeof populateColumnOrderList === 'function') {
                             populateColumnOrderList();
@@ -306,7 +321,7 @@
                 best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
                 fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
                 slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
-                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone1: 'Zone 1', zone2: 'Zone 2', zone3: 'Zone 3', zone4: 'Zone 4', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
                 temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR', notes: 'Notes'
             };
 
@@ -329,10 +344,10 @@
                 best5f: 'Best 5F', best6f: 'Best 6F', best7f: 'Best 7F', maxHR: 'Max HR', fastRecovery: 'Fast Recovery', fastQuality: 'Fast Quality',
                 fastPercent: 'Fast %', recovery15: '15 Recovery', quality15: '15 Quality', hr15Percent: 'HR 15%', maxSL: 'Max SL',
                 slGallop: 'SL Gallop', sfGallop: 'SF Gallop', slWork: 'SL Work', sfWork: 'SF Work', hr2min: 'HR 2 min', hr5min: 'HR 5 min',
-                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
+                symmetry: 'Symmetry', regularity: 'Regularity', bpm120: '120bpm', zone1: 'Zone 1', zone2: 'Zone 2', zone3: 'Zone 3', zone4: 'Zone 4', zone5: 'Zone 5', age: 'Age', sex: 'Sex',
                 temp: 'Temp', distanceCol: 'Distance (Col)', trotHR: 'Trot HR', walkHR: 'Walk HR', notes: 'Notes'
             };
-            
+
             container.innerHTML = columnOrder.map((col, index) => `
                 <div class="column-item" data-column="${col}" data-index="${index}">
                     <input type="checkbox" ${columnVisibility[col] ? 'checked' : ''}>
@@ -565,7 +580,7 @@
                 'best5f', 'best6f', 'best7f', 'maxHR', 'fastRecovery', 'fastQuality',
                 'fastPercent', 'recovery15', 'quality15', 'hr15Percent', 'maxSL',
                 'slGallop', 'sfGallop', 'slWork', 'sfWork', 'hr2min', 'hr5min',
-                'symmetry', 'regularity', 'bpm120', 'zone5', 'age', 'sex',
+                'symmetry', 'regularity', 'bpm120', 'zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'age', 'sex',
                 'temp', 'distanceCol', 'trotHR', 'walkHR'
             ];
             saveColumnVisibility();
@@ -1431,6 +1446,7 @@
                         fastPercent: '-', recovery15: '-', quality15: '-', hr15Percent: '-',
                         maxSL: '-', slGallop: '-', sfGallop: '-', slWork: '-', sfWork: '-',
                         hr2min: '-', hr5min: '-', symmetry: '-', regularity: '-', bpm120: '-',
+                        zone1: '-', zone2: '-', zone3: '-', zone4: '-',
                         zone5: '-', age: '-', sex: '-', temp: '-', distanceCol: '-',
                         trotHR: '-', walkHR: '-'
                     };
@@ -1624,6 +1640,7 @@
                             fastPercent: '-', recovery15: '-', quality15: '-', hr15Percent: '-',
                             maxSL: '-', slGallop: '-', sfGallop: '-', slWork: '-', sfWork: '-',
                             hr2min: '-', hr5min: '-', symmetry: '-', regularity: '-', bpm120: '-',
+                            zone1: '-', zone2: '-', zone3: '-', zone4: '-',
                             zone5: '-', age: '-', sex: '-', temp: '-', distanceCol: '-',
                             trotHR: '-', walkHR: '-'
                         });
@@ -2861,7 +2878,7 @@
                     'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
                     'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
                     'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
-                    'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp',
+                    'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Age', 'Sex', 'Temp',
                     'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
                 ];
 
@@ -2926,7 +2943,8 @@
                         rowData.fastPercent || '', rowData.recovery15 || '', rowData.quality15 || '',
                         rowData.hr15Percent || '', rowData.maxSL || '', rowData.slGallop || '', rowData.sfGallop || '',
                         rowData.slWork || '', rowData.sfWork || '', rowData.hr2min || '', rowData.hr5min || '',
-                        rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '', rowData.zone5 || '',
+                        rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '',
+                        rowData.zone1 || '', rowData.zone2 || '', rowData.zone3 || '', rowData.zone4 || '', rowData.zone5 || '',
                         rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
                         rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
                     ]);
@@ -3320,7 +3338,7 @@
             const tbody = document.getElementById('horseDetailTableBody');
             
             if (currentHorseDetailData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="38" class="no-data">No training data available for this horse.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="42" class="no-data">No training data available for this horse.</td></tr>';
                 return;
             }
             
@@ -3383,6 +3401,10 @@
                     symmetry: row.symmetry || '-',
                     regularity: row.regularity || '-',
                     bpm120: row.bpm120 || '-',
+                    zone1: row.zone1 || '-',
+                    zone2: row.zone2 || '-',
+                    zone3: row.zone3 || '-',
+                    zone4: row.zone4 || '-',
                     zone5: row.zone5 || '-',
                     age: row.age || '-',
                     sex: row.sex || '-',
@@ -3466,7 +3488,7 @@
                 'Best 1F', 'Best 2F', 'Best 3F', 'Best 4F', 'Best 5F', 'Best 6F', 'Best 7F',
                 'Max HR', 'Fast Recovery', 'Fast Quality', 'Fast %', '15 Recovery', '15 Quality',
                 'HR 15%', 'Max SL', 'SL Gallop', 'SF Gallop', 'SL Work', 'SF Work', 'HR 2 min',
-                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 5', 'Age', 'Sex', 'Temp',
+                'HR 5 min', 'Symmetry', 'Regularity', '120bpm', 'Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Age', 'Sex', 'Temp',
                 'Distance (Col)', 'Trot HR', 'Walk HR', 'Notes'
             ];
 
@@ -3523,7 +3545,8 @@
                     rowData.fastPercent || '', rowData.recovery15 || '', rowData.quality15 || '',
                     rowData.hr15Percent || '', rowData.maxSL || '', rowData.slGallop || '', rowData.sfGallop || '',
                     rowData.slWork || '', rowData.sfWork || '', rowData.hr2min || '', rowData.hr5min || '',
-                    rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '', rowData.zone5 || '',
+                    rowData.symmetry || '', rowData.regularity || '', rowData.bpm120 || '',
+                    rowData.zone1 || '', rowData.zone2 || '', rowData.zone3 || '', rowData.zone4 || '', rowData.zone5 || '',
                     rowData.age || '', rowData.sex || '', rowData.temp || '', rowData.distanceCol || '',
                     rowData.trotHR || '', rowData.walkHR || '', rowData.notes || ''
                 ]);
@@ -4253,6 +4276,10 @@
                     'symmetry': ['Symmetry', 'symmetry', 'SYMMETRY'],
                     'regularity': ['Regularity', 'regularity', 'REGULARITY'],
                     'bpm120': ['120bpm', '120 BPM', 'bpm120', 'BPM_120'],
+                    'zone1': ['Zone 1', 'Zone1', 'zone1', 'ZONE_1'],
+                    'zone2': ['Zone 2', 'Zone2', 'zone2', 'ZONE_2'],
+                    'zone3': ['Zone 3', 'Zone3', 'zone3', 'ZONE_3'],
+                    'zone4': ['Zone 4', 'Zone4', 'zone4', 'ZONE_4'],
                     'zone5': ['Zone 5', 'Zone5', 'zone5', 'ZONE_5'],
                     'age': ['Age', 'age', 'AGE'],
                     'sex': ['Sex', 'sex', 'SEX', 'Gender'],
