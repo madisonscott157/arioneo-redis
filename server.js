@@ -418,11 +418,11 @@ function processSheetData(jsonData, horseName) {
       symmetry: rowData.symmetry || '',
       regularity: rowData.regularity || '',
       bpm120: rowData['120bpm'] || '',
-      zone1: rowData['zone 1'] || '',
-      zone2: rowData['zone 2'] || '',
-      zone3: rowData['zone 3'] || '',
-      zone4: rowData['zone 4'] || '',
-      zone5: rowData['zone 5'] || '',
+      zone1: normalizeDuration(rowData['zone 1'] || ''),
+      zone2: normalizeDuration(rowData['zone 2'] || ''),
+      zone3: normalizeDuration(rowData['zone 3'] || ''),
+      zone4: normalizeDuration(rowData['zone 4'] || ''),
+      zone5: normalizeDuration(rowData['zone 5'] || ''),
       age: rowData.age || '',
       sex: rowData.sex || '',
       temp: rowData.temp || '',
@@ -749,6 +749,27 @@ function formatHorseNameForDisplay(name) {
   return horseName;
 }
 
+// Normalize HH:MM:SS duration format to MM:SS.00
+function normalizeDuration(value) {
+  if (!value || value === 'N/A' || value === '-' || value === '') return value;
+  const str = value.toString().trim();
+
+  // Already MM:SS.00 format - leave as is
+  if (/^\d{2}:\d{2}\.\d{2}$/.test(str)) return str;
+
+  // HH:MM:SS format - convert to MM:SS.00
+  const match = str.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  if (match) {
+    const hours = parseInt(match[1]);
+    const minutes = parseInt(match[2]);
+    const seconds = parseInt(match[3]);
+    const totalMinutes = hours * 60 + minutes;
+    return String(totalMinutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0') + '.00';
+  }
+
+  return str;
+}
+
 // Process raw Arioneo CSV data
 function processArioneoCSV(csvData) {
   const rows = [];
@@ -1002,11 +1023,11 @@ function processArioneoCSV(csvData) {
       symmetry: getValue('symmetry'),
       regularity: getValue('regularity'),
       bpm120: getValue('bpm120'),
-      zone1: getValue('zone1'),
-      zone2: getValue('zone2'),
-      zone3: getValue('zone3'),
-      zone4: getValue('zone4'),
-      zone5: getValue('zone5'),
+      zone1: normalizeDuration(getValue('zone1')),
+      zone2: normalizeDuration(getValue('zone2')),
+      zone3: normalizeDuration(getValue('zone3')),
+      zone4: normalizeDuration(getValue('zone4')),
+      zone5: normalizeDuration(getValue('zone5')),
       age: getValue('age'),
       sex: getValue('sex'),
       temp: getValue('temp'),
@@ -1054,9 +1075,13 @@ function mergeTrainingData(existingData, newData) {
     } else {
       // Update existing row with any new/missing fields from the new data
       const existing = merged[horseName][existingIndex];
+      // Zone fields always get overwritten with normalized values from new upload
+      const alwaysOverwrite = ['zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'bpm120'];
       Object.keys(row).forEach(key => {
-        if (row[key] && row[key] !== '' && row[key] !== '-' && (!existing[key] || existing[key] === '' || existing[key] === '-')) {
-          existing[key] = row[key];
+        if (row[key] && row[key] !== '' && row[key] !== '-') {
+          if (alwaysOverwrite.includes(key) || !existing[key] || existing[key] === '' || existing[key] === '-') {
+            existing[key] = row[key];
+          }
         }
       });
     }
