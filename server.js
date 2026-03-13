@@ -1075,8 +1075,8 @@ function mergeTrainingData(existingData, newData) {
     } else {
       // Update existing row with any new/missing fields from the new data
       const existing = merged[horseName][existingIndex];
-      // Zone fields always get overwritten with normalized values from new upload
-      const alwaysOverwrite = ['zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'bpm120'];
+      // These fields always get overwritten with values from new upload
+      const alwaysOverwrite = ['zone1', 'zone2', 'zone3', 'zone4', 'zone5', 'bpm120', 'distance', 'distanceCol'];
       Object.keys(row).forEach(key => {
         if (row[key] && row[key] !== '' && row[key] !== '-') {
           if (alwaysOverwrite.includes(key) || !existing[key] || existing[key] === '' || existing[key] === '-') {
