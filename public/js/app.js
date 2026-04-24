@@ -3688,6 +3688,14 @@
                         console.log('Loading session:', data.sessionId);
                         localStorage.setItem('currentSessionId', data.sessionId);
                         loadSessionData(data.sessionId);
+                    } else if (currentView === 'bcox') {
+                        // B. Cox is an isolated dataset; do NOT fall back to the
+                        // main-dataset sheets cache in localStorage.
+                        console.log('No B. Cox session yet — showing empty state');
+                        horseData = [];
+                        filteredData = [];
+                        allHorseDetailData = {};
+                        updateDisplays();
                     } else {
                         console.log('No latest session found, loading from current sheet');
                         loadCurrentSheet();
@@ -3696,9 +3704,16 @@
                 })
                 .catch(error => {
                     console.error('Error loading latest session:', error);
-                    console.log('Falling back to current sheet data');
-                    loadCurrentSheet();
-                    updateDisplays();
+                    if (currentView === 'bcox') {
+                        horseData = [];
+                        filteredData = [];
+                        allHorseDetailData = {};
+                        updateDisplays();
+                    } else {
+                        console.log('Falling back to current sheet data');
+                        loadCurrentSheet();
+                        updateDisplays();
+                    }
                 });
         }
         
