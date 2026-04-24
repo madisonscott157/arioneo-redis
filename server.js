@@ -120,6 +120,20 @@ app.get('/api/auth/status', (req, res) => {
 // Apply auth middleware to all routes
 app.use(requireAuth);
 
+// Dataset scoping — isolate B. Cox data from main (Active/Historic).
+// Selected via the `dataset` cookie set by the frontend view switcher.
+const MAIN_SESSION_ID = 'arioneo-main-session';
+const BCOX_SESSION_ID = 'bcox-session';
+function getDatasetScope(req) {
+  return req && req.cookies && req.cookies.dataset === 'bcox' ? 'bcox' : '';
+}
+function getDatasetSessionId(req) {
+  return getDatasetScope(req) === 'bcox' ? BCOX_SESSION_ID : MAIN_SESSION_ID;
+}
+function scopedKey(base, scope) {
+  return scope ? `${base}:${scope}` : base;
+}
+
 // Serve static files (use absolute path for Vercel compatibility)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -178,6 +192,12 @@ const pdfUpload = multer({
 if (typeof global.sessionStorage === 'undefined') {
   global.sessionStorage = new Map();
   global.latestSession = null;
+  global.latestSessionsByScope = {};
+}
+
+// Map a session id to its dataset scope for latest_session bookkeeping
+function scopeForSessionId(sessionId) {
+  return sessionId === BCOX_SESSION_ID ? 'bcox' : '';
 }
 
 // Storage functions with Redis + memory backup
@@ -195,21 +215,25 @@ async function saveSession(sessionId, fileName, horseData, allHorseDetailData, s
     currentSheetName: sheetData?.currentSheetName || null
   };
   
-  // Try to save to Redis first (persistent storage)
-  try {
-    if (redis) {
-      await redis.set(`session:${sessionId}`, JSON.stringify(sessionData));
-      await redis.set('latest_session', JSON.stringify({ sessionId: sessionId, updatedAt: sessionData.updatedAt }));
-      console.log('Session saved to Redis:', sessionId);
-    }
-  } catch (error) {
-    console.error('Error saving to Redis:', error);
-  }
-  
   // Always store in memory as backup
   global.sessionStorage.set(sessionId, sessionData);
-  global.latestSession = { sessionId: sessionId, updatedAt: sessionData.updatedAt };
-  
+  const latestInfo = { sessionId, updatedAt: sessionData.updatedAt };
+  const scope = scopeForSessionId(sessionId);
+  global.latestSessionsByScope[scope] = latestInfo;
+  if (!scope) global.latestSession = latestInfo; // legacy
+
+  // Try to save to Redis (persistent storage)
+  if (redis) {
+    const latestKey = scopedKey('latest_session', scope);
+    try {
+      await redis.set(`session:${sessionId}`, JSON.stringify(sessionData));
+      await redis.set(latestKey, JSON.stringify(latestInfo));
+      console.log('Session saved to Redis:', sessionId);
+    } catch (error) {
+      console.error('Error saving to Redis:', error.message);
+    }
+  }
+
   console.log('Session saved to memory:', sessionId);
 }
 
@@ -280,30 +304,25 @@ async function getSession(sessionId) {
   }
 }
 
-async function getLatestSession() {
+async function getLatestSession(scope = '') {
+  const key = scopedKey('latest_session', scope);
   try {
-    // Try Redis first (persistent storage)
     if (redis) {
-      const redisResult = await redis.get('latest_session');
+      const redisResult = await redis.get(key);
       if (redisResult) {
-        // Upstash Redis auto-parses JSON, so check if it's already an object
         const result = typeof redisResult === 'string' ? JSON.parse(redisResult) : redisResult;
-        console.log('Latest session retrieved from Redis');
-        // Update memory cache
-        global.latestSession = result;
+        global.latestSessionsByScope = global.latestSessionsByScope || {};
+        global.latestSessionsByScope[scope] = result;
+        if (!scope) global.latestSession = result;
         return result;
       }
     }
-    
-    // Fallback to memory
-    const result = global.latestSession;
-    if (result) {
-      console.log('Latest session retrieved from memory');
-    }
-    return result;
+    global.latestSessionsByScope = global.latestSessionsByScope || {};
+    return global.latestSessionsByScope[scope] || (scope ? null : global.latestSession);
   } catch (error) {
     console.error('Error reading latest session:', error);
-    return global.latestSession;
+    global.latestSessionsByScope = global.latestSessionsByScope || {};
+    return global.latestSessionsByScope[scope] || null;
   }
 }
 
@@ -1219,8 +1238,8 @@ function generateHorseSummary(allHorseDetailData, horseMapping = {}) {
 }
 
 // Ensure all horses from training data exist in the mapping
-async function ensureHorsesInMapping(allHorseDetailData) {
-  const mapping = await getHorseMapping();
+async function ensureHorsesInMapping(allHorseDetailData, scope = '') {
+  const mapping = await getHorseMapping(scope);
   let addedCount = 0;
 
   // Invalid horse names to skip
@@ -1269,7 +1288,7 @@ async function ensureHorsesInMapping(allHorseDetailData) {
   }
 
   if (addedCount > 0) {
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, scope);
     console.log(`Auto-added ${addedCount} new horses to mapping`);
   }
 
@@ -1280,31 +1299,37 @@ async function ensureHorsesInMapping(allHorseDetailData) {
 // HORSE-OWNER-COUNTRY MAPPING STORAGE
 // ============================================
 
-async function getHorseMapping() {
+async function getHorseMapping(scope = '') {
+  const key = scopedKey('horse-mapping', scope);
   try {
     if (redis) {
-      const data = await redis.get('horse-mapping');
+      const data = await redis.get(key);
       if (data) {
         return typeof data === 'string' ? JSON.parse(data) : data;
       }
     }
-    return global.horseMapping || {};
+    global.horseMappings = global.horseMappings || {};
+    return global.horseMappings[key] || {};
   } catch (error) {
     console.error('Error getting horse mapping:', error);
-    return global.horseMapping || {};
+    global.horseMappings = global.horseMappings || {};
+    return global.horseMappings[key] || {};
   }
 }
 
-async function saveHorseMapping(mapping) {
-  try {
-    if (redis) {
-      await redis.set('horse-mapping', JSON.stringify(mapping));
+async function saveHorseMapping(mapping, scope = '') {
+  const key = scopedKey('horse-mapping', scope);
+  // Always persist to memory so data survives Redis hiccups locally or in prod.
+  global.horseMappings = global.horseMappings || {};
+  global.horseMappings[key] = mapping;
+  if (redis) {
+    try {
+      await redis.set(key, JSON.stringify(mapping));
+    } catch (error) {
+      console.error(`Error saving horse mapping (${key}) to Redis:`, error.message);
     }
-    global.horseMapping = mapping;
-    console.log('Horse mapping saved');
-  } catch (error) {
-    console.error('Error saving horse mapping:', error);
   }
+  console.log(`Horse mapping saved (${key})`);
 }
 
 // Normalize horse name for comparison (handles year format differences)
@@ -1428,31 +1453,36 @@ function mergeAliasedHorseData(allHorseDetailData, horseMapping) {
 // TRAINING ENTRY EDITS STORAGE
 // ============================================
 
-async function getTrainingEdits() {
+async function getTrainingEdits(scope = '') {
+  const key = scopedKey('training-edits', scope);
   try {
     if (redis) {
-      const data = await redis.get('training-edits');
+      const data = await redis.get(key);
       if (data) {
         return typeof data === 'string' ? JSON.parse(data) : data;
       }
     }
-    return global.trainingEdits || {};
+    global.trainingEditsByScope = global.trainingEditsByScope || {};
+    return global.trainingEditsByScope[key] || {};
   } catch (error) {
     console.error('Error getting training edits:', error);
-    return global.trainingEdits || {};
+    global.trainingEditsByScope = global.trainingEditsByScope || {};
+    return global.trainingEditsByScope[key] || {};
   }
 }
 
-async function saveTrainingEdits(edits) {
-  try {
-    if (redis) {
-      await redis.set('training-edits', JSON.stringify(edits));
+async function saveTrainingEdits(edits, scope = '') {
+  const key = scopedKey('training-edits', scope);
+  global.trainingEditsByScope = global.trainingEditsByScope || {};
+  global.trainingEditsByScope[key] = edits;
+  if (redis) {
+    try {
+      await redis.set(key, JSON.stringify(edits));
+    } catch (error) {
+      console.error(`Error saving training edits (${key}) to Redis:`, error.message);
     }
-    global.trainingEdits = edits;
-    console.log('Training edits saved');
-  } catch (error) {
-    console.error('Error saving training edits:', error);
   }
+  console.log(`Training edits saved (${key})`);
 }
 
 // Apply edits to training data
@@ -1498,36 +1528,41 @@ function applyTrainingEdits(allHorseDetailData, edits, horseMapping) {
 // HORSE NOTES STORAGE
 // ============================================
 
-async function getHorseNotes() {
+async function getHorseNotes(scope = '') {
+  const key = scopedKey('horse-notes', scope);
   try {
     if (redis) {
-      const data = await redis.get('horse-notes');
+      const data = await redis.get(key);
       if (data) {
         return typeof data === 'string' ? JSON.parse(data) : data;
       }
     }
-    return global.horseNotes || {};
+    global.horseNotesByScope = global.horseNotesByScope || {};
+    return global.horseNotesByScope[key] || {};
   } catch (error) {
     console.error('Error getting horse notes:', error);
-    return global.horseNotes || {};
+    global.horseNotesByScope = global.horseNotesByScope || {};
+    return global.horseNotesByScope[key] || {};
   }
 }
 
-async function saveHorseNotes(notes) {
-  try {
-    if (redis) {
-      await redis.set('horse-notes', JSON.stringify(notes));
+async function saveHorseNotes(notes, scope = '') {
+  const key = scopedKey('horse-notes', scope);
+  global.horseNotesByScope = global.horseNotesByScope || {};
+  global.horseNotesByScope[key] = notes;
+  if (redis) {
+    try {
+      await redis.set(key, JSON.stringify(notes));
+    } catch (error) {
+      console.error(`Error saving horse notes (${key}) to Redis:`, error.message);
     }
-    global.horseNotes = notes;
-    console.log('Horse notes saved');
-  } catch (error) {
-    console.error('Error saving horse notes:', error);
   }
+  console.log(`Horse notes saved (${key})`);
 }
 
 // Migrate orphaned notes to canonical horse names via alias resolution
-async function migrateOrphanedNotes(horseMapping) {
-  const notes = await getHorseNotes();
+async function migrateOrphanedNotes(horseMapping, scope = '') {
+  const notes = await getHorseNotes(scope);
   if (!notes || Object.keys(notes).length === 0) return;
 
   let changed = false;
@@ -1554,7 +1589,7 @@ async function migrateOrphanedNotes(horseMapping) {
   }
 
   if (changed) {
-    await saveHorseNotes(notes);
+    await saveHorseNotes(notes, scope);
   }
 }
 
@@ -1623,7 +1658,7 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
     console.log('Processing file:', req.file.originalname);
     const processedData = processExcelData(req.file.path);
     // Use a fixed session ID so the same link always works
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     console.log('Using fixed session ID:', sessionId);
 
     // IMPORTANT: Preserve existing race data before overwriting
@@ -1665,7 +1700,7 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
     }
 
     // Ensure all horses from the upload are in the mapping
-    await ensureHorsesInMapping(processedData.allHorseDetailData);
+    await ensureHorsesInMapping(processedData.allHorseDetailData, getDatasetScope(req));
 
     // Save using KV storage
     try {
@@ -1704,12 +1739,12 @@ app.get('/api/session/:sessionId', async (req, res) => {
     }
 
     // Apply alias merging to combine data for horses with aliases
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const mergedDetailData = mergeAliasedHorseData(sessionData.allHorseDetailData, horseMapping);
 
     // Migrate any orphaned notes, then apply
-    await migrateOrphanedNotes(horseMapping);
-    const horseNotes = await getHorseNotes();
+    await migrateOrphanedNotes(horseMapping, getDatasetScope(req));
+    const horseNotes = await getHorseNotes(getDatasetScope(req));
     const dataWithNotes = applyHorseNotes(mergedDetailData, horseNotes, horseMapping);
 
     const mergedHorseData = generateHorseSummary(dataWithNotes, horseMapping);
@@ -1767,9 +1802,9 @@ app.post('/api/session/:sessionId/sheets', async (req, res) => {
 // Get latest session (for the main page)
 app.get('/api/latest', async (req, res) => {
   console.log('Latest session requested');
-  
+
   try {
-    const latestInfo = await getLatestSession();
+    const latestInfo = await getLatestSession(getDatasetScope(req));
     
     if (!latestInfo) {
       console.log('No sessions found in storage');
@@ -1819,7 +1854,7 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     }
 
     // Get existing session data
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     let existingSession = await getSession(sessionId);
     let existingDetailData = existingSession?.allHorseDetailData || {};
 
@@ -1828,8 +1863,8 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     console.log('Existing data keys:', existingKeys);
 
     // Get training edits and horse mapping
-    const trainingEdits = await getTrainingEdits();
-    let horseMapping = await getHorseMapping();
+    const trainingEdits = await getTrainingEdits(getDatasetScope(req));
+    let horseMapping = await getHorseMapping(getDatasetScope(req));
 
     // Merge new data with existing
     const mergedDetailData = mergeTrainingData(existingDetailData, processedRows);
@@ -1842,17 +1877,17 @@ app.post('/api/upload/arioneo', upload.single('csv'), async (req, res) => {
     const editedDetailData = applyTrainingEdits(mergedDetailData, trainingEdits, horseMapping);
 
     // Ensure all horses from the data are in the mapping
-    await ensureHorsesInMapping(editedDetailData);
+    await ensureHorsesInMapping(editedDetailData, getDatasetScope(req));
 
     // Refresh horse mapping after ensuring horses
-    horseMapping = await getHorseMapping();
+    horseMapping = await getHorseMapping(getDatasetScope(req));
 
     // Apply alias merging to combine data for horses with aliases (for display)
     const aliasedDetailData = mergeAliasedHorseData(editedDetailData, horseMapping);
 
     // Migrate any orphaned notes, then apply for display
-    await migrateOrphanedNotes(horseMapping);
-    const horseNotes = await getHorseNotes();
+    await migrateOrphanedNotes(horseMapping, getDatasetScope(req));
+    const horseNotes = await getHorseNotes(getDatasetScope(req));
     const dataWithNotes = applyHorseNotes(aliasedDetailData, horseNotes, horseMapping);
 
     // Generate summary data (with notes for display)
@@ -1912,14 +1947,14 @@ app.put('/api/training/edit', async (req, res) => {
     console.log(`Editing training entry: ${horse} on ${date}`);
 
     // Resolve alias to canonical name so the edit key matches stored data
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const canonicalHorse = resolveHorseAlias(horse, horseMapping);
     if (canonicalHorse !== horse) {
       console.log(`Resolved edit alias: "${horse}" -> "${canonicalHorse}"`);
     }
 
     // Get existing edits
-    const edits = await getTrainingEdits();
+    const edits = await getTrainingEdits(getDatasetScope(req));
 
     // Create edit key using canonical name
     const editKey = `${canonicalHorse}|${date}`;
@@ -1938,10 +1973,10 @@ app.put('/api/training/edit', async (req, res) => {
       edits[editKey].maxSpeed = raceName;
     }
 
-    await saveTrainingEdits(edits);
+    await saveTrainingEdits(edits, getDatasetScope(req));
 
     // Update the session data with the edit
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     const session = await getSession(sessionId);
 
     if (session && session.allHorseDetailData) {
@@ -1978,7 +2013,7 @@ app.delete('/api/training/delete', async (req, res) => {
 
     console.log(`Deleting training entry: ${horse} on ${date}`);
 
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     const session = await getSession(sessionId);
 
     if (!session || !session.allHorseDetailData) {
@@ -2008,7 +2043,7 @@ app.delete('/api/training/delete', async (req, res) => {
     }
 
     // Regenerate summary and save
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const horseData = generateHorseSummary(session.allHorseDetailData, horseMapping);
     await saveSession(sessionId, session.fileName, horseData, session.allHorseDetailData, {
       allSheets: session.allSheets,
@@ -2030,7 +2065,7 @@ app.delete('/api/training/delete', async (req, res) => {
 // Get all edits
 app.get('/api/training/edits', async (req, res) => {
   try {
-    const edits = await getTrainingEdits();
+    const edits = await getTrainingEdits(getDatasetScope(req));
     res.json({ edits });
   } catch (error) {
     console.error('Error getting training edits:', error);
@@ -2045,7 +2080,7 @@ app.get('/api/training/edits', async (req, res) => {
 // Get all horse mappings
 app.get('/api/horses', async (req, res) => {
   try {
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
     const horses = Object.entries(mapping).map(([name, data]) => ({
       name,
       displayName: formatHorseNameForDisplay(name),
@@ -2083,7 +2118,7 @@ app.post('/api/horses', async (req, res) => {
       return res.status(400).json({ error: 'Horse name is required' });
     }
 
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     // Check if there's an existing mapping with similar name (handles special char variations)
     const nameLower = name.toLowerCase();
@@ -2106,10 +2141,10 @@ app.post('/api/horses', async (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     // Update session data with new mapping
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     const session = await getSession(sessionId);
     if (session && session.allHorseDetailData) {
       const horseData = generateHorseSummary(session.allHorseDetailData, mapping);
@@ -2144,7 +2179,7 @@ app.post('/api/horses/import', upload.single('csv'), async (req, res) => {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
     // Get existing mapping
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     // Parse headers (first row)
     const headers = data[0].map(h => h ? h.toString().toLowerCase().trim() : '');
@@ -2173,13 +2208,13 @@ app.post('/api/horses/import', upload.single('csv'), async (req, res) => {
       }
     }
 
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     // Clean up
     fs.unlinkSync(req.file.path);
 
     // Update session data
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     const session = await getSession(sessionId);
     if (session && session.allHorseDetailData) {
       const horseData = generateHorseSummary(session.allHorseDetailData, mapping);
@@ -2203,14 +2238,14 @@ app.delete('/api/horses/:name', async (req, res) => {
   try {
     const horseName = decodeURIComponent(req.params.name);
 
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     if (!mapping[horseName]) {
       return res.status(404).json({ error: 'Horse not found' });
     }
 
     delete mapping[horseName];
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     res.json({
       success: true,
@@ -2232,7 +2267,7 @@ app.post('/api/horses/merge', async (req, res) => {
       return res.status(400).json({ error: 'Primary name and alias names are required' });
     }
 
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     // Ensure primary horse exists in mapping
     if (!mapping[primaryName]) {
@@ -2288,7 +2323,7 @@ app.post('/api/horses/merge', async (req, res) => {
     }
 
     mapping[primaryName].updatedAt = new Date().toISOString();
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     console.log(`Merged horses: "${primaryName}" now includes aliases: ${addedAliases.join(', ')}`);
 
@@ -2314,7 +2349,7 @@ app.post('/api/horses/unmerge', async (req, res) => {
       return res.status(400).json({ error: 'Primary name and alias name are required' });
     }
 
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     if (!mapping[primaryName]) {
       return res.status(404).json({ error: 'Primary horse not found' });
@@ -2337,7 +2372,7 @@ app.post('/api/horses/unmerge', async (req, res) => {
       addedAt: new Date().toISOString()
     };
 
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     console.log(`Unmerged: removed "${aliasName}" from "${primaryName}"`);
 
@@ -2367,7 +2402,7 @@ app.post('/api/horses/rename', async (req, res) => {
       return res.status(400).json({ error: 'New name must be different from the current name' });
     }
 
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
 
     // Find the old horse entry (might be exact or fuzzy match)
     const oldNameLower = oldName.toLowerCase();
@@ -2416,10 +2451,10 @@ app.post('/api/horses/rename', async (req, res) => {
       delete mapping[oldKey];
     }
 
-    await saveHorseMapping(mapping);
+    await saveHorseMapping(mapping, getDatasetScope(req));
 
     // Migrate notes from old name to new name
-    const notes = await getHorseNotes();
+    const notes = await getHorseNotes(getDatasetScope(req));
     const oldNoteKey = oldKey || oldName;
     if (notes[oldNoteKey] && notes[oldNoteKey].length > 0) {
       if (!notes[newName]) {
@@ -2436,7 +2471,7 @@ app.post('/api/horses/rename', async (req, res) => {
         return parseDate(a.date) - parseDate(b.date);
       });
       delete notes[oldNoteKey];
-      await saveHorseNotes(notes);
+      await saveHorseNotes(notes, getDatasetScope(req));
       console.log(`Migrated ${notes[newName].length} notes from "${oldNoteKey}" to "${newName}"`);
     }
 
@@ -2466,11 +2501,11 @@ app.post('/api/notes', async (req, res) => {
     }
 
     // Resolve alias to canonical name
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const canonicalName = resolveHorseAlias(horseName, horseMapping);
     const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
 
-    const notes = await getHorseNotes();
+    const notes = await getHorseNotes(getDatasetScope(req));
 
     if (!notes[noteKey]) {
       notes[noteKey] = [];
@@ -2482,7 +2517,7 @@ app.post('/api/notes', async (req, res) => {
       createdAt: new Date().toISOString()
     });
 
-    await saveHorseNotes(notes);
+    await saveHorseNotes(notes, getDatasetScope(req));
 
     console.log(`Added note for ${noteKey} on ${date}`);
 
@@ -2502,11 +2537,11 @@ app.post('/api/notes', async (req, res) => {
 app.get('/api/notes/:horseName', async (req, res) => {
   try {
     const { horseName } = req.params;
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const canonicalName = resolveHorseAlias(horseName, horseMapping);
     const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
 
-    const notes = await getHorseNotes();
+    const notes = await getHorseNotes(getDatasetScope(req));
     // Try canonical key, then fall back to original name
     const horseNotes = notes[noteKey] || notes[horseName] || [];
 
@@ -2532,11 +2567,11 @@ app.delete('/api/notes', async (req, res) => {
     }
 
     // Resolve alias to canonical name
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const canonicalName = resolveHorseAlias(horseName, horseMapping);
     const noteKey = Object.keys(horseMapping).find(k => k.toLowerCase() === canonicalName.toLowerCase()) || canonicalName;
 
-    const notes = await getHorseNotes();
+    const notes = await getHorseNotes(getDatasetScope(req));
 
     // Try canonical key, then fall back to original name
     const actualKey = notes[noteKey] ? noteKey : (notes[horseName] ? horseName : null);
@@ -2552,7 +2587,7 @@ app.delete('/api/notes', async (req, res) => {
       return res.status(404).json({ error: 'Note not found for the specified date' });
     }
 
-    await saveHorseNotes(notes);
+    await saveHorseNotes(notes, getDatasetScope(req));
 
     console.log(`Deleted note for ${horseName} on ${date}`);
 
@@ -2582,8 +2617,8 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'File is empty or has no data rows' });
     }
 
-    const horseMapping = await getHorseMapping();
-    const notes = await getHorseNotes();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
+    const notes = await getHorseNotes(getDatasetScope(req));
     const errors = [];
     let successCount = 0;
     let duplicatesSkipped = 0;
@@ -2681,7 +2716,7 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
       });
     }
 
-    await saveHorseNotes(notes);
+    await saveHorseNotes(notes, getDatasetScope(req));
 
     // Clean up uploaded file
     try { fs.unlinkSync(req.file.path); } catch (e) {}
@@ -2712,9 +2747,9 @@ app.post('/api/notes/bulk', upload.single('file'), async (req, res) => {
 // Export all user data as JSON backup
 app.get('/api/backup', async (req, res) => {
   try {
-    const horseMapping = await getHorseMapping();
-    const horseNotes = await getHorseNotes();
-    const trainingEdits = await getTrainingEdits();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
+    const horseNotes = await getHorseNotes(getDatasetScope(req));
+    const trainingEdits = await getTrainingEdits(getDatasetScope(req));
 
     const backup = {
       version: 1,
@@ -2749,18 +2784,18 @@ app.post('/api/restore', express.json({ limit: '50mb' }), async (req, res) => {
     const restored = [];
 
     if (horseMapping && Object.keys(horseMapping).length > 0) {
-      await saveHorseMapping(horseMapping);
+      await saveHorseMapping(horseMapping, getDatasetScope(req));
       restored.push(`${Object.keys(horseMapping).length} horse mappings`);
     }
 
     if (horseNotes && Object.keys(horseNotes).length > 0) {
-      await saveHorseNotes(horseNotes);
+      await saveHorseNotes(horseNotes, getDatasetScope(req));
       const noteCount = Object.values(horseNotes).reduce((sum, arr) => sum + arr.length, 0);
       restored.push(`${noteCount} notes for ${Object.keys(horseNotes).length} horses`);
     }
 
     if (trainingEdits && Object.keys(trainingEdits).length > 0) {
-      await saveTrainingEdits(trainingEdits);
+      await saveTrainingEdits(trainingEdits, getDatasetScope(req));
       restored.push(`${Object.keys(trainingEdits).length} training edits`);
     }
 
@@ -2781,14 +2816,14 @@ app.post('/api/restore', express.json({ limit: '50mb' }), async (req, res) => {
 // Regenerate all display names (apply formatting fixes without re-uploading)
 app.post('/api/regenerate', async (req, res) => {
   try {
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
     const session = await getSession(sessionId);
 
     if (!session || !session.allHorseDetailData) {
       return res.status(404).json({ error: 'No session data found' });
     }
 
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
     const horseData = generateHorseSummary(session.allHorseDetailData, horseMapping);
 
     await saveSession(sessionId, session.fileName, horseData, session.allHorseDetailData);
@@ -2807,7 +2842,7 @@ app.post('/api/regenerate', async (req, res) => {
 // Get list of owners
 app.get('/api/owners', async (req, res) => {
   try {
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
     const owners = [...new Set(Object.values(mapping).map(h => h.owner).filter(Boolean))].sort();
     res.json({ owners });
   } catch (error) {
@@ -2819,7 +2854,7 @@ app.get('/api/owners', async (req, res) => {
 // Get list of countries
 app.get('/api/countries', async (req, res) => {
   try {
-    const mapping = await getHorseMapping();
+    const mapping = await getHorseMapping(getDatasetScope(req));
     const countries = [...new Set(Object.values(mapping).map(h => h.country).filter(Boolean))].sort();
     res.json({ countries });
   } catch (error) {
@@ -2831,18 +2866,26 @@ app.get('/api/countries', async (req, res) => {
 // Clear all session data (to remove stale data)
 app.delete('/api/session/clear', async (req, res) => {
   try {
-    const sessionId = 'arioneo-main-session';
+    const sessionId = getDatasetSessionId(req);
+    const scope = getDatasetScope(req);
+    const latestKey = scopedKey('latest_session', scope);
 
     // Clear from Redis
     if (redis) {
-      await redis.del(`session:${sessionId}`);
-      await redis.del('latest_session');
-      console.log('Session cleared from Redis');
+      try {
+        await redis.del(`session:${sessionId}`);
+        await redis.del(latestKey);
+        console.log(`Session cleared from Redis: ${sessionId}`);
+      } catch (e) {
+        console.error('Error clearing session from Redis:', e.message);
+      }
     }
 
     // Clear from memory
     global.sessionStorage.delete(sessionId);
-    global.latestSession = null;
+    global.latestSessionsByScope = global.latestSessionsByScope || {};
+    delete global.latestSessionsByScope[scope];
+    if (!scope) global.latestSession = null;
 
     res.json({
       success: true,
@@ -2882,19 +2925,27 @@ console.log('Initializing global session storage...');
 async function autoRestoreFromRedis() {
   try {
     if (redis) {
-      // Try to restore main session from Redis
-      const sessionData = await redis.get('session:arioneo-main-session');
-      if (sessionData) {
-        const parsed = JSON.parse(sessionData);
-        global.sessionStorage.set(parsed.id, parsed);
-        console.log('Auto-restored session from Redis');
+      // Restore both main and B. Cox sessions from Redis
+      for (const sid of [MAIN_SESSION_ID, BCOX_SESSION_ID]) {
+        const sessionData = await redis.get(`session:${sid}`);
+        if (sessionData) {
+          const parsed = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+          global.sessionStorage.set(parsed.id || sid, parsed);
+          console.log(`Auto-restored session ${sid} from Redis`);
+        }
       }
-      
-      // Try to restore latest session info
-      const latestSession = await redis.get('latest_session');
-      if (latestSession) {
-        global.latestSession = JSON.parse(latestSession);
-        console.log('Auto-restored latest session info from Redis');
+
+      // Restore latest-session pointers for both scopes
+      global.latestSessionsByScope = global.latestSessionsByScope || {};
+      for (const scope of ['', 'bcox']) {
+        const key = scopedKey('latest_session', scope);
+        const info = await redis.get(key);
+        if (info) {
+          const parsed = typeof info === 'string' ? JSON.parse(info) : info;
+          global.latestSessionsByScope[scope] = parsed;
+          if (!scope) global.latestSession = parsed;
+          console.log(`Auto-restored latest session pointer (${key})`);
+        }
       }
     }
   } catch (error) {
@@ -2909,7 +2960,7 @@ autoRestoreFromRedis();
 app.get('/api/restore', async (req, res) => {
   try {
     await autoRestoreFromRedis();
-    const sessionData = await getSession('arioneo-main-session');
+    const sessionData = await getSession(getDatasetSessionId(req));
     const hasData = sessionData !== null;
     
     res.json({ 
@@ -2926,7 +2977,7 @@ app.get('/api/restore', async (req, res) => {
 // Add a health check that also checks data
 app.get('/api/health', async (req, res) => {
   try {
-    const sessionData = await getSession('arioneo-main-session');
+    const sessionData = await getSession(getDatasetSessionId(req));
     const hasData = sessionData !== null;
     
     res.json({ 
@@ -2953,10 +3004,10 @@ app.get('/api/redis-test', async (req, res) => {
       return res.json({ error: 'Redis not connected' });
     }
     
-    const testResult = await redis.get('session:arioneo-main-session');
+    const testResult = await redis.get(`session:${getDatasetSessionId(req)}`);
     
     // Test what getSession returns
-    const sessionResult = await getSession('arioneo-main-session');
+    const sessionResult = await getSession(getDatasetSessionId(req));
     
     res.json({ 
       keyExists: !!testResult,
@@ -3922,7 +3973,7 @@ function fuzzyMatchHorse(chartHorseName, existingHorses) {
 // Check for duplicate race entries
 async function checkDuplicateRace(horseName, raceDate, track) {
   try {
-    const sessionData = await getSession('arioneo-main-session');
+    const sessionData = await getSession(getDatasetSessionId(req));
     if (!sessionData || !sessionData.allHorseDetailData) {
       return false;
     }
@@ -3960,8 +4011,8 @@ app.post('/api/upload/race-charts', pdfUpload.array('pdfs', 50), async (req, res
     console.log(`Processing ${req.files.length} race chart PDFs`);
 
     // Get existing horses for fuzzy matching from BOTH horse mapping AND session training data
-    const horseMapping = await getHorseMapping();
-    const sessionData = await getSession('arioneo-main-session');
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
+    const sessionData = await getSession(getDatasetSessionId(req));
 
     // Combine horses from mapping and training data
     const existingHorsesMap = new Map();
@@ -4161,10 +4212,10 @@ app.post('/api/race-charts/save', async (req, res) => {
     }
 
     // Get current session data
-    let sessionData = await getSession('arioneo-main-session');
+    let sessionData = await getSession(getDatasetSessionId(req));
     if (!sessionData) {
       sessionData = {
-        id: 'arioneo-main-session',
+        id: getDatasetSessionId(req),
         fileName: 'race-charts',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -4176,7 +4227,7 @@ app.post('/api/race-charts/save', async (req, res) => {
     const savedRaces = [];
     const skippedRaces = [];
 
-    const horseMapping = await getHorseMapping();
+    const horseMapping = await getHorseMapping(getDatasetScope(req));
 
     for (const race of races) {
       // Resolve horse name through alias mapping first, then match existing keys
@@ -4270,7 +4321,7 @@ app.post('/api/race-charts/save', async (req, res) => {
       savedRaces.push({ horseName: horseKey, date: race.date });
 
       // Ensure horse is in horse mapping
-      const currentMapping = await getHorseMapping();
+      const currentMapping = await getHorseMapping(getDatasetScope(req));
       if (!currentMapping[horseKey.toLowerCase()]) {
         // Add to mapping if new horse was manually created
         if (race.isNewHorse) {
@@ -4281,7 +4332,7 @@ app.post('/api/race-charts/save', async (req, res) => {
             country: race.country || '-',
             isHistoric: false
           };
-          await saveHorseMapping(currentMapping);
+          await saveHorseMapping(currentMapping, getDatasetScope(req));
         }
       }
     }

@@ -526,9 +526,22 @@
         // Initialize multi-sheet functionality
         loadAllSheets();
 
+        // Restore dataset selection from cookie (B. Cox vs main)
+        (function restoreDatasetSelection() {
+            const m = document.cookie.match(/(?:^|;\s*)dataset=(bcox|main)/);
+            const dataset = m ? m[1] : 'main';
+            const selector = document.getElementById('viewSelector');
+            if (selector && dataset === 'bcox') {
+                selector.value = 'bcox';
+                currentView = 'bcox';
+            }
+            // Ensure cookie is always set so fetch requests route correctly
+            document.cookie = `dataset=${dataset}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
+        })();
+
         // Load horse mapping for filters
         loadHorseFilters();
-        
+
         // Check for latest session on page load
         loadLatestSession();
         document.getElementById('horseFilter').addEventListener('input', filterData);
@@ -2643,13 +2656,16 @@
             const countryFilter = document.getElementById('countryFilter')?.value || '';
 
             filteredData = horseData.filter(horse => {
-                // Filter by active/historic view
-                const isHistoric = horse.isHistoric || false;
-                if (currentView === 'active' && isHistoric) {
-                    return false;
-                }
-                if (currentView === 'historic' && !isHistoric) {
-                    return false;
+                // B. Cox is its own isolated dataset — show all horses in it,
+                // skip the active/historic split.
+                if (currentView !== 'bcox') {
+                    const isHistoric = horse.isHistoric || false;
+                    if (currentView === 'active' && isHistoric) {
+                        return false;
+                    }
+                    if (currentView === 'historic' && !isHistoric) {
+                        return false;
+                    }
                 }
 
                 // Search by both name and displayName
@@ -2706,8 +2722,24 @@
 
         function switchView() {
             const viewSelector = document.getElementById('viewSelector');
-            currentView = viewSelector.value;
-            filterData();
+            const newView = viewSelector.value;
+            const prevDataset = currentView === 'bcox' ? 'bcox' : 'main';
+            const newDataset = newView === 'bcox' ? 'bcox' : 'main';
+            currentView = newView;
+
+            // Persist the dataset selection so every subsequent request hits the right bucket.
+            document.cookie = `dataset=${newDataset}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
+
+            if (prevDataset !== newDataset) {
+                // Switching between main and B. Cox: reload data from the new dataset.
+                horseData = [];
+                filteredData = [];
+                allHorseDetailData = {};
+                loadHorseFilters();
+                loadLatestSession();
+            } else {
+                filterData();
+            }
         }
 
         function sortTable(column) {
