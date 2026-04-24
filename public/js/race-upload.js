@@ -1,6 +1,16 @@
 // Race Chart Upload Module
 // Handles bulk PDF upload, parsing, review, and saving of race results
 
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 class RaceChartUploader {
     constructor() {
         this.modal = null;
@@ -156,7 +166,7 @@ class RaceChartUploader {
                 ${pdfFiles.map((f, i) => `
                     <div class="file-item">
                         <span class="file-icon">📄</span>
-                        <span class="file-name" title="${f.name}">${this.truncateFileName(f.name)}</span>
+                        <span class="file-name" title="${escapeHtml(f.name)}">${escapeHtml(this.truncateFileName(f.name))}</span>
                     </div>
                 `).join('')}
             </div>
@@ -301,12 +311,12 @@ class RaceChartUploader {
                         <div class="data-field">
                             <label>Date</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="date"
-                                   value="${this.formatDisplayDate(d.raceDate)}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(this.formatDisplayDate(d.raceDate))}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>Track</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="track"
-                                   value="${d.track || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.track || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>Surface</label>
@@ -321,17 +331,17 @@ class RaceChartUploader {
                         <div class="data-field">
                             <label>Distance</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="distance"
-                                   value="${d.distance || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.distance || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>Race Type</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="raceType"
-                                   value="${d.raceType || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.raceType || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>Final Time</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="finalTime"
-                                   value="${d.finalTime || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.finalTime || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>Avg Speed</label>
@@ -343,51 +353,51 @@ class RaceChartUploader {
                         <div class="data-field">
                             <label>Finish</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="finishPosition"
-                                   value="${d.posFin || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.posFin || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field">
                             <label>5F Reduction</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="fiveFReduction"
-                                   value="${d.fiveFReductionTime || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.fiveFReductionTime || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                     </div>
                     <div class="data-row fractionals-row">
                         <div class="data-field small">
                             <label>1/4 Pos</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="pos1_4"
-                                   value="${d.pos1_4 || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.pos1_4 || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field small">
                             <label>1/4 Time</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="f1Time"
-                                   value="${d.f1Time || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.f1Time || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field small">
                             <label>1/2 Pos</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="pos1_2"
-                                   value="${d.pos1_2 || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.pos1_2 || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field small">
                             <label>1/2 Time</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="f2Time"
-                                   value="${d.f2Time || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.f2Time || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field small">
                             <label>3/4 Pos</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="pos3_4"
-                                   value="${d.pos3_4 || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.pos3_4 || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                         <div class="data-field small">
                             <label>3/4 Time</label>
                             <input type="text" class="review-input small" data-index="${index}" data-field="f3Time"
-                                   value="${d.f3Time || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.f3Time || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                     </div>
                     <div class="data-row">
                         <div class="data-field full-width">
                             <label>Comments</label>
                             <input type="text" class="review-input" data-index="${index}" data-field="comments"
-                                   value="${d.comment || ''}" ${result.isDuplicate ? 'disabled' : ''}>
+                                   value="${escapeHtml(d.comment || '')}" ${result.isDuplicate ? 'disabled' : ''}>
                         </div>
                     </div>
                 </div>
@@ -396,7 +406,7 @@ class RaceChartUploader {
             // Manual entry form for parse errors
             cardContent = `
                 <div class="review-card-error">
-                    <p class="error-message">${result.error}</p>
+                    <p class="error-message">${escapeHtml(result.error)}</p>
                     <div class="manual-entry-toggle">
                         <button class="race-btn race-btn-small" onclick="raceUploader.showManualEntry(${index})">
                             Enter Data Manually
@@ -414,7 +424,7 @@ class RaceChartUploader {
                 <div class="review-card-header">
                     <div class="card-file-info">
                         <span class="status-icon">${statusIcon}</span>
-                        <span class="file-name">${result.fileName}</span>
+                        <span class="file-name">${escapeHtml(result.fileName)}</span>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </div>
                     <label class="include-checkbox">
@@ -471,7 +481,7 @@ class RaceChartUploader {
                     ? `${valueName} (from chart: ${chartName})`
                     : chartName;
                 const isSelected = valueName.toLowerCase() === autoSelectHorse.toLowerCase();
-                return `<option value="${valueName}" ${isSelected ? 'selected' : ''}>${displayName}</option>`;
+                return `<option value="${escapeHtml(valueName)}" ${isSelected ? 'selected' : ''}>${escapeHtml(displayName)}</option>`;
             }).join('');
             options += '</optgroup>';
         }
@@ -485,7 +495,7 @@ class RaceChartUploader {
                 options += '<optgroup label="Other horses in system">';
                 options += existingNotInChart.map(h => {
                     const isSelected = h.name.toLowerCase() === autoSelectHorse.toLowerCase();
-                    return `<option value="${h.name}" ${isSelected ? 'selected' : ''}>${h.displayName || h.name}</option>`;
+                    return `<option value="${escapeHtml(h.name)}" ${isSelected ? 'selected' : ''}>${escapeHtml(h.displayName || h.name)}</option>`;
                 }).join('');
                 options += '</optgroup>';
             }

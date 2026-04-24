@@ -17,6 +17,17 @@ const AUTH_USERNAME = process.env.AUTH_USERNAME || 'admin';
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || 'password';
 const AUTH_SECRET = process.env.SESSION_SECRET || 'horse-training-secret-key-2024';
 
+// Warn (don't crash) if production is using default credentials
+if (process.env.NODE_ENV === 'production') {
+  const missing = [];
+  if (!process.env.AUTH_USERNAME) missing.push('AUTH_USERNAME');
+  if (!process.env.AUTH_PASSWORD) missing.push('AUTH_PASSWORD');
+  if (!process.env.SESSION_SECRET) missing.push('SESSION_SECRET');
+  if (missing.length > 0) {
+    console.warn(`[SECURITY WARNING] Running in production with default credentials. Missing env vars: ${missing.join(', ')}`);
+  }
+}
+
 // Generate auth token from credentials
 function generateAuthToken() {
   return crypto.createHmac('sha256', AUTH_SECRET)
@@ -2843,59 +2854,6 @@ app.delete('/api/session/clear', async (req, res) => {
   }
 });
 
-// Debug endpoint to see current data structure
-app.get('/api/debug/data', async (req, res) => {
-  try {
-    const sessionId = 'arioneo-main-session';
-    const session = await getSession(sessionId);
-
-    if (!session) {
-      return res.json({ hasData: false, message: 'No session data found' });
-    }
-
-    // Get keys from allHorseDetailData to see what the grouping looks like
-    const horseKeys = Object.keys(session.allHorseDetailData || {});
-    const sampleData = {};
-
-    // Get first entry from each horse for debugging
-    horseKeys.slice(0, 5).forEach(key => {
-      const entries = session.allHorseDetailData[key];
-      sampleData[key] = {
-        entryCount: entries ? entries.length : 0,
-        firstEntry: entries && entries[0] ? {
-          date: entries[0].date,
-          horse: entries[0].horse,
-          type: entries[0].type,
-          track: entries[0].track
-        } : null
-      };
-    });
-
-    res.json({
-      hasData: true,
-      sessionId: session.id,
-      fileName: session.fileName,
-      horseDataCount: session.horseData ? session.horseData.length : 0,
-      horseDetailKeys: horseKeys,
-      horseDetailKeyCount: horseKeys.length,
-      sampleData: sampleData
-    });
-  } catch (error) {
-    console.error('Error in debug endpoint:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Debug route - disabled in production for security
-app.get('/api/debug', (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  res.json({
-    message: 'Server is working (dev only)',
-    redisConnected: redis !== null
-  });
-});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -4053,6 +4011,13 @@ app.post('/api/upload/race-charts', pdfUpload.array('pdfs', 50), async (req, res
       try {
         // Read and parse PDF
         const pdfBuffer = fs.readFileSync(file.path);
+        // Validate PDF magic bytes (%PDF-) — don't trust extension alone
+        if (pdfBuffer.length < 5 || pdfBuffer.slice(0, 5).toString('ascii') !== '%PDF-') {
+          result.error = 'Not a valid PDF file (bad magic bytes)';
+          results.push(result);
+          try { fs.unlinkSync(file.path); } catch (e) {}
+          continue;
+        }
         const pdfData = await pdfParse(pdfBuffer);
         const text = pdfData.text;
 

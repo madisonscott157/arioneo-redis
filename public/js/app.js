@@ -1,3 +1,13 @@
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         let horseData = [];
         let filteredData = [];
         let currentSort = { column: 'lastTrainingDate', order: 'desc' };
@@ -1707,7 +1717,7 @@
                 const ownerSelect = document.getElementById('ownerFilter');
                 if (ownerSelect && data.owners) {
                     ownerSelect.innerHTML = '<option value="">All Owners</option>' +
-                        data.owners.map(o => `<option value="${o}">${o}</option>`).join('');
+                        data.owners.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
                 }
 
                 // Populate country filter
@@ -1715,7 +1725,7 @@
                 if (countrySelect && data.countries) {
                     countrySelect.innerHTML = '<option value="">All Countries</option>' +
                         '<option value="-">- (No Country)</option>' +
-                        data.countries.map(c => `<option value="${c}">${c}</option>`).join('');
+                        data.countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
                 }
 
                 console.log('Loaded filters - Owners:', data.owners?.length || 0, 'Countries:', data.countries?.length || 0);
@@ -1902,7 +1912,7 @@
                     renameList.innerHTML = data.horses.map(h => {
                         const displayName = h.displayName || h.name;
                         window._renameHorseMap[displayName.toLowerCase()] = h.name;
-                        return `<option value="${displayName}">`;
+                        return `<option value="${escapeHtml(displayName)}">`;
                     }).join('');
                 }
 
@@ -1956,17 +1966,17 @@
                     // Show aliases if any
                     const aliases = h.aliases || [];
                     const aliasDisplay = aliases.length > 0
-                        ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">Also: ${aliases.join(', ')}</div>`
+                        ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">Also: ${escapeHtml(aliases.join(', '))}</div>`
                         : '';
 
                     return `
                     <tr>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                            ${displayName}
+                            ${escapeHtml(displayName)}
                             ${aliasDisplay}
                         </td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.owner || '-'}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${h.country || '-'}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(h.owner || '-')}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(h.country || '-')}</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">
                             <span style="color: ${statusColor}; font-weight: bold; margin-right: 8px;">${statusText}</span>
                             <button onclick="toggleHorseStatusEncoded('${encodedName}', ${!isHistoric})" style="padding: 2px 6px; cursor: pointer; font-size: 11px;">${toggleText}</button>
@@ -2182,7 +2192,7 @@
                 return `
                     <label style="display: block; padding: 5px; cursor: pointer; border-bottom: 1px solid #eee;">
                         <input type="checkbox" class="merge-horse-checkbox" value="${encodedName}" onchange="updatePrimarySelect()">
-                        ${displayName}${aliasInfo}
+                        ${escapeHtml(displayName)}${aliasInfo}
                     </label>
                 `;
             }).join('');
@@ -2208,7 +2218,7 @@
                 const name = decodeURIComponent(atob(cb.value));
                 const horse = window.horseMappingData.find(h => h.name === name);
                 const displayName = horse ? (horse.displayName || horse.name) : name;
-                return `<option value="${cb.value}">${displayName}</option>`;
+                return `<option value="${cb.value}">${escapeHtml(displayName)}</option>`;
             }).join('');
         }
 
@@ -2757,15 +2767,15 @@
                 const displayName = horse.displayName || horse.name;
                 return `
                     <tr class="clickable-row" data-index="${index}">
-                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${displayName}</span></td>
-                        <td>${horse.owner || '-'}</td>
-                        <td>${horse.country || '-'}</td>
-                        <td class="last-work-cell">${horse.lastTrainingDate || horse.lastWorkDate || '-'}</td>
-                        <td class="age-cell age-col">${horse.age || '-'}</td>
-                        <td class="time-cell">${horse.best1f || '-'}</td>
-                        <td class="time-cell best5f-col" ${best5fStyle}>${horse.best5f || '-'}</td>
-                        <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${horse.fastRecovery || '-'}</td>
-                        <td class="recovery15-cell" ${recovery15Style}>${horse.recovery15min || '-'}</td>
+                        <td class="horse-name-cell"><span style="color: inherit; font-weight: bold;">${escapeHtml(displayName)}</span></td>
+                        <td>${escapeHtml(horse.owner || '-')}</td>
+                        <td>${escapeHtml(horse.country || '-')}</td>
+                        <td class="last-work-cell">${escapeHtml(horse.lastTrainingDate || horse.lastWorkDate || '-')}</td>
+                        <td class="age-cell age-col">${escapeHtml(horse.age || '-')}</td>
+                        <td class="time-cell">${escapeHtml(horse.best1f || '-')}</td>
+                        <td class="time-cell best5f-col" ${best5fStyle}>${escapeHtml(horse.best5f || '-')}</td>
+                        <td class="recovery-cell fast-recovery-col" ${fastRecoveryStyle}>${escapeHtml(horse.fastRecovery || '-')}</td>
+                        <td class="recovery15-cell" ${recovery15Style}>${escapeHtml(horse.recovery15min || '-')}</td>
                     </tr>
                 `;
             }).join('');
@@ -3369,50 +3379,50 @@
                 }).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                 const cellData = {
-                    date: row.date || '-',
-                    horse: `<strong>${row.horse || '-'}</strong>`,
-                    type: `<div class="type-cell-content">${row.type || '-'}</div>`,
-                    track: row.track || '-',
-                    surface: row.surface || '-',
-                    distance: row.distance || '-',
-                    avgSpeed: row.avgSpeed && !isNaN(parseFloat(row.avgSpeed)) ? parseFloat(row.avgSpeed).toFixed(1) : (row.avgSpeed || '-'),
-                    maxSpeed: row.maxSpeed && !isNaN(parseFloat(row.maxSpeed)) ? parseFloat(row.maxSpeed).toFixed(1) : (row.maxSpeed || '-'),
-                    best1f: row.best1f || '-',
-                    best2f: row.best2f || '-',
-                    best3f: row.best3f || '-',
-                    best4f: row.best4f || '-',
-                    best5f: row.best5f || '-',
-                    best6f: row.best6f || '-',
-                    best7f: row.best7f || '-',
-                    maxHR: row.maxHR || '-',
-                    fastRecovery: row.fastRecovery || '-',
-                    fastQuality: row.fastQuality || '-',
-                    fastPercent: row.fastPercent || '-',
-                    recovery15: row.recovery15 || '-',
-                    quality15: row.quality15 || '-',
-                    hr15Percent: row.hr15Percent || '-',
-                    maxSL: row.maxSL || '-',
-                    slGallop: row.slGallop || '-',
-                    sfGallop: row.sfGallop || '-',
-                    slWork: row.slWork && !isNaN(parseFloat(row.slWork)) ? parseFloat(row.slWork).toFixed(2) : (row.slWork || '-'),
-                    sfWork: row.sfWork || '-',
-                    hr2min: row.hr2min || '-',
-                    hr5min: row.hr5min || '-',
-                    symmetry: row.symmetry || '-',
-                    regularity: row.regularity || '-',
-                    bpm120: row.bpm120 || '-',
-                    zone1: row.zone1 || '-',
-                    zone2: row.zone2 || '-',
-                    zone3: row.zone3 || '-',
-                    zone4: row.zone4 || '-',
-                    zone5: row.zone5 || '-',
-                    age: row.age || '-',
-                    sex: row.sex || '-',
-                    temp: row.temp || '-',
-                    distanceCol: row.distanceCol || '-',
-                    trotHR: row.trotHR || '-',
-                    walkHR: row.walkHR || '-',
-                    notes: row.notes ? `<span title="${row.notes}" style="cursor: help; max-width: 150px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${row.notes.length > 20 ? row.notes.substring(0, 20) + '...' : row.notes}</span>` : '-'
+                    date: escapeHtml(row.date || '-'),
+                    horse: `<strong>${escapeHtml(row.horse || '-')}</strong>`,
+                    type: `<div class="type-cell-content">${escapeHtml(row.type || '-')}</div>`,
+                    track: escapeHtml(row.track || '-'),
+                    surface: escapeHtml(row.surface || '-'),
+                    distance: escapeHtml(row.distance || '-'),
+                    avgSpeed: escapeHtml(row.avgSpeed && !isNaN(parseFloat(row.avgSpeed)) ? parseFloat(row.avgSpeed).toFixed(1) : (row.avgSpeed || '-')),
+                    maxSpeed: escapeHtml(row.maxSpeed && !isNaN(parseFloat(row.maxSpeed)) ? parseFloat(row.maxSpeed).toFixed(1) : (row.maxSpeed || '-')),
+                    best1f: escapeHtml(row.best1f || '-'),
+                    best2f: escapeHtml(row.best2f || '-'),
+                    best3f: escapeHtml(row.best3f || '-'),
+                    best4f: escapeHtml(row.best4f || '-'),
+                    best5f: escapeHtml(row.best5f || '-'),
+                    best6f: escapeHtml(row.best6f || '-'),
+                    best7f: escapeHtml(row.best7f || '-'),
+                    maxHR: escapeHtml(row.maxHR || '-'),
+                    fastRecovery: escapeHtml(row.fastRecovery || '-'),
+                    fastQuality: escapeHtml(row.fastQuality || '-'),
+                    fastPercent: escapeHtml(row.fastPercent || '-'),
+                    recovery15: escapeHtml(row.recovery15 || '-'),
+                    quality15: escapeHtml(row.quality15 || '-'),
+                    hr15Percent: escapeHtml(row.hr15Percent || '-'),
+                    maxSL: escapeHtml(row.maxSL || '-'),
+                    slGallop: escapeHtml(row.slGallop || '-'),
+                    sfGallop: escapeHtml(row.sfGallop || '-'),
+                    slWork: escapeHtml(row.slWork && !isNaN(parseFloat(row.slWork)) ? parseFloat(row.slWork).toFixed(2) : (row.slWork || '-')),
+                    sfWork: escapeHtml(row.sfWork || '-'),
+                    hr2min: escapeHtml(row.hr2min || '-'),
+                    hr5min: escapeHtml(row.hr5min || '-'),
+                    symmetry: escapeHtml(row.symmetry || '-'),
+                    regularity: escapeHtml(row.regularity || '-'),
+                    bpm120: escapeHtml(row.bpm120 || '-'),
+                    zone1: escapeHtml(row.zone1 || '-'),
+                    zone2: escapeHtml(row.zone2 || '-'),
+                    zone3: escapeHtml(row.zone3 || '-'),
+                    zone4: escapeHtml(row.zone4 || '-'),
+                    zone5: escapeHtml(row.zone5 || '-'),
+                    age: escapeHtml(row.age || '-'),
+                    sex: escapeHtml(row.sex || '-'),
+                    temp: escapeHtml(row.temp || '-'),
+                    distanceCol: escapeHtml(row.distanceCol || '-'),
+                    trotHR: escapeHtml(row.trotHR || '-'),
+                    walkHR: escapeHtml(row.walkHR || '-'),
+                    notes: row.notes ? `<span title="${escapeHtml(row.notes)}" style="cursor: help; max-width: 150px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(row.notes.length > 20 ? row.notes.substring(0, 20) + '...' : row.notes)}</span>` : '-'
                 };
 
                 const rowHTML = columnOrder.map(col => {
